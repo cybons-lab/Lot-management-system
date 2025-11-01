@@ -1,87 +1,79 @@
+# backend/app/main.py
+"""
+FastAPI メインアプリケーション
+ロット管理システム v2.0
+"""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import lots, admin
+from contextlib import asynccontextmanager
+
 from app.core.config import settings
 from app.core.database import init_db
-
-# FastAPIアプリケーションの作成
-app = FastAPI(
-    title="Lot Management System API",
-    version="1.0.0",
-    description="ロット管理システムのバックエンドAPI",
+from app.api import (
+    masters_router,
+    lots_router,
+    receipts_router,
+    orders_router,
+    integration_router,
+    admin_router,
 )
 
-# CORSミドルウェアの設定
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """アプリケーションのライフサイクル管理"""
+    # 起動時
+    print(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} を起動しています...")
+    print(f"📦 環境: {settings.ENVIRONMENT}")
+    print(f"💾 データベース: {settings.DATABASE_URL}")
+    
+    # データベース初期化
+    init_db()
+    
+    yield
+    
+    # 終了時
+    print("👋 アプリケーションを終了しています...")
+
+
+# FastAPIアプリケーション作成
+app = FastAPI(
+    title=settings.APP_NAME,
+    version=settings.APP_VERSION,
+    description="材料ロット管理システム - バックエンドAPI",
+    lifespan=lifespan,
+)
+
+# CORS設定
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins_list,
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-@app.on_event("startup")
-async def startup_event():
-    """アプリケーション起動時の処理"""
-    # データベースの初期化
-    init_db()
-    print("🚀 Application started successfully")
-    print(f"📊 Environment: {settings.ENVIRONMENT}")
-    print(f"🗄️  Database: {settings.DATABASE_URL}")
+# ルーター登録
+app.include_router(masters_router, prefix=settings.API_PREFIX)
+app.include_router(lots_router, prefix=settings.API_PREFIX)
+app.include_router(receipts_router, prefix=settings.API_PREFIX)
+app.include_router(orders_router, prefix=settings.API_PREFIX)
+app.include_router(integration_router, prefix=settings.API_PREFIX)
+app.include_router(admin_router, prefix=settings.API_PREFIX)
 
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """アプリケーション終了時の処理"""
-    print("👋 Application shutting down")
-
-
-# ルーターの登録
-app.include_router(
-    lots.router,
-    prefix="/api/lots",
-    tags=["lots"]
-)
-
-app.include_router(
-    admin.router,
-    prefix="/api/admin",
-    tags=["admin"]
-)
-
-
+# ルートエンドポイント
 @app.get("/")
-def read_root():
-    """
-    ルートエンドポイント
-    
-    Returns:
-        dict: APIの基本情報
-    """
+def root():
+    """ルートエンドポイント"""
     return {
-        "message": "Lot Management System API",
-        "version": "1.0.0",
-        "docs": "/docs",
-        "health": "/api/admin/health"
-    }
-
-
-@app.get("/api")
-def api_info():
-    """
-    API情報エンドポイント
-    
-    Returns:
-        dict: API情報
-    """
-    return {
-        "endpoints": {
-            "lots": "/api/lots",
-            "admin": "/api/admin",
-            "health": "/api/admin/health",
-            "reset": "/api/admin/reset-database (開発環境のみ)"
-        }
+        "app": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "environment": settings.ENVIRONMENT,
+        "api_docs": f"{settings.API_PREFIX}/docs",
+        "health": f"{settings.API_PREFIX}/admin/health",
     }
 
 
@@ -91,5 +83,5 @@ if __name__ == "__main__":
         "app.main:app",
         host="0.0.0.0",
         port=8000,
-        reload=True
+        reload=settings.ENVIRONMENT == "development"
     )

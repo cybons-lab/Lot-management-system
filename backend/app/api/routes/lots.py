@@ -1,141 +1,263 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from typing import List
-from app.api.deps import get_db_session
-from app.models import Lot
-from app.schemas import LotCreate, LotUpdate, LotResponse
+# backend/app/api/routes/lots.py
+"""
+ロット・在庫管理のAPIエンドポイント
+"""
 
-router = APIRouter()
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+from sqlalchemy import func, and_
+from typing import List, Optional
+from datetime import date, datetime
+
+from app.api.deps import get_db
+from app.models import (
+    Lot, StockMovement, LotCurrentStock, Product, 
+    Warehouse, Supplier
+)
+from app.schemas import (
+    LotCreate, LotUpdate, LotResponse,
+    StockMovementCreate, StockMovementResponse,
+    LotCurrentStockResponse,
+)
+from app.core.config import settings
+
+router = APIRouter(prefix="/lots", tags=["lots"])
 
 
 @router.get("", response_model=List[LotResponse])
-def get_lots(
+def list_lots(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db_session)
+    product_code: Optional[str] = None,
+    supplier_code: Optional[str] = None,
+    warehouse_code: Optional[str] = None,
+    expiry_from: Optional[date] = None,
+    expiry_to: Optional[date] = None,
+    with_stock: bool = True,
+    db: Session = Depends(get_db)
 ):
     """
-    ロット一覧を取得
+    ロット一覧取得
     
     Args:
-        skip: スキップする件数
-        limit: 取得する最大件数
-        db: データベースセッション
-    
-    Returns:
-        List[LotResponse]: ロット一覧
+        skip: スキップ件数
+        limit: 取得件数
+        product_code: 製品コードでフィルタ
+        supplier_code: 仕入先コードでフィルタ
+        warehouse_code: 倉庫コードでフィルタ
+        expiry_from: 有効期限開始日
+        expiry_to: 有効期限終了日
+        with_stock: 在庫あり(>0)のみ取得
     """
-    lots = db.query(Lot).offset(skip).limit(limit).all()
-    return lots
+    query = db.query(Lot)
+    
+    # フィルタ適用
+    if product_code:
+        query = query.filter(Lot.product_code == product_code)
+    if supplier_code:
+        query = query.filter(Lot.supplier_code == supplier_code)
+    if warehouse_code:
+        query = query.filter(Lot.warehouse_code == warehouse_code)
+    if expiry_from:
+        query = query.filter(Lot.expiry_date >= expiry_from)
+    if expiry_to:
+        query = query.filter(Lot.expiry_date <= expiry_to)
+    
+    # 在庫ありのみ
+    if with_stock:
+        query = query.join(LotCurrentStock).filter(LotCurrentStock.current_quantity > 0)
+    
+    # FEFO(先入先出): 有効期限昇順
+    query = query.order_by(Lot.expiry_date.asc().nullslast())
+    
+    lots = query.offset(skip).limit(limit).all()
+    
+    # 現在在庫を付与
+    result = []
+    for lot in lots:
+        lot_dict = LotResponse.model_validate(lot).model_dump()
+        if lot.current_stock:
+            lot_dict["current_stock"] = lot.current_stock.current_quantity
+        else:
+            lot_dict["current_stock"] = 0.0
+        result.append(LotResponse(**lot_dict))
+    
+    return result
+
+
+@router.post("", response_model=LotResponse, status_code=201)
+def create_lot(
+    lot: LotCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    ロット新規登録
+    
+    - ロットマスタ登録
+    - 現在在庫テーブル初期化
+    """
+    # 重複チェック
+    existing = db.query(Lot).filter(
+        and_(
+            Lot.supplier_code == lot.supplier_code,
+            Lot.product_code == lot.product_code,
+            Lot.lot_number == lot.lot_number
+        )
+    ).first()
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail="同じ仕入先・製品・ロット番号の組み合わせが既に存在します"
+        )
+    
+    # マスタ存在チェック
+    product = db.query(Product).filter(Product.product_code == lot.product_code).first()
+    if not product:
+        raise HTTPException(status_code=404, detail=f"製品コード '{lot.product_code}' が見つかりません")
+    
+    supplier = db.query(Supplier).filter(Supplier.supplier_code == lot.supplier_code).first()
+    if not supplier:
+        raise HTTPException(status_code=404, detail=f"仕入先コード '{lot.supplier_code}' が見つかりません")
+    
+    if lot.warehouse_code:
+        warehouse = db.query(Warehouse).filter(Warehouse.warehouse_code == lot.warehouse_code).first()
+        if not warehouse:
+            raise HTTPException(status_code=404, detail=f"倉庫コード '{lot.warehouse_code}' が見つかりません")
+    
+    # ロット作成
+    db_lot = Lot(**lot.model_dump())
+    db.add(db_lot)
+    db.flush()
+    
+    # 現在在庫初期化
+    current_stock = LotCurrentStock(
+        lot_id=db_lot.id,
+        current_quantity=0.0
+    )
+    db.add(current_stock)
+    
+    db.commit()
+    db.refresh(db_lot)
+    
+    # レスポンス
+    response = LotResponse.model_validate(db_lot)
+    response.current_stock = 0.0
+    return response
 
 
 @router.get("/{lot_id}", response_model=LotResponse)
 def get_lot(
     lot_id: int,
-    db: Session = Depends(get_db_session)
+    db: Session = Depends(get_db)
 ):
-    """
-    指定されたIDのロットを取得
-    
-    Args:
-        lot_id: ロットID
-        db: データベースセッション
-    
-    Returns:
-        LotResponse: ロット情報
-    
-    Raises:
-        HTTPException: ロットが見つからない場合
-    """
+    """ロット詳細取得"""
     lot = db.query(Lot).filter(Lot.id == lot_id).first()
     if not lot:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"ロットID {lot_id} が見つかりません"
-        )
-    return lot
-
-
-@router.post("", response_model=LotResponse, status_code=status.HTTP_201_CREATED)
-def create_lot(
-    lot: LotCreate,
-    db: Session = Depends(get_db_session)
-):
-    """
-    新しいロットを作成
+        raise HTTPException(status_code=404, detail="ロットが見つかりません")
     
-    Args:
-        lot: ロット作成データ
-        db: データベースセッション
-    
-    Returns:
-        LotResponse: 作成されたロット情報
-    """
-    db_lot = Lot(**lot.model_dump())
-    db.add(db_lot)
-    db.commit()
-    db.refresh(db_lot)
-    return db_lot
+    response = LotResponse.model_validate(lot)
+    if lot.current_stock:
+        response.current_stock = lot.current_stock.current_quantity
+    else:
+        response.current_stock = 0.0
+    return response
 
 
 @router.put("/{lot_id}", response_model=LotResponse)
 def update_lot(
     lot_id: int,
     lot: LotUpdate,
-    db: Session = Depends(get_db_session)
+    db: Session = Depends(get_db)
 ):
-    """
-    ロット情報を更新
-    
-    Args:
-        lot_id: ロットID
-        lot: 更新データ
-        db: データベースセッション
-    
-    Returns:
-        LotResponse: 更新されたロット情報
-    
-    Raises:
-        HTTPException: ロットが見つからない場合
-    """
+    """ロット更新"""
     db_lot = db.query(Lot).filter(Lot.id == lot_id).first()
     if not db_lot:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"ロットID {lot_id} が見つかりません"
-        )
+        raise HTTPException(status_code=404, detail="ロットが見つかりません")
     
-    # 更新データを適用
-    update_data = lot.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
+    for key, value in lot.model_dump(exclude_unset=True).items():
         setattr(db_lot, key, value)
     
+    db_lot.updated_at = datetime.now()
     db.commit()
     db.refresh(db_lot)
-    return db_lot
+    
+    response = LotResponse.model_validate(db_lot)
+    if db_lot.current_stock:
+        response.current_stock = db_lot.current_stock.current_quantity
+    return response
 
 
-@router.delete("/{lot_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{lot_id}", status_code=204)
 def delete_lot(
     lot_id: int,
-    db: Session = Depends(get_db_session)
+    db: Session = Depends(get_db)
 ):
-    """
-    ロットを削除
-    
-    Args:
-        lot_id: ロットID
-        db: データベースセッション
-    
-    Raises:
-        HTTPException: ロットが見つからない場合
-    """
+    """ロット削除"""
     db_lot = db.query(Lot).filter(Lot.id == lot_id).first()
     if not db_lot:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"ロットID {lot_id} が見つかりません"
-        )
+        raise HTTPException(status_code=404, detail="ロットが見つかりません")
     
     db.delete(db_lot)
     db.commit()
+    return None
+
+
+# ===== Stock Movements =====
+@router.get("/{lot_id}/movements", response_model=List[StockMovementResponse])
+def list_lot_movements(
+    lot_id: int,
+    db: Session = Depends(get_db)
+):
+    """ロットの在庫変動履歴取得"""
+    movements = db.query(StockMovement).filter(
+        StockMovement.lot_id == lot_id
+    ).order_by(StockMovement.occurred_at.desc()).all()
+    return movements
+
+
+@router.post("/movements", response_model=StockMovementResponse, status_code=201)
+def create_stock_movement(
+    movement: StockMovementCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    在庫変動記録
+    
+    - 在庫変動履歴追加
+    - 現在在庫更新
+    """
+    # ロット存在チェック
+    lot = db.query(Lot).filter(Lot.id == movement.lot_id).first()
+    if not lot:
+        raise HTTPException(status_code=404, detail="ロットが見つかりません")
+    
+    # 在庫変動記録
+    db_movement = StockMovement(**movement.model_dump())
+    db.add(db_movement)
+    
+    # 現在在庫更新
+    current_stock = db.query(LotCurrentStock).filter(
+        LotCurrentStock.lot_id == movement.lot_id
+    ).first()
+    
+    if current_stock:
+        current_stock.current_quantity += movement.quantity
+        current_stock.last_updated = datetime.now()
+    else:
+        current_stock = LotCurrentStock(
+            lot_id=movement.lot_id,
+            current_quantity=movement.quantity
+        )
+        db.add(current_stock)
+    
+    # マイナス在庫チェック
+    if current_stock.current_quantity < 0:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail=f"在庫不足: 現在在庫 {current_stock.current_quantity + movement.quantity}, 要求 {abs(movement.quantity)}"
+        )
+    
+    db.commit()
+    db.refresh(db_movement)
+    return db_movement

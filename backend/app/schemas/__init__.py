@@ -1,51 +1,93 @@
-from pydantic import BaseModel, Field
-from typing import Optional
-from datetime import datetime
-from app.models import LotStatus
+# backend/app/schemas/__init__.py
+"""
+Schemas Package
+Pydantic スキーマの集約
+"""
 
+from .base import BaseSchema, TimestampMixin, ResponseBase
 
-# Lotスキーマ
-class LotBase(BaseModel):
-    """ロットの基本スキーマ"""
-    name: str = Field(..., min_length=1, max_length=255, description="ロット名")
-    quantity: float = Field(..., gt=0, description="数量")
-    status: LotStatus = Field(default=LotStatus.PENDING, description="ステータス")
-    description: Optional[str] = Field(None, max_length=1000, description="説明")
+from .masters import (
+    # Warehouse
+    WarehouseBase, WarehouseCreate, WarehouseUpdate, WarehouseResponse,
+    # Supplier
+    SupplierBase, SupplierCreate, SupplierUpdate, SupplierResponse,
+    # Customer
+    CustomerBase, CustomerCreate, CustomerUpdate, CustomerResponse,
+    # Product
+    ProductBase, ProductCreate, ProductUpdate, ProductResponse,
+    # ProductUomConversion
+    ProductUomConversionBase, ProductUomConversionCreate, 
+    ProductUomConversionUpdate, ProductUomConversionResponse,
+)
 
+from .inventory import (
+    # Lot
+    LotBase, LotCreate, LotUpdate, LotResponse,
+    # StockMovement
+    StockMovementBase, StockMovementCreate, StockMovementResponse,
+    # LotCurrentStock
+    LotCurrentStockResponse,
+    # Receipt
+    ReceiptHeaderBase, ReceiptHeaderCreate, ReceiptHeaderResponse,
+    ReceiptLineBase, ReceiptLineCreate, ReceiptLineResponse,
+    ReceiptCreateRequest, ReceiptResponse,
+    # ExpiryRule
+    ExpiryRuleBase, ExpiryRuleCreate, ExpiryRuleUpdate, ExpiryRuleResponse,
+)
 
-class LotCreate(LotBase):
-    """ロット作成用スキーマ"""
-    pass
+from .sales import (
+    # Order
+    OrderBase, OrderCreate, OrderUpdate, OrderResponse,
+    OrderWithLinesResponse,
+    # OrderLine
+    OrderLineBase, OrderLineCreate, OrderLineResponse,
+    # Allocation
+    AllocationBase, AllocationCreate, AllocationResponse,
+    DragAssignRequest, DragAssignResponse,
+    # Shipping
+    ShippingBase, ShippingCreate, ShippingUpdate, ShippingResponse,
+    # PurchaseRequest
+    PurchaseRequestBase, PurchaseRequestCreate, 
+    PurchaseRequestUpdate, PurchaseRequestResponse,
+)
 
+from .integration import (
+    # OCR
+    OcrOrderRecord, OcrSubmissionRequest, OcrSubmissionResponse,
+    # SAP
+    SapRegisterTarget, SapRegisterOptions, SapRegisterRequest, 
+    SapRegisterResponse, SapSyncLogResponse,
+)
 
-class LotUpdate(BaseModel):
-    """ロット更新用スキーマ"""
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    quantity: Optional[float] = Field(None, gt=0)
-    status: Optional[LotStatus] = None
-    description: Optional[str] = Field(None, max_length=1000)
-
-
-class LotResponse(LotBase):
-    """ロットレスポンス用スキーマ"""
-    id: int
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-# APIレスポンススキーマ
-class ApiResponse(BaseModel):
-    """API共通レスポンススキーマ"""
-    success: bool = Field(..., description="成功したかどうか")
-    message: Optional[str] = Field(None, description="メッセージ")
-    data: Optional[dict] = Field(None, description="データ")
-
-
-class ResetResponse(BaseModel):
-    """データベースリセットレスポンス"""
-    success: bool
-    message: str
-    deleted_tables: list[str]
+__all__ = [
+    # Base
+    "BaseSchema", "TimestampMixin", "ResponseBase",
+    # Masters
+    "WarehouseBase", "WarehouseCreate", "WarehouseUpdate", "WarehouseResponse",
+    "SupplierBase", "SupplierCreate", "SupplierUpdate", "SupplierResponse",
+    "CustomerBase", "CustomerCreate", "CustomerUpdate", "CustomerResponse",
+    "ProductBase", "ProductCreate", "ProductUpdate", "ProductResponse",
+    "ProductUomConversionBase", "ProductUomConversionCreate", 
+    "ProductUomConversionUpdate", "ProductUomConversionResponse",
+    # Inventory
+    "LotBase", "LotCreate", "LotUpdate", "LotResponse",
+    "StockMovementBase", "StockMovementCreate", "StockMovementResponse",
+    "LotCurrentStockResponse",
+    "ReceiptHeaderBase", "ReceiptHeaderCreate", "ReceiptHeaderResponse",
+    "ReceiptLineBase", "ReceiptLineCreate", "ReceiptLineResponse",
+    "ReceiptCreateRequest", "ReceiptResponse",
+    "ExpiryRuleBase", "ExpiryRuleCreate", "ExpiryRuleUpdate", "ExpiryRuleResponse",
+    # Sales
+    "OrderBase", "OrderCreate", "OrderUpdate", "OrderResponse",
+    "OrderWithLinesResponse",
+    "OrderLineBase", "OrderLineCreate", "OrderLineResponse",
+    "AllocationBase", "AllocationCreate", "AllocationResponse",
+    "DragAssignRequest", "DragAssignResponse",
+    "ShippingBase", "ShippingCreate", "ShippingUpdate", "ShippingResponse",
+    "PurchaseRequestBase", "PurchaseRequestCreate", 
+    "PurchaseRequestUpdate", "PurchaseRequestResponse",
+    # Integration
+    "OcrOrderRecord", "OcrSubmissionRequest", "OcrSubmissionResponse",
+    "SapRegisterTarget", "SapRegisterOptions", "SapRegisterRequest", 
+    "SapRegisterResponse", "SapSyncLogResponse",
+]

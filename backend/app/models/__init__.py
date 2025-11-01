@@ -1,38 +1,71 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Enum
-from sqlalchemy.sql import func
-from app.core.database import Base
-import enum
+# backend/app/models/__init__.py
+"""
+Models Package
 
+この__init__.pyは、app.modelsパッケージの「窓口」として機能します。
+各ファイルで定義されたモデルクラスをインポートし、
+他のモジュール(APIルートなど)が
+`from app.models import Lot, Order, Product`
+のように簡単にアクセスできるようにします。
+"""
 
-class LotStatus(str, enum.Enum):
-    """ロットのステータス"""
-    PENDING = "pending"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-    CANCELLED = "cancelled"
+# 1. 共通のBaseをインポートする
+from .base_model import Base
 
+# 2. 各ドメインのモデルをすべてインポートする
+from .masters import (
+    Warehouse,
+    Supplier,
+    Customer,
+    Product,
+    ProductUomConversion,
+)
 
-class Lot(Base):
-    """ロット管理テーブル"""
-    __tablename__ = "lots"
+from .inventory import (
+    Lot,
+    StockMovement,
+    LotCurrentStock,
+    ReceiptHeader,
+    ReceiptLine,
+    ExpiryRule,
+)
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), nullable=False, index=True)
-    quantity = Column(Float, nullable=False)
-    status = Column(
-        Enum(LotStatus),
-        default=LotStatus.PENDING,
-        nullable=False,
-        index=True
-    )
-    description = Column(String(1000), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False
-    )
+from .sales import (
+    Order,
+    OrderLine,
+    Allocation,
+    Shipping,
+    PurchaseRequest,
+)
 
-    def __repr__(self):
-        return f"<Lot(id={self.id}, name={self.name}, status={self.status})>"
+from .logs import (
+    OcrSubmission,
+    SapSyncLog,
+)
+
+# 3. 外部に公開するモデルを明示
+__all__ = [
+    "Base",
+    # Masters
+    "Warehouse",
+    "Supplier",
+    "Customer",
+    "Product",
+    "ProductUomConversion",
+    # Inventory
+    "Lot",
+    "StockMovement",
+    "LotCurrentStock",
+    "ReceiptHeader",
+    "ReceiptLine",
+    "ExpiryRule",
+    # Sales
+    "Order",
+    "OrderLine",
+    "Allocation",
+    "Shipping",
+    "PurchaseRequest",
+    # Logs
+    "OcrSubmission",
+    "SapSyncLog",
+]

@@ -1,0 +1,45 @@
+# backend/app/models/logs.py
+"""
+連携・ログ関連のモデル定義
+OCR取込ログ、SAP連携ログ
+"""
+
+from sqlalchemy import Column, Integer, Text, ForeignKey, DateTime, func
+from sqlalchemy.orm import relationship
+from .base_model import Base
+
+
+class OcrSubmission(Base):
+    """OCR取込ログ"""
+    __tablename__ = "ocr_submissions"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    submission_id = Column(Text, unique=True)
+    source_file = Column(Text)
+    source = Column(Text)  # PAD, API, etc.
+    operator = Column(Text)
+    schema_version = Column(Text)
+    target_type = Column(Text, default='order')  # order, receipt, etc.
+    submission_date = Column(DateTime, default=func.now())
+    status = Column(Text)  # success, partial, failed
+    total_records = Column(Integer)
+    processed_records = Column(Integer)
+    failed_records = Column(Integer)
+    skipped_records = Column(Integer)
+    error_details = Column(Text)
+    created_at = Column(DateTime, default=func.now())
+
+
+class SapSyncLog(Base):
+    """SAP連携ログ"""
+    __tablename__ = "sap_sync_logs"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    order_id = Column(Integer, ForeignKey("orders.id"))
+    payload = Column(Text)  # 送信データ(JSON)
+    result = Column(Text)  # 受信データ(JSON)
+    status = Column(Text)  # success, timeout, error
+    executed_at = Column(DateTime, default=func.now())
+    
+    # リレーション
+    order = relationship("Order", back_populates="sap_sync_logs")

@@ -1,37 +1,34 @@
-from sqlalchemy import create_engine, event
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.engine import Engine
-from app.core.config import settings
+# backend/app/core/database.py
+"""
+データベース接続設定
+SQLAlchemyセッション管理
+"""
 
-# SQLiteの外部キー制約を有効化
-@event.listens_for(Engine, "connect")
-def set_sqlite_pragma(dbapi_conn, connection_record):
-    """SQLite接続時に外部キー制約を有効化"""
-    cursor = dbapi_conn.cursor()
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.close()
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
+from typing import Generator
 
-# データベースエンジンの作成
+from .config import settings
+from app.models import Base
+
+
+# エンジンの作成
 engine = create_engine(
     settings.DATABASE_URL,
-    connect_args={"check_same_thread": False},  # SQLite用の設定
-    echo=settings.is_development,  # 開発環境ではSQLログを出力
+    connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {},
+    echo=settings.ENVIRONMENT == "development",  # 開発環境ではSQLログを出力
 )
 
-# セッションローカルの作成
+# セッションファクトリの作成
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# ベースクラスの作成
-Base = declarative_base()
 
-
-def get_db():
+def get_db() -> Generator[Session, None, None]:
     """
-    データベースセッションを取得する依存性注入用の関数
+    データベースセッションの依存性注入用関数
     
     Yields:
-        Session: データベースセッション
+        Session: SQLAlchemyセッション
     """
     db = SessionLocal()
     try:
@@ -40,19 +37,26 @@ def get_db():
         db.close()
 
 
-def init_db():
+def init_db() -> None:
     """
-    データベースの初期化（テーブル作成）
+    データベースの初期化
+    全テーブルの作成
     """
-    from app.models import Base as ModelsBase
-    ModelsBase.metadata.create_all(bind=engine)
+    # すべてのモデルをインポート(Base.metadataに登録)
+    import app.models  # noqa
+    
+    # テーブル作成
+    Base.metadata.create_all(bind=engine)
+    print("✅ データベーステーブルを作成しました")
 
 
-def reset_db():
+def drop_db() -> None:
     """
-    データベースのリセット（全テーブル削除後、再作成）
-    警告: 全データが削除されます
+    データベースの削除
+    全テーブルの削除(開発環境のみ)
     """
-    from app.models import Base as ModelsBase
-    ModelsBase.metadata.drop_all(bind=engine)
-    ModelsBase.metadata.create_all(bind=engine)
+    if settings.ENVIRONMENT != "production":
+        Base.metadata.drop_all(bind=engine)
+        print("🗑️  データベーステーブルを削除しました")
+    else:
+        raise ValueError("本番環境ではデータベースの削除はできません")

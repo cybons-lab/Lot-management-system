@@ -1,37 +1,58 @@
+# backend/app/core/config.py
+"""
+アプリケーション設定
+環境変数と定数の管理
+"""
+
+import os
+from pathlib import Path
 from pydantic_settings import BaseSettings
-from typing import List
 
 
 class Settings(BaseSettings):
-    """アプリケーション設定"""
+    """アプリケーション設定クラス"""
     
-    # Database
-    DATABASE_URL: str = "sqlite:///./lot_management.db"
+    # アプリケーション基本設定
+    APP_NAME: str = "ロット管理システム"
+    APP_VERSION: str = "2.0.0"
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     
-    # Security
-    SECRET_KEY: str = "your-secret-key-change-this-in-production-min-32-characters"
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    # データベース設定
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL",
+        f"sqlite:///{Path(__file__).parent.parent.parent / 'lot_management.db'}"
+    )
     
-    # CORS
-    ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
+    # CORS設定
+    CORS_ORIGINS: list[str] = [
+        "http://localhost:5173",  # Vite default port
+        "http://localhost:3000",  # React default port
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000",
+    ]
     
-    # Environment
-    ENVIRONMENT: str = "development"
+    # API設定
+    API_PREFIX: str = "/api"
     
-    @property
-    def allowed_origins_list(self) -> List[str]:
-        """CORS許可オリジンのリストを返す"""
-        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
+    # ページネーション設定
+    DEFAULT_PAGE_SIZE: int = 100
+    MAX_PAGE_SIZE: int = 1000
     
-    @property
-    def is_development(self) -> bool:
-        """開発環境かどうか"""
-        return self.ENVIRONMENT == "development"
+    # 期限アラート設定 (日数)
+    ALERT_EXPIRY_CRITICAL_DAYS: int = 30  # 赤色アラート
+    ALERT_EXPIRY_WARNING_DAYS: int = 60   # 黄色アラート
+    
+    # ファイルアップロード設定
+    UPLOAD_DIR: Path = Path(__file__).parent.parent.parent / "uploads"
+    MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10MB
     
     class Config:
-        env_file = ".env"
         case_sensitive = True
+        env_file = ".env"
 
 
+# グローバル設定インスタンス
 settings = Settings()
+
+# アップロードディレクトリの作成
+settings.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
