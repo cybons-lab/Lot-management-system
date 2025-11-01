@@ -25,7 +25,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"; // 5.1で追加
+} from "@/components/ui/select";
 import type {
   LotResponse,
   LotCreate,
@@ -102,14 +102,14 @@ export default function InventoryPage() {
 
   // ロット作成 (v2.0)
   const createLotMutation = useMutation({
-    mutationFn: (data: LotCreate) => api.createLot(data), // v2.0のapi.createLot
+    mutationFn: (data: LotCreate) => api.createLot(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lots"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
       setIsAddDialogOpen(false);
       reset(defaultValues);
     },
     onError: (error) => {
-      // TODO: エラーをトースト表示
       console.error(error);
       alert(`登録失敗: ${error.message}`);
     },
@@ -121,7 +121,6 @@ export default function InventoryPage() {
   const onSubmit = (data: LotCreateFormInput) => {
     const input: LotCreate = {
       ...data,
-      // オプショナルなフィールドを undefined に変換
       expiry_date: data.expiry_date || undefined,
       warehouse_code: data.warehouse_code || undefined,
     };
@@ -195,12 +194,13 @@ export default function InventoryPage() {
                     render={({ field }) => (
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value ?? ""}
                         disabled={isLoadingProducts}>
                         <SelectTrigger id="product_code">
                           <SelectValue placeholder="製品を選択..." />
                         </SelectTrigger>
                         <SelectContent>
+                          {/* 🔽 修正: value="" の Item を削除 */}
                           {products.map((p) => (
                             <SelectItem
                               key={p.product_code}
@@ -228,12 +228,13 @@ export default function InventoryPage() {
                     render={({ field }) => (
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value ?? ""}
                         disabled={isLoadingSuppliers}>
                         <SelectTrigger id="supplier_code">
                           <SelectValue placeholder="仕入先を選択..." />
                         </SelectTrigger>
                         <SelectContent>
+                          {/* 🔽 修正: value="" の Item を削除 */}
                           {suppliers.map((s) => (
                             <SelectItem
                               key={s.supplier_code}
@@ -303,6 +304,7 @@ export default function InventoryPage() {
                           <SelectValue placeholder="倉庫を選択..." />
                         </SelectTrigger>
                         <SelectContent>
+                          {/* (ここは value="" が「指定なし」なのでOK) */}
                           <SelectItem value="">（指定なし）</SelectItem>
                           {warehouses.map((w) => (
                             <SelectItem
@@ -378,7 +380,7 @@ export default function InventoryPage() {
               </tr>
             </thead>
             <tbody>
-              {isLoadingLots ? ( // isLoading -> isLoadingLots
+              {isLoadingLots ? (
                 <tr>
                   <td colSpan={7} className="h-24 text-center">
                     読み込み中...
@@ -391,7 +393,6 @@ export default function InventoryPage() {
                   </td>
                 </tr>
               ) : (
-                // (テーブルボディのmapロジックはステップ4で完了しているので変更なし)
                 filteredLots.map((lot) => (
                   <tr key={lot.id} className="border-b">
                     <td className="p-4 align-middle font-medium">
@@ -405,7 +406,7 @@ export default function InventoryPage() {
                       )}
                     </td>
                     <td className="p-4 align-middle font-semibold">
-                      {lot.current_stock}
+                      {lot.current_stock ?? 0}
                     </td>
                     <td className="p-4 align-middle">
                       {format(parseISO(lot.receipt_date), "yyyy/MM/dd")}

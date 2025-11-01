@@ -4,14 +4,16 @@
 """
 
 import traceback
+from datetime import date  # ⬅️ 1. この行を追加 (または確認)
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func, text  # <-- func をインポート
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.core.config import settings
-from app.models import (  # <-- 修正
+from app.core.database import drop_db, init_db
+from app.models import (
     Lot,
     LotCurrentStock,
     Order,
@@ -21,7 +23,7 @@ from app.models import (  # <-- 修正
     ReceiptLine,
     StockMovement,
 )
-from app.schemas import (  # <-- 修正
+from app.schemas import (
     DashboardStatsResponse,
     FullSampleDataRequest,
     ResponseBase,
@@ -29,7 +31,65 @@ from app.schemas import (  # <-- 修正
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
-# ... (health_check, reset_database は変更なし) ...
+
+@router.get("/health")
+def health_check(db: Session = Depends(get_db)):
+    """
+    ヘルスチェック
+    """
+    try:
+        # DB接続確認
+        db.execute(text("SELECT 1"))
+        db_status = "healthy"
+    except Exception:
+        db_status = "unhealthy"
+
+    return {
+        "status": "healthy",
+        "environment": settings.ENVIRONMENT,
+        "app_name": settings.APP_NAME,
+        "app_version": settings.APP_VERSION,
+        "database": db_status,
+    }
+
+
+@router.post("/reset-database", response_model=ResponseBase)
+def reset_database(db: Session = Depends(get_db)):
+    """
+    データベースリセット
+    (開発環境のみ)
+    """
+    if settings.ENVIRONMENT == "production":
+        raise HTTPException(
+            status_code=403, detail="本番環境ではデータベースのリセットはできません"
+        )
+
+    try:
+        drop_db()
+        init_db()
+
+        # AdminPage.tsx の load_full_sample_data がマスタも投入するが、
+        # ここでも最低限のマスタを投入しておく（init-sample-dataの簡易版）
+        sample_masters = """
+        INSERT OR IGNORE INTO warehouses (warehouse_code, warehouse_name, is_active) VALUES
+        ('WH001', '第一倉庫', 1), ('WH002', '第二倉庫', 1);
+        INSERT OR IGNORE INTO suppliers (supplier_code, supplier_name) VALUES
+        ('SUP001', 'サプライヤーA'), ('SUP002', 'サプライヤーB');
+        INSERT OR IGNORE INTO customers (customer_code, customer_name) VALUES
+        ('CUS001', '得意先A'), ('CUS002', '得意先B');
+        """
+        for statement in sample_masters.split(";"):
+            if statement.strip():
+                db.execute(text(statement))
+        db.commit()
+
+        return ResponseBase(success=True, message="データベースをリセットしました")
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500, detail=f"DBリセット失敗: {e}\n{traceback.format_exc()}"
+        )
 
 
 @router.get("/stats", response_model=DashboardStatsResponse)
@@ -77,8 +137,8 @@ def load_full_sample_data(data: FullSampleDataRequest, db: Session = Depends(get
     try:
         # サンプルマスタデータ
         sample_masters = """
-        INSERT OR IGNORE INTO warehouses (warehouse_code, warehouse_name) VALUES
-        ('WH001', '第一倉庫'), ('WH002', '第二倉庫');
+        INSERT OR IGNORE INTO warehouses (warehouse_code, warehouse_name, is_active) VALUES
+        ('WH001', '第一倉庫', 1), ('WH002', '第二倉庫', 1);
         INSERT OR IGNORE INTO suppliers (supplier_code, supplier_name) VALUES
         ('SUP001', 'サプライヤーA'), ('SUP002', 'サプライヤーB');
         INSERT OR IGNORE INTO customers (customer_code, customer_name) VALUES
@@ -119,32 +179,51 @@ def load_full_sample_data(data: FullSampleDataRequest, db: Session = Depends(get
             db.commit()
 
         # 2. ロット (Lots) - この時点では在庫0
+        # (Pydanticスキーマが 'date' 型なので自動変換される)
         if data.lots:
             for l_data in data.lots:
+                existing_lot = (
+                    db.query(Lot)
+                    .filter_by(
+                        supplier_code=l_data.supplier_code,
+                        product_code=l_data.product_code,
+                        lot_number=l_data.lot_number,
+                    )
+                    .first()
+                )
+                if existing_lot:
+                    continue
+
                 db_lot = Lot(**l_data.model_dump())
                 db.add(db_lot)
-                db.flush()  # lot.id を確定させる
+                db.flush()
 
-                # 在庫サマリテーブルも初期化
                 current_stock = LotCurrentStock(lot_id=db_lot.id, current_quantity=0.0)
                 db.add(current_stock)
                 counts["lots"] += 1
             db.commit()
 
         # 3. 入荷 (Receipts) - 在庫を増やす
+        # (Pydanticスキーマが 'date' 型なので自動変換される)
         if data.receipts:
             for r_data in data.receipts:
-                # ヘッダ作成
+                existing_receipt = (
+                    db.query(ReceiptHeader)
+                    .filter_by(receipt_no=r_data.receipt_no)
+                    .first()
+                )
+                if existing_receipt:
+                    continue
+
                 db_header = ReceiptHeader(
                     receipt_no=r_data.receipt_no,
                     supplier_code=r_data.supplier_code,
                     warehouse_code=r_data.warehouse_code,
-                    receipt_date=r_data.receipt_date,
+                    receipt_date=r_data.receipt_date,  # Pydanticが 'date' に変換済み
                 )
                 db.add(db_header)
                 db.flush()
 
-                # 明細作成 & 在庫計上
                 for line in r_data.lines:
                     db_line = ReceiptLine(
                         header_id=db_header.id,
@@ -156,7 +235,6 @@ def load_full_sample_data(data: FullSampleDataRequest, db: Session = Depends(get
                     )
                     db.add(db_line)
 
-                    # 在庫変動
                     movement = StockMovement(
                         lot_id=line.lot_id,
                         movement_type="receipt",
@@ -165,7 +243,6 @@ def load_full_sample_data(data: FullSampleDataRequest, db: Session = Depends(get
                     )
                     db.add(movement)
 
-                    # 現在在庫更新
                     stock = (
                         db.query(LotCurrentStock).filter_by(lot_id=line.lot_id).first()
                     )
@@ -183,17 +260,51 @@ def load_full_sample_data(data: FullSampleDataRequest, db: Session = Depends(get
         # 4. 受注 (Orders) - OCR取込のロジックを簡易的に再現
         if data.orders:
             for o_data in data.orders:
+                existing_order = (
+                    db.query(Order).filter_by(order_no=o_data.order_no).first()
+                )
+                if existing_order:
+                    continue
+
+                # --- 🔽 2. ここを修正 🔽 ---
+                # 'YYYY-MM-DD' の文字列を Python の date オブジェクトに変換
+                order_date_obj = None
+                if o_data.order_date:
+                    try:
+                        # Pydanticスキーマ(OcrOrderRecord)では 'str' なので変換
+                        order_date_obj = date.fromisoformat(o_data.order_date)
+                    except (ValueError, TypeError):
+                        pass  # 不正な形式の場合は None のまま
+
                 db_order = Order(
                     order_no=o_data.order_no,
                     customer_code=o_data.customer_code,
-                    order_date=o_data.order_date if o_data.order_date else None,
+                    order_date=order_date_obj,  # 修正: 文字列ではなく date オブジェクトを渡す
                     status="open",
                 )
+                # --- 🔼 修正完了 🔼 ---
+
                 db.add(db_order)
                 db.flush()
 
                 for line in o_data.lines:
-                    db_line = OrderLine(order_id=db_order.id, **line.model_dump())
+                    # --- 🔽 3. (念のため) OrderLine の due_date も変換 🔽 ---
+                    due_date_obj = None
+                    if line.due_date:
+                        try:
+                            # Pydantic(OrderLineCreate)が自動変換するはずだが、念のため
+                            if isinstance(line.due_date, str):
+                                due_date_obj = date.fromisoformat(line.due_date)
+                            else:
+                                due_date_obj = line.due_date  # 既にdateオブジェクト
+                        except (ValueError, TypeError):
+                            pass
+
+                    line_data = line.model_dump()
+                    line_data["due_date"] = due_date_obj  # date オブジェクトで上書き
+
+                    db_line = OrderLine(order_id=db_order.id, **line_data)
+                    # --- 🔼 修正完了 🔼 ---
                     db.add(db_line)
                 counts["orders"] += 1
             db.commit()
@@ -204,6 +315,7 @@ def load_full_sample_data(data: FullSampleDataRequest, db: Session = Depends(get
 
     except Exception as e:
         db.rollback()
+        # 開発中は詳細なエラーを返す
         raise HTTPException(
             status_code=500,
             detail=f"サンプルデータ投入中にエラーが発生しました: {e}\n{traceback.format_exc()}",

@@ -3,8 +3,8 @@
 マスタ関連のPydanticスキーマ
 """
 
-from pydantic import Field
 from typing import Optional
+
 from .base import BaseSchema
 
 
@@ -23,7 +23,7 @@ class WarehouseCreate(WarehouseBase):
 class WarehouseUpdate(BaseSchema):
     warehouse_name: Optional[str] = None
     address: Optional[str] = None
-    is_active: Optional[int] = None
+    is_active: Optional[int] = 1
 
 
 class WarehouseResponse(WarehouseBase):
