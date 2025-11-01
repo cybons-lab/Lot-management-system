@@ -3,15 +3,15 @@
 ヘルスチェック、データベースリセット等
 """
 
-import traceback  # エラー詳細表示用にインポート
+import traceback
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import text
+from sqlalchemy import func, text  # <-- func をインポート
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.core.config import settings
-from app.models import (
+from app.models import (  # <-- 修正
     Lot,
     LotCurrentStock,
     Order,
@@ -21,11 +21,43 @@ from app.models import (
     ReceiptLine,
     StockMovement,
 )
-from app.schemas import FullSampleDataRequest, ResponseBase
+from app.schemas import (  # <-- 修正
+    DashboardStatsResponse,
+    FullSampleDataRequest,
+    ResponseBase,
+)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 # ... (health_check, reset_database は変更なし) ...
+
+
+@router.get("/stats", response_model=DashboardStatsResponse)
+def get_dashboard_stats(db: Session = Depends(get_db)):
+    """
+    ダッシュボード用の統計情報を取得
+    """
+    try:
+        # 1. 総在庫数 (LotCurrentStock の合計)
+        total_stock_result = db.query(
+            func.sum(LotCurrentStock.current_quantity)
+        ).scalar()
+
+        # 2. 総受注数 (Order の総数)
+        total_orders = db.query(Order).count()
+
+        # 3. 未引当受注数 (Order の 'open' ステータス)
+        unallocated_orders = db.query(Order).filter(Order.status == "open").count()
+
+        return DashboardStatsResponse(
+            total_stock=total_stock_result or 0.0,
+            total_orders=total_orders or 0,
+            unallocated_orders=unallocated_orders or 0,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"統計情報の取得中にエラーが発生しました: {str(e)}"
+        )
 
 
 @router.post("/load-full-sample-data", response_model=ResponseBase)

@@ -22,3 +22,13 @@ class FullSampleDataRequest(BaseModel):
     lots: Optional[List[LotCreate]] = None
     receipts: Optional[List[ReceiptCreateRequest]] = None
     orders: Optional[List[OcrOrderRecord]] = None
+
+
+class DashboardStatsResponse(BaseModel):
+    """
+    ダッシュボード統計レスポンス
+    """
+
+    total_stock: float
+    total_orders: int
+    unallocated_orders: int

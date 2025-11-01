@@ -5,6 +5,7 @@ Pydantic スキーマの集約
 """
 
 from .admin import (
+    DashboardStatsResponse,
     FullSampleDataRequest,
 )
 from .base import BaseSchema, ResponseBase, TimestampMixin
@@ -183,4 +184,5 @@ __all__ = [
     "SapSyncLogResponse",
     # Admin
     "FullSampleDataRequest",
+    "DashboardStatsResponse",
 ]
