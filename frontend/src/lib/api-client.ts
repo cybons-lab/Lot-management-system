@@ -111,4 +111,102 @@ export const api = {
       response
     );
   },
+
+  // 既存のapi-clientに追加するメソッド
+
+  // ===== Dashboard API =====
+  async getStats(): Promise<DashboardStats> {
+    const response = await fetch(`${API_BASE_URL}/admin/stats`);
+    return handleResponse<DashboardStats>(response);
+  },
+
+  // ===== Orders API =====
+  async getOrders(params?: OrdersListParams): Promise<Order[]> {
+    const searchParams = new URLSearchParams();
+
+    if (params?.skip !== undefined)
+      searchParams.append("skip", params.skip.toString());
+    if (params?.limit !== undefined)
+      searchParams.append("limit", params.limit.toString());
+    if (params?.status) searchParams.append("status", params.status);
+    if (params?.customer_code)
+      searchParams.append("customer_code", params.customer_code);
+    if (params?.date_from) searchParams.append("date_from", params.date_from);
+    if (params?.date_to) searchParams.append("date_to", params.date_to);
+
+    const url = `${API_BASE_URL}/orders${
+      searchParams.toString() ? "?" + searchParams.toString() : ""
+    }`;
+    const response = await fetch(url);
+    return handleResponse<Order[]>(response);
+  },
+
+  async getOrder(orderId: number): Promise<OrderWithLines> {
+    const response = await fetch(`${API_BASE_URL}/orders/${orderId}`);
+    return handleResponse<OrderWithLines>(response);
+  },
+
+  async reMatchOrder(orderId: number): Promise<ReMatchResponse> {
+    const response = await fetch(`${API_BASE_URL}/orders/${orderId}/re-match`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    return handleResponse<ReMatchResponse>(response);
+  },
+
+  // ===== Forecast API =====
+  async bulkImportForecast(
+    data: ForecastBulkRequest
+  ): Promise<ForecastBulkResponse> {
+    const response = await fetch(`${API_BASE_URL}/forecast/bulk`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    return handleResponse<ForecastBulkResponse>(response);
+  },
+
+  // ===== CSV Export Helper =====
+  exportToCSV(data: any[], filename: string): void {
+    if (!data || data.length === 0) {
+      console.warn("No data to export");
+      return;
+    }
+
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+      headers.join(","),
+      ...data.map((row) =>
+        headers
+          .map((header) => {
+            const value = row[header];
+            // 値にカンマや改行が含まれる場合はダブルクォートで囲む
+            if (value === null || value === undefined) return "";
+            const stringValue = String(value);
+            if (
+              stringValue.includes(",") ||
+              stringValue.includes("\n") ||
+              stringValue.includes('"')
+            ) {
+              return `"${stringValue.replace(/"/g, '""')}"`;
+            }
+            return stringValue;
+          })
+          .join(",")
+      ),
+    ].join("\n");
+
+    const blob = new Blob([`\uFEFF${csvContent}`], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  },
 };
