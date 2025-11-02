@@ -13,16 +13,18 @@ import type {
   ForecastBulkRequest,
   ForecastBulkResponse,
   ResetResponse,
-  // --- 今回の追加 ---
-  Warehouse, // 新しい /warehouse-alloc/warehouses 用
+  // --- 倉庫配分 ---
   WarehouseListResponse,
   OrdersWithAllocResponse,
   SaveAllocationsRequest,
   SaveAllocationsResponse,
+  // --- Forecast一覧 ---
   ForecastListResponse,
   ForecastListParams,
+  WarehouseAlloc,
 } from "@/types";
 
+// 🔽 基準となるURLをここで定義
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
 
@@ -45,33 +47,23 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 /**
- * 汎用 GET
+ * 汎用API呼び出し (GET, POST)
  */
-async function get<T>(
+async function fetchApi<T>(
   endpoint: string,
-  params?: Record<string, any>
+  options: RequestInit = {}
 ): Promise<T> {
-  const url = new URL(`${API_BASE_URL}${endpoint}`);
-  if (params) {
-    Object.keys(params).forEach((key) => {
-      if (params[key] !== undefined && params[key] !== null) {
-        url.searchParams.append(key, params[key]);
-      }
-    });
-  }
-  const response = await fetch(url.toString());
-  return handleResponse<T>(response);
-}
+  const url = `${API_BASE_URL}${endpoint}`;
 
-/**
- * 汎用 POST
- */
-async function post<T>(endpoint: string, body: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  const config: RequestInit = {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  };
+
+  const response = await fetch(url, config);
   return handleResponse<T>(response);
 }
 
@@ -79,69 +71,109 @@ async function post<T>(endpoint: string, body: unknown): Promise<T> {
  * APIクライアント
  */
 export const api = {
-  // --- Lot endpoints (v2.0) ---
-  getLots: () => get<LotResponse[]>("/lots", { with_stock: true }),
-  getLot: (id: number) => get<LotResponse>(`/lots/${id}`),
-  createLot: (data: LotCreate) => post<LotResponse>("/lots", data),
+  // --- Lot endpoints ---
+  getLots: () =>
+    fetchApi<LotResponse[]>("/lots", {
+      method: "GET",
+      // 🔽 クエリパラメータはURLに含める (v2.0では ?with_stock=true がデフォルト)
+      // fetchApi("/lots?with_stock=true", { method: "GET" })
+    }),
+  getLot: (id: number) =>
+    fetchApi<LotResponse>(`/lots/${id}`, { method: "GET" }),
+  createLot: (data: LotCreate) =>
+    fetchApi<LotResponse>("/lots", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
-  // --- Order endpoints (v2.0) ---
-  getOrders: (params: OrdersListParams) =>
-    get<OrderResponse[]>("/orders", params),
+  // --- Order endpoints ---
+  getOrders: (params: OrdersListParams) => {
+    const searchParams = new URLSearchParams();
+    if (params.skip !== undefined)
+      searchParams.append("skip", params.skip.toString());
+    if (params.limit !== undefined)
+      searchParams.append("limit", params.limit.toString());
+    if (params.status) searchParams.append("status", params.status);
+    if (params.customer_code)
+      searchParams.append("customer_code", params.customer_code);
+
+    const queryString = searchParams.toString();
+    return fetchApi<OrderResponse[]>(
+      `/orders${queryString ? "?" + queryString : ""}`,
+      {
+        method: "GET",
+      }
+    );
+  },
   getOrder: (orderId: number) =>
-    get<OrderWithLinesResponse>(`/orders/${orderId}`),
+    fetchApi<OrderWithLinesResponse>(`/orders/${orderId}`, { method: "GET" }),
   reMatchOrder: (orderId: number) =>
-    post<ReMatchResponse>(`/orders/${orderId}/re-match`, {}),
+    fetchApi<ReMatchResponse>(`/orders/${orderId}/re-match`, {
+      method: "POST",
+    }),
 
-  // --- Master endpoints (v2.0) ---
-  getProducts: () => get<Product[]>("/masters/products"),
-  getSuppliers: () => get<Supplier[]>("/masters/suppliers"),
-  getWarehouses: () => get<OldWarehouse[]>("/masters/warehouses"), // 既存
+  // --- Master endpoints ---
+  getProducts: () =>
+    fetchApi<Product[]>("/masters/products", { method: "GET" }),
+  getSuppliers: () =>
+    fetchApi<Supplier[]>("/masters/suppliers", { method: "GET" }),
+  getWarehouses: () =>
+    fetchApi<OldWarehouse[]>("/masters/warehouses", { method: "GET" }),
 
   // --- Admin endpoints ---
-  getStats: () => get<DashboardStats>("/admin/stats"),
-  resetDatabase: () => post<ResetResponse>("/admin/reset-database", {}),
+  getStats: () => fetchApi<DashboardStats>("/admin/stats", { method: "GET" }),
+  resetDatabase: () =>
+    fetchApi<ResetResponse>("/admin/reset-database", { method: "POST" }),
+  loadFullSampleData: (data: any) =>
+    fetchApi<ResetResponse>("/admin/load-full-sample-data", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
   // --- Forecast Import ---
   bulkImportForecast: (data: ForecastBulkRequest) =>
-    post<ForecastBulkResponse>("/forecast/bulk", data),
-
-  // ---
-  // 🔽 [ここから今回の機能追加分]
-  // ---
+    fetchApi<ForecastBulkResponse>("/forecast/bulk", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
   // --- Warehouse Allocation Endpoints ---
-
-  /**
-   * (新) 配分用倉庫マスタ一覧を取得
-   */
   getWarehouseAllocList: () =>
-    get<WarehouseListResponse>("/warehouse-alloc/warehouses"),
-
-  /**
-   * (新) 倉庫配分情報付きの受注一覧を取得
-   */
+    fetchApi<WarehouseListResponse>("/warehouse-alloc/warehouses", {
+      method: "GET",
+    }),
   getOrdersWithAllocations: () =>
-    get<OrdersWithAllocResponse>("/orders/orders-with-allocations"),
-
-  /**
-   * (新) 倉庫配分情報を保存
-   */
+    fetchApi<OrdersWithAllocResponse>("/orders/orders-with-allocations", {
+      method: "GET",
+    }),
   saveWarehouseAllocations: (
     orderLineId: number,
-    allocations: SaveAllocationsRequest["allocations"]
+    allocations: WarehouseAlloc[]
   ) =>
-    post<SaveAllocationsResponse>(
+    fetchApi<SaveAllocationsResponse>(
       `/orders/${orderLineId}/warehouse-allocations`,
-      { allocations } // SaveAllocationsRequest の形式
+      {
+        method: "POST",
+        body: JSON.stringify({ allocations } as SaveAllocationsRequest),
+      }
     ),
 
   // --- Forecast List Endpoint ---
+  getForecastList: (params: ForecastListParams) => {
+    const searchParams = new URLSearchParams();
+    if (params.product_code)
+      searchParams.append("product_code", params.product_code);
+    if (params.supplier_code)
+      searchParams.append("supplier_code", params.supplier_code);
 
-  /**
-   * (新) Forecast一覧を取得
-   */
-  getForecastList: (params: ForecastListParams) =>
-    get<ForecastListResponse>("/forecast/list", params),
+    const queryString = searchParams.toString();
+    return fetchApi<ForecastListResponse>(
+      `/forecast/list${queryString ? "?" + queryString : ""}`,
+      {
+        method: "GET",
+      }
+    );
+  },
 
   // --- CSV Export Helper ---
   exportToCSV(data: any[], filename: string): void {

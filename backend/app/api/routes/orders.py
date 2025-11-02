@@ -7,11 +7,7 @@ from datetime import date
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-
-# 🔽 [追加] select, delete
-from sqlalchemy import delete, func, select
-
-# 🔽 [追加] joinedload, selectinload
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.api.deps import get_db
@@ -22,10 +18,8 @@ from app.models import (
     LotCurrentStock,
     Order,
     OrderLine,
-    StockMovement,  # 🔽 [追加]
+    StockMovement,
 )
-
-# 🔽 [追加] 新しいモデル
 from app.models.warehouse import OrderLineWarehouseAllocation, Warehouse
 from app.schemas import (
     DragAssignRequest,
@@ -37,8 +31,6 @@ from app.schemas import (
     OrderWithLinesResponse,
 )
 from app.schemas.base import ResponseBase
-
-# 🔽 [追加] 新しいスキーマ
 from app.schemas.orders import (
     OrderLineOut,
     OrdersWithAllocResponse,
@@ -87,19 +79,20 @@ def list_orders(
 @router.get("/{order_id}", response_model=OrderWithLinesResponse)
 def get_order(order_id: int, db: Session = Depends(get_db)):
     """受注詳細取得(明細含む)"""
-    order = db.query(Order).filter(Order.id == order_id).first()
+    order = (
+        db.query(Order)
+        .options(selectinload(Order.lines).selectinload(OrderLine.lot_allocations))
+        .filter(Order.id == order_id)
+        .first()
+    )
+
     if not order:
         raise HTTPException(status_code=404, detail="受注が見つかりません")
 
     # 明細に引当済数量を付与
     response = OrderWithLinesResponse.model_validate(order)
     for i, line in enumerate(order.lines):
-        allocated_qty = (
-            db.query(func.sum(Allocation.allocated_qty))
-            .filter(Allocation.order_line_id == line.id)
-            .scalar()
-            or 0.0
-        )
+        allocated_qty = sum(alloc.allocated_qty for alloc in line.lot_allocations)
         response.lines[i].allocated_qty = allocated_qty
 
     return response
@@ -109,37 +102,29 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
 def create_order(order: OrderCreate, db: Session = Depends(get_db)):
     """
     受注登録
-
-    🔽 [変更] フォーキャストマッチング機能を追加
     """
-    # 重複チェック
     existing = db.query(Order).filter(Order.order_no == order.order_no).first()
     if existing:
         raise HTTPException(status_code=400, detail="受注番号が既に存在します")
 
-    # 得意先チェック
     customer = (
         db.query(Customer).filter(Customer.customer_code == order.customer_code).first()
     )
     if not customer:
         raise HTTPException(status_code=404, detail="得意先が見つかりません")
 
-    # 受注ヘッダ作成
     db_order = Order(**order.model_dump(exclude={"lines"}))
     db.add(db_order)
     db.flush()
 
-    # 🔽 [追加] フォーキャストマッチャー初期化
     forecast_matcher = ForecastMatcher(db) if FORECAST_AVAILABLE else None
 
-    # 受注明細作成（OrderCreateにlinesがある場合）
     if hasattr(order, "lines") and order.lines:
         for line_data in order.lines:
             db_line = OrderLine(order_id=db_order.id, **line_data.model_dump())
             db.add(db_line)
             db.flush()
 
-            # 🔽 [追加] フォーキャストマッチング実行
             if forecast_matcher and db_order.order_date:
                 try:
                     forecast_matcher.apply_forecast_to_order_line(
@@ -149,7 +134,6 @@ def create_order(order: OrderCreate, db: Session = Depends(get_db)):
                         order_date=db_order.order_date,
                     )
                 except Exception as e:
-                    # マッチング失敗は警告のみ
                     print(
                         f"⚠️  Forecast matching failed for order {order.order_no}: {e}"
                     )
@@ -174,20 +158,21 @@ def update_order(order_id: int, order: OrderUpdate, db: Session = Depends(get_db
     return db_order
 
 
-# 🔽 [追加] 再マッチングエンドポイント
 @router.post("/{order_id}/re-match", response_model=OrderWithLinesResponse)
 def rematch_order_forecast(order_id: int, db: Session = Depends(get_db)):
     """
     受注のフォーキャストを再マッチング
-
-    用途:
-    - フォーキャストバージョン更新時の再計算
-    - マッチング結果の修正
     """
     if not FORECAST_AVAILABLE:
         raise HTTPException(status_code=501, detail="ForecastMatcher が利用できません")
 
-    order = db.query(Order).filter(Order.id == order_id).first()
+    order = (
+        db.query(Order)
+        .options(selectinload(Order.lines).selectinload(OrderLine.lot_allocations))
+        .filter(Order.id == order_id)
+        .first()
+    )
+
     if not order:
         raise HTTPException(status_code=404, detail="受注が見つかりません")
 
@@ -215,15 +200,9 @@ def rematch_order_forecast(order_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(order)
 
-    # レスポンス作成
     response = OrderWithLinesResponse.model_validate(order)
     for i, line in enumerate(order.lines):
-        allocated_qty = (
-            db.query(func.sum(Allocation.allocated_qty))
-            .filter(Allocation.order_line_id == line.id)
-            .scalar()
-            or 0.0
-        )
+        allocated_qty = sum(alloc.allocated_qty for alloc in line.lot_allocations)
         response.lines[i].allocated_qty = allocated_qty
 
     return response
@@ -233,18 +212,16 @@ def rematch_order_forecast(order_id: int, db: Session = Depends(get_db)):
 @router.get("/{order_id}/lines", response_model=List[OrderLineResponse])
 def list_order_lines(order_id: int, db: Session = Depends(get_db)):
     """受注明細一覧取得"""
-    lines = db.query(OrderLine).filter(OrderLine.order_id == order_id).all()
+    lines = (
+        db.query(OrderLine)
+        .options(selectinload(OrderLine.lot_allocations))
+        .filter(OrderLine.order_id == order_id)
+        .all()
+    )
 
-    # 引当済数量を付与
     result = []
     for line in lines:
-        allocated_qty = (
-            db.query(func.sum(Allocation.allocated_qty))
-            .filter(Allocation.order_line_id == line.id)
-            .scalar()
-            or 0.0
-        )
-
+        allocated_qty = sum(alloc.allocated_qty for alloc in line.lot_allocations)
         line_dict = OrderLineResponse.model_validate(line).model_dump()
         line_dict["allocated_qty"] = allocated_qty
         result.append(OrderLineResponse(**line_dict))
@@ -252,32 +229,22 @@ def list_order_lines(order_id: int, db: Session = Depends(get_db)):
     return result
 
 
-# ===== Drag & Drop Allocation =====
+# ===== Drag & Drop Allocation (Lot Allocation) =====
 @router.post("/allocations/drag-assign", response_model=DragAssignResponse)
 def drag_assign_allocation(request: DragAssignRequest, db: Session = Depends(get_db)):
     """
-    ドラッグ引当
-
-    処理フロー:
-    1. 受注明細とロットの存在チェック
-    2. ロット在庫チェック
-    3. 引当レコード作成
-    4. 在庫変動(allocate)記録
-    5. 現在在庫更新
+    ドラッグ引当 (ロット引当)
     """
-    # 受注明細チェック
     order_line = (
         db.query(OrderLine).filter(OrderLine.id == request.order_line_id).first()
     )
     if not order_line:
         raise HTTPException(status_code=404, detail="受注明細が見つかりません")
 
-    # ロットチェック
     lot = db.query(Lot).filter(Lot.id == request.lot_id).first()
     if not lot:
         raise HTTPException(status_code=404, detail="ロットが見つかりません")
 
-    # 現在在庫チェック
     current_stock = (
         db.query(LotCurrentStock)
         .filter(LotCurrentStock.lot_id == request.lot_id)
@@ -290,7 +257,6 @@ def drag_assign_allocation(request: DragAssignRequest, db: Session = Depends(get
             detail=f"在庫不足: 現在在庫 {current_stock.current_quantity if current_stock else 0}, 要求 {request.allocate_qty}",
         )
 
-    # 引当作成
     allocation = Allocation(
         order_line_id=request.order_line_id,
         lot_id=request.lot_id,
@@ -299,16 +265,14 @@ def drag_assign_allocation(request: DragAssignRequest, db: Session = Depends(get
     db.add(allocation)
     db.flush()
 
-    # 在庫変動記録(引当 = マイナス)
     movement = StockMovement(
         lot_id=request.lot_id,
         movement_type="allocate",
-        quantity=-request.allocate_qty,  # マイナス数量
+        quantity=-request.allocate_qty,
         related_id=f"allocation_{allocation.id}",
     )
     db.add(movement)
 
-    # 現在在庫更新
     current_stock.current_quantity -= request.allocate_qty
 
     db.commit()
@@ -326,24 +290,20 @@ def drag_assign_allocation(request: DragAssignRequest, db: Session = Depends(get
 @router.delete("/allocations/{allocation_id}", status_code=204)
 def cancel_allocation(allocation_id: int, db: Session = Depends(get_db)):
     """
-    引当取消
-
-    在庫を元に戻す
+    引当取消 (ロット引当)
     """
     allocation = db.query(Allocation).filter(Allocation.id == allocation_id).first()
     if not allocation:
         raise HTTPException(status_code=404, detail="引当が見つかりません")
 
-    # 在庫変動記録(取消 = プラス)
     movement = StockMovement(
         lot_id=allocation.lot_id,
         movement_type="adjust",
-        quantity=allocation.allocated_qty,  # プラス数量
+        quantity=allocation.allocated_qty,
         related_id=f"cancel_allocation_{allocation_id}",
     )
     db.add(movement)
 
-    # 現在在庫更新
     current_stock = (
         db.query(LotCurrentStock)
         .filter(LotCurrentStock.lot_id == allocation.lot_id)
@@ -357,42 +317,40 @@ def cancel_allocation(allocation_id: int, db: Session = Depends(get_db)):
     return None
 
 
-# 🔽 [ここから追加] 倉庫配分(Warehouse Allocation) 関連 🔽
+# 🔽 [修正] 倉庫配分(Warehouse Allocation) 関連 🔽
 
 
 @router.get("/orders-with-allocations", response_model=OrdersWithAllocResponse)
 def get_orders_with_allocations(db: Session = Depends(get_db)):
     """
     倉庫配分情報を含む受注明細一覧を取得
-    (N+1クエリ回避のため selectinload/joinedload を使用)
     """
-    # OrderLine をベースに、必要な関連データをEager Loading
     query = (
         db.query(OrderLine)
         .options(
-            # 配分先倉庫 (OrderLine -> Allocations -> Warehouse)
-            selectinload(OrderLine.allocations).joinedload(
+            # 倉庫配分 (LEFT JOIN)
+            selectinload(OrderLine.warehouse_allocations).joinedload(
                 OrderLineWarehouseAllocation.warehouse
             ),
-            # 受注ヘッダ (OrderLine -> Order)
+            # 受注ヘッダ (INNER JOIN - 必須)
             joinedload(OrderLine.order),
-            # 製品マスタ (OrderLine -> Product)
-            joinedload(OrderLine.product),
-            # 紐づくフォーキャスト (OrderLine -> Forecast)
-            joinedload(OrderLine.forecast),
+            # 製品マスタ (LEFT JOIN - 必須ではないが、あったほうが良い)
+            joinedload(OrderLine.product, outerjoin=True),  # ⬅️ [修正]
+            # フォーキャスト (LEFT JOIN - 必須ではない)
+            joinedload(OrderLine.forecast, outerjoin=True),  # ⬅️ [修正]
         )
-        .order_by(OrderLine.id)  # 順序を安定させる
+        .order_by(OrderLine.id)
     )
 
     lines: List[OrderLine] = query.all()
 
     items: List[OrderLineOut] = []
     for line in lines:
-        # 1. 倉庫配分情報を構築
         allocs: List[WarehouseAllocOut] = []
-        if line.allocations:
-            for a in line.allocations:
-                if a.warehouse:  # 念のため
+
+        if line.warehouse_allocations:
+            for a in line.warehouse_allocations:
+                if a.warehouse:
                     allocs.append(
                         WarehouseAllocOut(
                             warehouse_code=a.warehouse.warehouse_code,
@@ -400,28 +358,27 @@ def get_orders_with_allocations(db: Session = Depends(get_db)):
                         )
                     )
 
-        # 2. OrderLineOut スキーマに必要な情報を集める
-        product_name = line.product.product_name if line.product else "N/A"
-        customer_code = line.order.customer_code if line.order else "N/A"
+        # 🔽 [修正] line.product や line.order が None の可能性も考慮 (outerjoinのため)
+        product_name = (
+            line.product.product_name if line.product else "(製品マスタ未登録)"
+        )
+        customer_code = line.order.customer_code if line.order else "(受注ヘッダなし)"
 
-        # supplier_code は Forecast 由来と仮定
         supplier_code = None
         if line.forecast:
-            # forecast.py モデルの supplier_id を参照
             supplier_code = line.forecast.supplier_id
 
-        # 3. OrderLineOut オブジェクトを作成
         items.append(
             OrderLineOut(
                 id=line.id,
                 product_code=line.product_code,
                 product_name=product_name,
                 customer_code=customer_code,
-                supplier_code=supplier_code,  # None の可能性あり
+                supplier_code=supplier_code,
                 quantity=line.quantity,
                 unit=line.unit or "EA",
                 warehouse_allocations=allocs,
-                related_lots=[],  # TODO: ロット引当実装時にここも更新
+                related_lots=[],
             )
         )
 
@@ -435,21 +392,17 @@ def save_warehouse_allocations(
     """
     受注明細に対する倉庫配分を保存 (全置換)
     """
-    # 1. 受注明細の存在チェック
     line = db.get(OrderLine, order_line_id)
     if not line:
         raise HTTPException(status_code=404, detail="OrderLine not found")
 
-    # 2. リクエストされた倉庫コードをまとめて検証
     codes = [a.warehouse_code for a in req.allocations]
     wh_map = {}
     if codes:
-        # 新しい Warehouse テーブル (id, warehouse_code) を参照
         stmt = select(Warehouse).where(Warehouse.warehouse_code.in_(codes))
         warehouses = db.execute(stmt).scalars().all()
         wh_map = {w.warehouse_code: w for w in warehouses}
 
-        # 不明な倉庫コードがないかチェック
         for code in codes:
             if code not in wh_map:
                 raise HTTPException(
@@ -457,23 +410,22 @@ def save_warehouse_allocations(
                 )
 
     try:
-        # 3. 既存の配分を全削除
         db.execute(
             delete(OrderLineWarehouseAllocation).where(
                 OrderLineWarehouseAllocation.order_line_id == order_line_id
             )
         )
 
-        # 4. 新しい配分を全挿入
         for alloc_in in req.allocations:
-            wh = wh_map[alloc_in.warehouse_code]
+            if alloc_in.quantity > 0:  # 数量0は保存しない (オプション)
+                wh = wh_map[alloc_in.warehouse_code]
 
-            new_alloc = OrderLineWarehouseAllocation(
-                order_line_id=order_line_id,
-                warehouse_id=wh.id,  # warehouse.id を参照
-                quantity=alloc_in.quantity,
-            )
-            db.add(new_alloc)
+                new_alloc = OrderLineWarehouseAllocation(
+                    order_line_id=order_line_id,
+                    warehouse_id=wh.id,
+                    quantity=alloc_in.quantity,
+                )
+                db.add(new_alloc)
 
         db.commit()
 
@@ -482,6 +434,3 @@ def save_warehouse_allocations(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"保存に失敗しました: {str(e)}")
-
-
-# 🔼 [追加ここまで] 🔼

@@ -1,4 +1,4 @@
-# backend/app/models/sales.py
+# backend/app/models/orders.py
 """
 販売関連のモデル定義
 受注、受注明細、引当、出荷
@@ -19,6 +19,8 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, relationship
 
 from .base_model import Base
+
+# 🔽 [修正] インポート名を OrderLineWarehouseAllocation に
 from .warehouse import OrderLineWarehouseAllocation
 
 
@@ -63,30 +65,34 @@ class OrderLine(Base):
     due_date = Column(Date)
     created_at = Column(DateTime, default=func.now())
 
-    # --- 🔽 [変更] フォーキャスト連携メタデータを追加 🔽 ---
+    # --- フォーキャスト連携メタデータ ---
     forecast_id = Column(Integer, ForeignKey("forecast.id"), nullable=True)
     forecast_granularity = Column(Text, nullable=True)  # 'daily', 'dekad', 'monthly'
     forecast_match_status = Column(
         Text, nullable=True
     )  # 'EXACT', 'PERIOD', 'DIFF', 'NONE'
-    forecast_qty = Column(Float, nullable=True)  # 月次マッチの場合は NULL にする
+    forecast_qty = Column(Float, nullable=True)
     forecast_version_no = Column(Integer, nullable=True)
 
-    # リレーション
+    # --- リレーション ---
     order = relationship("Order", back_populates="lines")
     product = relationship("Product", back_populates="order_lines")
-    allocations = relationship(
+
+    # 🔽 [修正] 1. ロット引当 (古い 'allocations')
+    lot_allocations = relationship(
         "Allocation", back_populates="order_line", cascade="all, delete-orphan"
     )
+
     shippings = relationship("Shipping", back_populates="order_line")
     purchase_requests = relationship("PurchaseRequest", back_populates="src_order_line")
-
-    # --- 🔽 [変更] Forecast へのリレーションを追加 🔽 ---
     forecast = relationship("Forecast")
 
-    allocations: Mapped[list[OrderLineWarehouseAllocation]] = relationship(
-        "OrderLineWarehouseAllocation",
-        backref="order_line",
+    # 🔽 [修正] 2. 倉庫配分 (新しい 'allocations')
+    # 属性名を 'warehouse_allocations' に変更
+    # backref を back_populates に変更
+    warehouse_allocations: Mapped[list["OrderLineWarehouseAllocation"]] = relationship(
+        "app.models.warehouse.OrderLineWarehouseAllocation",
+        back_populates="order_line",  # ⬅️ backref の代わりに back_populates
         cascade="all, delete-orphan",
         lazy="selectin",
     )
@@ -108,7 +114,8 @@ class Allocation(Base):
     allocated_at = Column(DateTime, default=func.now())
 
     # リレーション
-    order_line = relationship("OrderLine", back_populates="allocations")
+    # 🔽 [修正] back_populates を 'lot_allocations' に変更
+    order_line = relationship("OrderLine", back_populates="lot_allocations")
     lot = relationship("Lot", back_populates="allocations")
 
     __table_args__ = (

@@ -1,10 +1,15 @@
 # backend/app/models/warehouse.py
 from __future__ import annotations
 
+from typing import TYPE_CHECKING  # 🔽 [追加]
+
 from sqlalchemy import Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .base_model import Base  # 既存の Base をimport（プロジェクトに合わせて調整）
+from .base_model import Base
+
+if TYPE_CHECKING:
+    from .orders import OrderLine  # 🔽 [追加] 型チェック用にインポート
 
 
 class Warehouse(Base):
@@ -14,10 +19,12 @@ class Warehouse(Base):
     warehouse_code: Mapped[str] = mapped_column(String(32), unique=True, nullable=False)
     warehouse_name: Mapped[str] = mapped_column(String(128), nullable=False)
 
-    # 逆参照は不要なら省略可
-    # allocations: Mapped[list["OrderLineWarehouseAllocation"]] = relationship(
-    #     back_populates="warehouse", cascade="all, delete-orphan"
-    # )
+    # 🔽 [修正] 逆参照を（念のため）有効化し、フルパス指定
+    allocations: Mapped[list["OrderLineWarehouseAllocation"]] = relationship(
+        "app.models.warehouse.OrderLineWarehouseAllocation",
+        back_populates="warehouse",
+        cascade="all, delete-orphan",
+    )
 
 
 class OrderLineWarehouseAllocation(Base):
@@ -25,17 +32,21 @@ class OrderLineWarehouseAllocation(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     order_line_id: Mapped[int] = mapped_column(
-        ForeignKey("order_lines.id"),
-        nullable=False,  # ⬅️ [確認] テーブル名は 'order_lines' (複数形)
+        ForeignKey("order_lines.id"), nullable=False
     )
     warehouse_id: Mapped[int] = mapped_column(
         ForeignKey("warehouse.id"), nullable=False
     )
     quantity: Mapped[float] = mapped_column(Float, nullable=False)
 
-    # リレーション
-    # 🔽 [修正] relationship("Warehouse") を relationship(Warehouse) に変更
-    # これで、このファイル内の Warehouse クラスを明示的に指定します。
-    warehouse: Mapped["Warehouse"] = relationship(Warehouse)
+    # --- リレーション ---
 
-    # 'order_line' 属性は models/orders.py の backref によって自動的に追加されます
+    # 🔽 [修正] 参照先をフルパスの「文字列」で指定
+    warehouse: Mapped["Warehouse"] = relationship(
+        "app.models.warehouse.Warehouse", back_populates="allocations"
+    )
+
+    # 🔽 [追加] OrderLine への逆参照
+    order_line: Mapped["OrderLine"] = relationship(
+        "app.models.orders.OrderLine", back_populates="warehouse_allocations"
+    )
