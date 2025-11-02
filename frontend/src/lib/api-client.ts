@@ -4,7 +4,7 @@ import type {
   LotCreate,
   Product,
   Supplier,
-  OldWarehouse, // 既存の /masters/warehouses 用
+  OldWarehouse,
   DashboardStats,
   OrderResponse,
   OrderWithLinesResponse,
@@ -67,6 +67,55 @@ async function fetchApi<T>(
   return handleResponse<T>(response);
 }
 
+// ===== ロット引当関連の型定義 =====
+export interface LotCandidate {
+  lot_id: number;
+  lot_code: string;
+  available_qty: number;
+  unit: string;
+  warehouse_code: string;
+  expiry_date?: string;
+  mfg_date?: string;
+}
+
+export interface AllocatedLot {
+  allocation_id: number;
+  lot_id: number;
+  lot_code: string;
+  allocated_qty: number;
+  warehouse_code: string;
+  expiry_date?: string;
+}
+
+export interface LotAllocationRequest {
+  allocations: Array<{
+    lot_id: number;
+    qty: number;
+  }>;
+}
+
+export interface LotAllocationResponse {
+  success: boolean;
+  message: string;
+  applied: Array<{
+    lot_id: number;
+    qty: number;
+    allocation_id: number;
+  }>;
+  order_line: any;
+}
+
+export interface AllocationCancelRequest {
+  allocation_id?: number;
+  all?: boolean;
+}
+
+export interface AllocationCancelResponse {
+  success: boolean;
+  message: string;
+  order_line: any;
+}
+
 /**
  * APIクライアント
  */
@@ -75,8 +124,6 @@ export const api = {
   getLots: () =>
     fetchApi<LotResponse[]>("/lots", {
       method: "GET",
-      // 🔽 クエリパラメータはURLに含める (v2.0では ?with_stock=true がデフォルト)
-      // fetchApi("/lots?with_stock=true", { method: "GET" })
     }),
   getLot: (id: number) =>
     fetchApi<LotResponse>(`/lots/${id}`, { method: "GET" }),
@@ -174,6 +221,43 @@ export const api = {
       }
     );
   },
+
+  // ===== ロット引当関連のエンドポイント =====
+
+  /**
+   * 受注明細に対する引当候補ロットを取得
+   */
+  getCandidateLots: (orderLineId: number) =>
+    fetchApi<{ items: LotCandidate[] }>(
+      `/orders/${orderLineId}/candidate-lots`,
+      {
+        method: "GET",
+      }
+    ),
+
+  /**
+   * ロット引当を実行
+   */
+  createLotAllocations: (orderLineId: number, request: LotAllocationRequest) =>
+    fetchApi<LotAllocationResponse>(`/orders/${orderLineId}/allocations`, {
+      method: "POST",
+      body: JSON.stringify(request),
+    }),
+
+  /**
+   * ロット引当を取消
+   */
+  cancelLotAllocations: (
+    orderLineId: number,
+    request: AllocationCancelRequest
+  ) =>
+    fetchApi<AllocationCancelResponse>(
+      `/orders/${orderLineId}/allocations/cancel`,
+      {
+        method: "POST",
+        body: JSON.stringify(request),
+      }
+    ),
 
   // --- CSV Export Helper ---
   exportToCSV(data: any[], filename: string): void {
