@@ -1,3 +1,4 @@
+// src/pages/ForecastListPage.tsx
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
@@ -8,24 +9,27 @@ import {
   ChevronDown,
   ChevronUp,
   Package,
-  TrendingUp,
   Calendar,
   FileText,
+  Loader2, // 🔽 [追加]
 } from "lucide-react";
+import { format, parseISO } from "date-fns"; // 🔽 [追加]
+import { ForecastItemOut } from "@/types"; // 🔽 [追加]
 
 export default function ForecastListPage() {
-  const [productFilter, setProductFilter] = useState("");
-  const [supplierFilter, setSupplierFilter] = useState("");
+  // 🔽 [変更] バックエンドのパラメータ名に合わせる
+  const [product_code, setProductFilter] = useState("");
+  const [supplier_code, setSupplierFilter] = useState("");
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
 
-  // モックデータ（実際のAPIに置き換え）
-  const { data: forecasts, isLoading } = useQuery({
-    queryKey: ["forecasts", { productFilter, supplierFilter }],
-    queryFn: async () => {
-      // TODO: 実際のAPI呼び出しに置き換え
-      return mockForecasts;
-    },
+  // 🔽 [変更] モックデータから実API呼び出しに変更
+  const { data, isLoading } = useQuery({
+    queryKey: ["forecasts-list", { product_code, supplier_code }],
+    queryFn: () => api.getForecastList({ product_code, supplier_code }),
+    // 検索クエリがある場合のみフェッチ (オプション)
+    // enabled: !!product_code || !!supplier_code,
   });
+  const forecasts = data?.items ?? [];
 
   const toggleExpand = (forecastId: number) => {
     const newExpanded = new Set(expandedCards);
@@ -38,7 +42,11 @@ export default function ForecastListPage() {
   };
 
   if (isLoading) {
-    return <div className="p-8">読み込み中...</div>;
+    return (
+      <div className="flex justify-center items-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   return (
@@ -57,14 +65,14 @@ export default function ForecastListPage() {
       {/* フィルター */}
       <div className="flex gap-4">
         <Input
-          placeholder="品名で検索..."
-          value={productFilter}
+          placeholder="品番で検索..." // 🔽 [変更]
+          value={product_code}
           onChange={(e) => setProductFilter(e.target.value)}
           className="max-w-md"
         />
         <Input
           placeholder="仕入先で検索..."
-          value={supplierFilter}
+          value={supplier_code}
           onChange={(e) => setSupplierFilter(e.target.value)}
           className="max-w-md"
         />
@@ -72,7 +80,7 @@ export default function ForecastListPage() {
 
       {/* Forecastカード一覧 */}
       <div className="space-y-4">
-        {forecasts?.map((forecast) => (
+        {forecasts.map((forecast) => (
           <ForecastCard
             key={forecast.id}
             forecast={forecast}
@@ -80,15 +88,31 @@ export default function ForecastListPage() {
             onToggleExpand={() => toggleExpand(forecast.id)}
           />
         ))}
+        {forecasts.length === 0 && (
+          <div className="rounded-lg border bg-card p-8 text-center">
+            <p className="text-muted-foreground">
+              対象のForecastデータがありません
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-// Forecastカードコンポーネント
-function ForecastCard({ forecast, isExpanded, onToggleExpand }: any) {
-  const isNew =
-    new Date(forecast.updated_at) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+// 🔽 [変更] forecast の型を `ForecastItemOut` に
+function ForecastCard({
+  forecast,
+  isExpanded,
+  onToggleExpand,
+}: {
+  forecast: ForecastItemOut;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+}) {
+  // 🔽 [変更] ISO文字列をパース
+  const updatedAt = parseISO(forecast.updated_at);
+  const isNew = updatedAt > new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   return (
     <div className="rounded-lg border bg-card shadow-sm">
@@ -121,7 +145,8 @@ function ForecastCard({ forecast, isExpanded, onToggleExpand }: any) {
               <span>バージョン: {forecast.version_no}</span>
               <span>|</span>
               <Calendar className="h-3 w-3" />
-              <span>更新日: {forecast.updated_at}</span>
+              {/* 🔽 [変更] 日付フォーマット */}
+              <span>更新日: {format(updatedAt, "yyyy/MM/dd HH:mm")}</span>
             </div>
           </div>
         </div>
@@ -130,22 +155,36 @@ function ForecastCard({ forecast, isExpanded, onToggleExpand }: any) {
       {/* カードコンテンツ */}
       <div className="p-6 space-y-4">
         {/* 日別データ */}
-        {forecast.granularity === "daily" && (
-          <DailyDataView data={forecast.daily_data} unit={forecast.unit} />
+        {forecast.granularity === "daily" && forecast.daily_data && (
+          <DailyDataView
+            data={forecast.daily_data}
+            unit={forecast.unit || "EA"}
+          />
         )}
 
         {/* 旬別データ */}
-        {forecast.granularity === "dekad" && (
-          <DekadDataView data={forecast.dekad_data} unit={forecast.unit} />
+        {forecast.granularity === "dekad" && forecast.dekad_data && (
+          <DekadDataView
+            data={forecast.dekad_data}
+            unit={forecast.unit || "EA"}
+          />
         )}
 
         {/* 月別データ */}
-        {forecast.granularity === "monthly" && (
-          <MonthlyDataView data={forecast.monthly_data} unit={forecast.unit} />
+        {forecast.granularity === "monthly" && forecast.monthly_data && (
+          <MonthlyDataView
+            data={forecast.monthly_data}
+            unit={forecast.unit || "EA"}
+          />
         )}
 
         {/* 旬別集計（常に表示） */}
-        <DekadSummary data={forecast.dekad_summary} unit={forecast.unit} />
+        {forecast.dekad_summary && (
+          <DekadSummary
+            data={forecast.dekad_summary}
+            unit={forecast.unit || "EA"}
+          />
+        )}
 
         {/* 展開ボタン */}
         <div className="flex justify-center pt-2">
@@ -165,7 +204,7 @@ function ForecastCard({ forecast, isExpanded, onToggleExpand }: any) {
         </div>
 
         {/* 展開コンテンツ */}
-        {isExpanded && (
+        {isExpanded && forecast.version_history && (
           <div className="border-t pt-4 space-y-4">
             <VersionHistory versions={forecast.version_history} />
           </div>
@@ -175,8 +214,18 @@ function ForecastCard({ forecast, isExpanded, onToggleExpand }: any) {
   );
 }
 
+//
+// 以下のコンポーネントはモックデータのまま動作するため変更なし
+//
+
 // 日別データ表示（給与明細スタイル）
-function DailyDataView({ data, unit }: any) {
+function DailyDataView({
+  data,
+  unit,
+}: {
+  data: Record<string, number>;
+  unit: string;
+}) {
   const days = Object.keys(data)
     .map(Number)
     .sort((a, b) => a - b);
@@ -190,7 +239,7 @@ function DailyDataView({ data, unit }: any) {
   return (
     <div className="rounded-lg border">
       <div className="border-b bg-muted/30 px-4 py-2">
-        <h4 className="text-sm font-semibold">日別予測 (2025年11月)</h4>
+        <h4 className="text-sm font-semibold">日別予測 (ダミー)</h4>
       </div>
       <div className="p-4">
         <div className="space-y-3">
@@ -223,29 +272,35 @@ function DailyDataView({ data, unit }: any) {
 }
 
 // 旬別データ表示
-function DekadDataView({ data, unit }: any) {
+function DekadDataView({
+  data,
+  unit,
+}: {
+  data: Record<string, number>;
+  unit: string;
+}) {
   return (
     <div className="rounded-lg border">
       <div className="border-b bg-muted/30 px-4 py-2">
-        <h4 className="text-sm font-semibold">旬別予測 (2025年11月)</h4>
+        <h4 className="text-sm font-semibold">旬別予測 (ダミー)</h4>
       </div>
       <div className="p-4">
         <div className="grid grid-cols-3 gap-4">
           <DekadItem
             label="上旬 (1-10日)"
-            value={data.early}
+            value={data.early || 0}
             unit={unit}
             color="blue"
           />
           <DekadItem
             label="中旬 (11-20日)"
-            value={data.middle}
+            value={data.middle || 0}
             unit={unit}
             color="green"
           />
           <DekadItem
             label="下旬 (21-30日)"
-            value={data.late}
+            value={data.late || 0}
             unit={unit}
             color="purple"
           />
@@ -277,13 +332,19 @@ function DekadItem({ label, value, unit, color }: any) {
 }
 
 // 月別データ表示
-function MonthlyDataView({ data, unit }: any) {
+function MonthlyDataView({
+  data,
+  unit,
+}: {
+  data: Record<string, number>;
+  unit: string;
+}) {
   const months = Object.keys(data).sort();
 
   return (
     <div className="rounded-lg border">
       <div className="border-b bg-muted/30 px-4 py-2">
-        <h4 className="text-sm font-semibold">月別予測 (2025年)</h4>
+        <h4 className="text-sm font-semibold">月別予測 (ダミー)</h4>
       </div>
       <div className="p-4">
         <div className="grid grid-cols-6 gap-2">
@@ -303,39 +364,50 @@ function MonthlyDataView({ data, unit }: any) {
 }
 
 // 旬別集計
-function DekadSummary({ data, unit }: any) {
+function DekadSummary({
+  data,
+  unit,
+}: {
+  data: Record<string, number>;
+  unit: string;
+}) {
   return (
     <div className="rounded-lg border border-blue-200 bg-blue-50">
       <div className="border-b border-blue-200 bg-blue-100 px-4 py-2">
-        <h4 className="text-sm font-semibold text-blue-900">旬別集計</h4>
+        <h4 className="text-sm font-semibold text-blue-900">
+          旬別集計 (ダミー)
+        </h4>
       </div>
       <div className="p-4">
         <div className="grid grid-cols-4 gap-4 text-center">
           <div>
-            <div className="text-xs text-blue-700 mb-1">上旬 (1-10日)</div>
+            {/* 🔽 [修正] '->' を '-' に変更 */}
+            <div className="text-xs text-blue-700 mb-1">上旬 (1-10)</div>
             <div className="text-lg font-bold text-blue-900">
-              {data.early.toLocaleString()}{" "}
+              {(data.early || 0).toLocaleString()}{" "}
               <span className="text-sm">{unit}</span>
             </div>
           </div>
           <div>
-            <div className="text-xs text-blue-700 mb-1">中旬 (11-20日)</div>
+            {/* 🔽 [修正] '->' を '-' に変更 */}
+            <div className="text-xs text-blue-700 mb-1">中旬 (11-20)</div>
             <div className="text-lg font-bold text-blue-900">
-              {data.middle.toLocaleString()}{" "}
+              {(data.middle || 0).toLocaleString()}{" "}
               <span className="text-sm">{unit}</span>
             </div>
           </div>
           <div>
-            <div className="text-xs text-blue-700 mb-1">下旬 (21-30日)</div>
+            {/* 🔽 [修正] '->' を '-' に変更 */}
+            <div className="text-xs text-blue-700 mb-1">下旬 (21-)</div>
             <div className="text-lg font-bold text-blue-900">
-              {data.late.toLocaleString()}{" "}
+              {(data.late || 0).toLocaleString()}{" "}
               <span className="text-sm">{unit}</span>
             </div>
           </div>
           <div className="border-l border-blue-300">
             <div className="text-xs text-blue-700 mb-1">月合計</div>
             <div className="text-xl font-bold text-blue-900">
-              {data.total.toLocaleString()}{" "}
+              {(data.total || 0).toLocaleString()}{" "}
               <span className="text-sm">{unit}</span>
             </div>
           </div>
@@ -346,11 +418,11 @@ function DekadSummary({ data, unit }: any) {
 }
 
 // バージョン履歴
-function VersionHistory({ versions }: any) {
+function VersionHistory({ versions }: { versions: any[] }) {
   return (
     <div className="rounded-lg border">
       <div className="border-b bg-muted/30 px-4 py-2">
-        <h4 className="text-sm font-semibold">バージョン履歴</h4>
+        <h4 className="text-sm font-semibold">バージョン履歴 (ダミー)</h4>
       </div>
       <div className="p-4">
         <div className="space-y-2">
@@ -372,123 +444,3 @@ function VersionHistory({ versions }: any) {
     </div>
   );
 }
-
-// モックデータ
-const mockForecasts = [
-  {
-    id: 1,
-    product_code: "PRD-0001",
-    product_name: "ウレタン主剤 URIC D-7312 4KG",
-    client_code: "CUS001",
-    client_name: "得意先A",
-    supplier_code: "SUP001",
-    supplier_name: "伊藤油",
-    granularity: "daily",
-    version_no: "v1.0",
-    updated_at: "2025/11/02",
-    unit: "kg",
-    daily_data: {
-      1: 100,
-      2: 120,
-      3: 95,
-      4: 110,
-      5: 130,
-      6: 105,
-      7: 115,
-      8: 125,
-      9: 98,
-      10: 108,
-      11: 135,
-      12: 102,
-      13: 118,
-      14: 128,
-      15: 92,
-      16: 112,
-      17: 138,
-      18: 106,
-      19: 122,
-      20: 142,
-      21: 108,
-      22: 126,
-      23: 136,
-      24: 104,
-      25: 116,
-      26: 148,
-      27: 110,
-      28: 132,
-      29: 145,
-      30: 98,
-    },
-    dekad_summary: {
-      early: 1106,
-      middle: 1189,
-      late: 1165,
-      total: 3460,
-    },
-    version_history: [
-      { version_no: "v1.0", updated_at: "2025/11/02" },
-      { version_no: "v0.9", updated_at: "2025/11/01" },
-      { version_no: "v0.8", updated_at: "2025/10/31" },
-    ],
-  },
-  {
-    id: 2,
-    product_code: "PRD-0002",
-    product_name: "ブレーキパッド ASY-F",
-    client_code: "CUS001",
-    client_name: "得意先A",
-    supplier_code: "SUP002",
-    supplier_name: "サプライヤーB",
-    granularity: "monthly",
-    version_no: "v1.1",
-    updated_at: "2025/11/01",
-    unit: "EA",
-    monthly_data: {
-      "11月": 500,
-      "12月": 480,
-      "1月": 520,
-      "2月": 510,
-      "3月": 495,
-      "4月": 530,
-    },
-    dekad_summary: {
-      early: 150,
-      middle: 180,
-      late: 170,
-      total: 500,
-    },
-    version_history: [
-      { version_no: "v1.1", updated_at: "2025/11/01" },
-      { version_no: "v1.0", updated_at: "2025/10/30" },
-    ],
-  },
-  {
-    id: 3,
-    product_code: "PRD-0003",
-    product_name: "エンジンオイル 5L缶",
-    client_code: "CUS002",
-    client_name: "得意先B",
-    supplier_code: "SUP001",
-    supplier_name: "伊藤油",
-    granularity: "dekad",
-    version_no: "v2.3",
-    updated_at: "2025/11/02",
-    unit: "L",
-    dekad_data: {
-      early: 3000,
-      middle: 3500,
-      late: 3200,
-    },
-    dekad_summary: {
-      early: 3000,
-      middle: 3500,
-      late: 3200,
-      total: 9700,
-    },
-    version_history: [
-      { version_no: "v2.3", updated_at: "2025/11/02" },
-      { version_no: "v2.2", updated_at: "2025/11/01" },
-      { version_no: "v2.1", updated_at: "2025/10/31" },
-    ],
-  },
-];

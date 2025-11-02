@@ -4,7 +4,7 @@ from __future__ import annotations
 from sqlalchemy import Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .base_model import Base  # ⬅️ [修正] .base から .base_model に変更
+from .base_model import Base  # 既存の Base をimport（プロジェクトに合わせて調整）
 
 
 class Warehouse(Base):
@@ -26,7 +26,7 @@ class OrderLineWarehouseAllocation(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     order_line_id: Mapped[int] = mapped_column(
         ForeignKey("order_lines.id"),
-        nullable=False,  # ⬅️ [修正] order_line -> order_lines
+        nullable=False,  # ⬅️ [確認] テーブル名は 'order_lines' (複数形)
     )
     warehouse_id: Mapped[int] = mapped_column(
         ForeignKey("warehouse.id"), nullable=False
@@ -34,5 +34,8 @@ class OrderLineWarehouseAllocation(Base):
     quantity: Mapped[float] = mapped_column(Float, nullable=False)
 
     # リレーション
-    warehouse: Mapped["Warehouse"] = relationship("Warehouse")
-    # order_line 側に back_populates を生やす（次のStepで）
+    # 🔽 [修正] relationship("Warehouse") を relationship(Warehouse) に変更
+    # これで、このファイル内の Warehouse クラスを明示的に指定します。
+    warehouse: Mapped["Warehouse"] = relationship(Warehouse)
+
+    # 'order_line' 属性は models/orders.py の backref によって自動的に追加されます

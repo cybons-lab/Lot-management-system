@@ -1,22 +1,41 @@
+// src/lib/api-client.ts
 import type {
-  LotResponse, // Lot -> LotResponse
-  LotCreate, // CreateLotInput -> LotCreate
+  LotResponse,
+  LotCreate,
   Product,
   Supplier,
-  Warehouse,
-  DashboardStatsResponse,
-  OrderResponse, // 追記
-  OrderWithLinesResponse, // 追記
+  OldWarehouse, // 既存の /masters/warehouses 用
+  DashboardStats,
+  OrderResponse,
+  OrderWithLinesResponse,
+  OrdersListParams,
+  ReMatchResponse,
+  ForecastBulkRequest,
+  ForecastBulkResponse,
+  ResetResponse,
+  // --- 今回の追加 ---
+  Warehouse, // 新しい /warehouse-alloc/warehouses 用
+  WarehouseListResponse,
+  OrdersWithAllocResponse,
+  SaveAllocationsRequest,
+  SaveAllocationsResponse,
+  ForecastListResponse,
+  ForecastListParams,
 } from "@/types";
 
-const API_BASE_URL = "http://localhost:8000/api";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
 
+/**
+ * 汎用レスポンスハンドラ
+ */
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const error = await response
       .json()
-      .catch(() => ({ detail: "Unknown error" }));
-    const message = error.detail || error.message || "API request failed"; // v2.0のエラー形式に対応
+      .catch(() => ({ detail: "不明なエラーが発生しました" }));
+    const message =
+      error.detail || error.message || "APIリクエストに失敗しました";
     throw new Error(message);
   }
   if (response.status === 204) {
@@ -25,154 +44,111 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json();
 }
 
+/**
+ * 汎用 GET
+ */
+async function get<T>(
+  endpoint: string,
+  params?: Record<string, any>
+): Promise<T> {
+  const url = new URL(`${API_BASE_URL}${endpoint}`);
+  if (params) {
+    Object.keys(params).forEach((key) => {
+      if (params[key] !== undefined && params[key] !== null) {
+        url.searchParams.append(key, params[key]);
+      }
+    });
+  }
+  const response = await fetch(url.toString());
+  return handleResponse<T>(response);
+}
+
+/**
+ * 汎用 POST
+ */
+async function post<T>(endpoint: string, body: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return handleResponse<T>(response);
+}
+
+/**
+ * APIクライアント
+ */
 export const api = {
   // --- Lot endpoints (v2.0) ---
-  async getLots(): Promise<LotResponse[]> {
-    const response = await fetch(`${API_BASE_URL}/lots?with_stock=true`); // ?with_stock=true をデフォルトに
-    return handleResponse<LotResponse[]>(response);
-  },
+  getLots: () => get<LotResponse[]>("/lots", { with_stock: true }),
+  getLot: (id: number) => get<LotResponse>(`/lots/${id}`),
+  createLot: (data: LotCreate) => post<LotResponse>("/lots", data),
 
-  async getLot(id: number): Promise<LotResponse> {
-    const response = await fetch(`${API_BASE_URL}/lots/${id}`);
-    return handleResponse<LotResponse>(response);
-  },
-
-  async createLot(data: LotCreate): Promise<LotResponse> {
-    const response = await fetch(`${API_BASE_URL}/lots`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    return handleResponse<LotResponse>(response);
-  },
-
-  // updateLot, deleteLot は一旦省略 (v2.0スキーマに合わせる必要あり)
-
-  // --- Order endpoints (ここから追記) ---
-  async getOrders(): Promise<OrderResponse[]> {
-    const response = await fetch(`${API_BASE_URL}/orders`);
-    return handleResponse<OrderResponse[]>(response);
-  },
-
-  async getOrderDetails(orderId: number): Promise<OrderWithLinesResponse> {
-    const response = await fetch(`${API_BASE_URL}/orders/${orderId}`);
-    return handleResponse<OrderWithLinesResponse>(response);
-  },
+  // --- Order endpoints (v2.0) ---
+  getOrders: (params: OrdersListParams) =>
+    get<OrderResponse[]>("/orders", params),
+  getOrder: (orderId: number) =>
+    get<OrderWithLinesResponse>(`/orders/${orderId}`),
+  reMatchOrder: (orderId: number) =>
+    post<ReMatchResponse>(`/orders/${orderId}/re-match`, {}),
 
   // --- Master endpoints (v2.0) ---
-  async getProducts(): Promise<Product[]> {
-    const response = await fetch(`${API_BASE_URL}/masters/products`);
-    return handleResponse<Product[]>(response);
-  },
-
-  async getSuppliers(): Promise<Supplier[]> {
-    const response = await fetch(`${API_BASE_URL}/masters/suppliers`);
-    return handleResponse<Supplier[]>(response);
-  },
-
-  async getWarehouses(): Promise<Warehouse[]> {
-    const response = await fetch(`${API_BASE_URL}/masters/warehouses`);
-    return handleResponse<Warehouse[]>(response);
-  },
-
-  // (古いShipmentエンドポイントは削除)
+  getProducts: () => get<Product[]>("/masters/products"),
+  getSuppliers: () => get<Supplier[]>("/masters/suppliers"),
+  getWarehouses: () => get<OldWarehouse[]>("/masters/warehouses"), // 既存
 
   // --- Admin endpoints ---
-  async getStats(): Promise<DashboardStatsResponse> {
-    const response = await fetch(`${API_BASE_URL}/admin/stats`);
-    return handleResponse<DashboardStatsResponse>(response);
-  },
+  getStats: () => get<DashboardStats>("/admin/stats"),
+  resetDatabase: () => post<ResetResponse>("/admin/reset-database", {}),
 
-  async resetDatabase(): Promise<{
-    success: boolean;
-    message: string;
-    data: any;
-  }> {
-    const response = await fetch(`${API_BASE_URL}/admin/reset-database`, {
-      method: "POST",
-    });
-    return handleResponse<{ success: boolean; message: string; data: any }>(
-      response
-    );
-  },
+  // --- Forecast Import ---
+  bulkImportForecast: (data: ForecastBulkRequest) =>
+    post<ForecastBulkResponse>("/forecast/bulk", data),
 
-  async loadFullSampleData(
-    data: any
-  ): Promise<{ success: boolean; message: string; data: any }> {
-    const response = await fetch(
-      `${API_BASE_URL}/admin/load-full-sample-data`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      }
-    );
-    return handleResponse<{ success: boolean; message: string; data: any }>(
-      response
-    );
-  },
+  // ---
+  // 🔽 [ここから今回の機能追加分]
+  // ---
 
-  // 既存のapi-clientに追加するメソッド
+  // --- Warehouse Allocation Endpoints ---
 
-  // ===== Dashboard API =====
-  async getStats(): Promise<DashboardStats> {
-    const response = await fetch(`${API_BASE_URL}/admin/stats`);
-    return handleResponse<DashboardStats>(response);
-  },
+  /**
+   * (新) 配分用倉庫マスタ一覧を取得
+   */
+  getWarehouseAllocList: () =>
+    get<WarehouseListResponse>("/warehouse-alloc/warehouses"),
 
-  // ===== Orders API =====
-  async getOrders(params?: OrdersListParams): Promise<Order[]> {
-    const searchParams = new URLSearchParams();
+  /**
+   * (新) 倉庫配分情報付きの受注一覧を取得
+   */
+  getOrdersWithAllocations: () =>
+    get<OrdersWithAllocResponse>("/orders/orders-with-allocations"),
 
-    if (params?.skip !== undefined)
-      searchParams.append("skip", params.skip.toString());
-    if (params?.limit !== undefined)
-      searchParams.append("limit", params.limit.toString());
-    if (params?.status) searchParams.append("status", params.status);
-    if (params?.customer_code)
-      searchParams.append("customer_code", params.customer_code);
-    if (params?.date_from) searchParams.append("date_from", params.date_from);
-    if (params?.date_to) searchParams.append("date_to", params.date_to);
+  /**
+   * (新) 倉庫配分情報を保存
+   */
+  saveWarehouseAllocations: (
+    orderLineId: number,
+    allocations: SaveAllocationsRequest["allocations"]
+  ) =>
+    post<SaveAllocationsResponse>(
+      `/orders/${orderLineId}/warehouse-allocations`,
+      { allocations } // SaveAllocationsRequest の形式
+    ),
 
-    const url = `${API_BASE_URL}/orders${
-      searchParams.toString() ? "?" + searchParams.toString() : ""
-    }`;
-    const response = await fetch(url);
-    return handleResponse<Order[]>(response);
-  },
+  // --- Forecast List Endpoint ---
 
-  async getOrder(orderId: number): Promise<OrderWithLines> {
-    const response = await fetch(`${API_BASE_URL}/orders/${orderId}`);
-    return handleResponse<OrderWithLines>(response);
-  },
+  /**
+   * (新) Forecast一覧を取得
+   */
+  getForecastList: (params: ForecastListParams) =>
+    get<ForecastListResponse>("/forecast/list", params),
 
-  async reMatchOrder(orderId: number): Promise<ReMatchResponse> {
-    const response = await fetch(`${API_BASE_URL}/orders/${orderId}/re-match`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
-    return handleResponse<ReMatchResponse>(response);
-  },
-
-  // ===== Forecast API =====
-  async bulkImportForecast(
-    data: ForecastBulkRequest
-  ): Promise<ForecastBulkResponse> {
-    const response = await fetch(`${API_BASE_URL}/forecast/bulk`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    return handleResponse<ForecastBulkResponse>(response);
-  },
-
-  // ===== CSV Export Helper =====
+  // --- CSV Export Helper ---
   exportToCSV(data: any[], filename: string): void {
     if (!data || data.length === 0) {
       console.warn("No data to export");
       return;
     }
-
     const headers = Object.keys(data[0]);
     const csvContent = [
       headers.join(","),
@@ -180,7 +156,6 @@ export const api = {
         headers
           .map((header) => {
             const value = row[header];
-            // 値にカンマや改行が含まれる場合はダブルクォートで囲む
             if (value === null || value === undefined) return "";
             const stringValue = String(value);
             if (
@@ -201,7 +176,6 @@ export const api = {
     });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-
     link.setAttribute("href", url);
     link.setAttribute("download", filename);
     link.style.visibility = "hidden";

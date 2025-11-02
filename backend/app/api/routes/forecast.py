@@ -5,18 +5,20 @@
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, Query  # 🔽 [追加] Query
+from sqlalchemy import func, select  # 🔽 [追加] select
+from sqlalchemy.orm import Session  # 🔽 [追加] joinedload
 
 from app.api.deps import get_db
-from app.models import Forecast, Order, OrderLine
+from app.models import Forecast, Order, OrderLine, Product  # 🔽 [追加] Product
 from app.schemas.forecast import (
     ForecastActivateRequest,
     ForecastActivateResponse,
     ForecastBulkImportRequest,
     ForecastBulkImportResponse,
     ForecastCreate,
+    ForecastItemOut,  # 🔽 [追加]
+    ForecastListResponse,  # 🔽 [追加]
     ForecastMatchRequest,
     ForecastMatchResponse,
     ForecastMatchResult,
@@ -28,6 +30,86 @@ from app.schemas.forecast import (
 from app.services.forecast import ForecastMatcher
 
 router = APIRouter(prefix="/forecast", tags=["forecast"])
+
+
+# 🔽 [ここから今回の機能追加分] 🔽
+@router.get("/list", response_model=ForecastListResponse)
+def list_forecast_summary(
+    product_code: Optional[str] = Query(default=None),
+    supplier_code: Optional[str] = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """
+    Forecast一覧（フロント表示用）
+
+    MVPの最小実装：
+    DBからForecastとProductをJOINして基本情報を取得。
+    集計データ(daily_data, dekad_summary等)はダミーデータを付与する。
+    """
+
+    # ベースクエリ: ForecastとProductをJOIN
+    stmt = (
+        select(Forecast, Product.product_name)
+        .join(Product, Forecast.product_id == Product.product_code, isouter=True)
+        .order_by(Forecast.product_id, Forecast.version_no.desc())
+    )
+
+    # フィルタ
+    if product_code:
+        stmt = stmt.where(Forecast.product_id.ilike(f"%{product_code}%"))
+    if supplier_code:
+        stmt = stmt.where(Forecast.supplier_id.ilike(f"%{supplier_code}%"))
+
+    results = db.execute(stmt.limit(50)).all()  # ひとまず50件
+
+    # --- ダミー集計データ（フロントが期待する形式）---
+    # 本来はDBで集計するが、MVPでは固定値を返す
+    daily = {str(d): 100.0 + (d % 5) * 10 for d in range(1, 31)}
+    early = sum(v for k, v in daily.items() if 1 <= int(k) <= 10)
+    middle = sum(v for k, v in daily.items() if 11 <= int(k) <= 20)
+    late = sum(v for k, v in daily.items() if 21 <= int(k) <= 31)
+    monthly_total = early + middle + late
+    dekad_summary = {
+        "early": early,
+        "middle": middle,
+        "late": late,
+        "total": monthly_total,
+    }
+    version_history = [{"version_no": "v1.0 (dummy)", "updated_at": "2025-11-01"}]
+    # --- ダミーここまで ---
+
+    items: List[ForecastItemOut] = []
+    for forecast, product_name in results:
+        item = ForecastItemOut(
+            id=forecast.id,
+            product_code=forecast.product_id,
+            product_name=product_name or " (製品マスタ未登録)",
+            client_code=forecast.client_id,
+            supplier_code=forecast.supplier_id,
+            granularity=forecast.granularity,
+            version_no=str(forecast.version_no),  # スキーマに合わせてstrに
+            updated_at=forecast.updated_at,
+            # ダミーデータをセット
+            daily_data=daily if forecast.granularity == "daily" else None,
+            dekad_data={"early": early, "middle": middle, "late": late}
+            if forecast.granularity == "dekad"
+            else None,
+            monthly_data={"11": monthly_total}
+            if forecast.granularity == "monthly"
+            else None,
+            dekad_summary=dekad_summary,
+            # フロントのモック由来のダミー
+            client_name=f"{forecast.client_id} (ダミー)",
+            supplier_name=f"{forecast.supplier_id} (ダミー)",
+            unit="EA",
+            version_history=version_history,
+        )
+        items.append(item)
+
+    return ForecastListResponse(items=items)
+
+
+# 🔼 [追加ここまで] 🔼
 
 
 # ===== Basic CRUD =====
@@ -43,16 +125,7 @@ def list_forecasts(
     db: Session = Depends(get_db),
 ):
     """
-    フォーキャスト一覧取得
-
-    Args:
-        skip: スキップ件数
-        limit: 取得件数
-        product_id: 製品IDでフィルタ
-        client_id: 得意先IDでフィルタ
-        granularity: 粒度でフィルタ (daily/dekad/monthly)
-        is_active: アクティブ状態でフィルタ
-        version_no: バージョン番号でフィルタ
+    フォーキャスト一覧取得 (生データ)
     """
     query = db.query(Forecast)
 

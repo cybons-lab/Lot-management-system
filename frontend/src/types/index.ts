@@ -1,9 +1,39 @@
-// v2.0 API (backend/app/schemas/inventory.py)
+// src/types/index.ts
+// APIスキーマに基づき、フロントエンド全体で利用する型を再定義・整理
+
+// --- 共通 ---
+export interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data?: T;
+}
+
+// --- マスタ ---
+export interface Product {
+  product_code: string;
+  product_name: string;
+  internal_unit: string;
+  requires_lot_number: number;
+}
+
+export interface Supplier {
+  supplier_code: string;
+  supplier_name: string;
+}
+
+// 既存の (古い) Warehouse
+export interface OldWarehouse {
+  warehouse_code: string;
+  warehouse_name: string;
+  is_active: number;
+}
+
+// --- 在庫 (Lot) ---
 export interface LotResponse {
   id: number;
   supplier_code: string;
   product_code: string;
-  product_name?: string; // 4.1で追加
+  product_name?: string;
   lot_number: string;
   receipt_date: string; // YYYY-MM-DD
   mfg_date?: string;
@@ -14,7 +44,6 @@ export interface LotResponse {
   updated_at?: string;
 }
 
-// v2.0 API (backend/app/schemas/inventory.py)
 export interface LotCreate {
   supplier_code: string;
   product_code: string;
@@ -25,35 +54,7 @@ export interface LotCreate {
   warehouse_code?: string;
 }
 
-// v2.0 API (backend/app/schemas/masters.py)
-export interface Product {
-  product_code: string;
-  product_name: string;
-  internal_unit: string;
-  requires_lot_number: number;
-}
-
-// v2.0 API (backend/app/schemas/masters.py)
-export interface Supplier {
-  supplier_code: string;
-  supplier_name: string;
-}
-
-// v2.0 API (backend/app/schemas/masters.py)
-export interface Warehouse {
-  warehouse_code: string;
-  warehouse_name: string;
-  is_active: number;
-}
-
-// v2.0 API (backend/app/schemas/admin.py)
-export interface DashboardStatsResponse {
-  total_stock: number;
-  total_orders: number;
-  unallocated_orders: number;
-}
-
-// v2.0 API (backend/app/schemas/sales.py)
+// --- 受注 (Order) ---
 export interface OrderResponse {
   id: number;
   order_no: string;
@@ -63,6 +64,9 @@ export interface OrderResponse {
   sap_order_id?: string;
   created_at: string;
   updated_at?: string;
+  // 以下はフロントで独自に追加した可能性のあるフィールド
+  due_date?: string | null;
+  remarks?: string | null;
 }
 
 export interface OrderLineResponse {
@@ -74,56 +78,17 @@ export interface OrderLineResponse {
   unit?: string;
   due_date?: string; // YYYY-MM-DD
   created_at: string;
-  allocated_qty?: number; // 引当済数量 (GET /orders/{id} で付与)
+  allocated_qty?: number;
+  // Forecast関連
+  forecast_id?: number | null;
+  forecast_granularity?: string | null;
+  forecast_match_status?: string | null;
+  forecast_qty?: number | null;
+  forecast_version_no?: number | null; // v2.0では int
 }
 
 export interface OrderWithLinesResponse extends OrderResponse {
   lines: OrderLineResponse[];
-}
-// 既存の型定義に追加する内容
-
-// ===== Dashboard =====
-export interface DashboardStats {
-  total_stock: number;
-  total_orders: number;
-  unallocated_orders: number;
-}
-
-// ===== Orders =====
-export interface Order {
-  id: number;
-  order_no: string;
-  customer_code: string;
-  order_date: string;
-  due_date: string | null;
-  status: string;
-  remarks: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface OrderLine {
-  id: number;
-  order_id: number;
-  line_no: number;
-  product_code: string;
-  quantity: number;
-  unit: string;
-  due_date: string | null;
-  remarks: string | null;
-  allocated_qty: number;
-  // Forecast関連
-  forecast_id: number | null;
-  forecast_granularity: string | null;
-  forecast_match_status: string | null;
-  forecast_qty: number | null;
-  forecast_version_no: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface OrderWithLines extends Order {
-  lines: OrderLine[];
 }
 
 export interface OrdersListParams {
@@ -133,12 +98,96 @@ export interface OrdersListParams {
   customer_code?: string;
   date_from?: string;
   date_to?: string;
-  q?: string; // 検索クエリ
-  page?: number;
-  page_size?: number;
 }
 
-// ===== Forecast =====
+// --- 管理 (Admin) ---
+export interface DashboardStats {
+  total_stock: number;
+  total_orders: number;
+  unallocated_orders: number;
+}
+
+export interface ResetResponse {
+  success: boolean;
+  message: string;
+  data?: any;
+}
+
+// ---
+// ここから今回の機能追加分
+// ---
+
+// --- 倉庫配分 (Warehouse Allocation) ---
+
+// 1. 新しい倉庫マスタ (warehouse.id が主キーのもの)
+export interface Warehouse {
+  warehouse_code: string;
+  warehouse_name: string;
+}
+export interface WarehouseListResponse {
+  items: Warehouse[];
+}
+
+// 2. 倉庫配分の保存・表示用
+export interface WarehouseAlloc {
+  warehouse_code: string;
+  quantity: number;
+}
+
+// 3. 配分情報付きの受注明細 (GET /orders-with-allocations のレスポンス)
+export interface OrderLineWithAlloc {
+  id: number;
+  product_code: string;
+  product_name: string;
+  customer_code: string;
+  supplier_code: string | null;
+  quantity: number;
+  unit: string;
+  warehouse_allocations: WarehouseAlloc[];
+  related_lots: any[]; // TODO: ロット引当実装時に定義
+}
+export interface OrdersWithAllocResponse {
+  items: OrderLineWithAlloc[];
+}
+
+// 4. 配分保存 (POST /orders/{id}/warehouse-allocations のリクエスト)
+export interface SaveAllocationsRequest {
+  allocations: WarehouseAlloc[];
+}
+export interface SaveAllocationsResponse {
+  success: boolean;
+  message: string;
+}
+
+// --- Forecast一覧 (Forecast List) ---
+export interface ForecastItemOut {
+  id: number;
+  product_code: string;
+  product_name: string;
+  client_code?: string;
+  supplier_code?: string;
+  granularity: string;
+  version_no: string;
+  updated_at: string; // ISO 8601 string
+  daily_data?: { [day: string]: number };
+  dekad_data?: { [dekad: string]: number };
+  monthly_data?: { [month: string]: number };
+  dekad_summary?: { [summary: string]: number };
+  // フロント独自追加 (mock由来)
+  client_name?: string;
+  supplier_name?: string;
+  unit?: string;
+  version_history?: any[];
+}
+export interface ForecastListResponse {
+  items: ForecastItemOut[];
+}
+export interface ForecastListParams {
+  product_code?: string;
+  supplier_code?: string;
+}
+
+// --- Forecastインポート (Forecast Import) ---
 export interface ForecastBulkItem {
   product_code: string;
   client_code: string;
@@ -146,124 +195,32 @@ export interface ForecastBulkItem {
   date_day?: string;
   date_dekad_start?: string;
   year_month?: string;
-  forecast_qty: number;
-  version_no: string;
+  forecast_qty: number; // v2.0では int
+  version_no: number; // v2.0では int
+  version_issued_at: string; // ISO 8601 string
 }
-
 export interface ForecastBulkRequest {
-  forecasts: ForecastBulkItem[];
+  version_no: number;
+  version_issued_at: string; // ISO 8601 string
+  source_system?: string;
+  deactivate_old_version?: boolean;
+  forecasts: Omit<
+    ForecastBulkItem,
+    "version_no" | "version_issued_at" | "source_system" | "is_active"
+  >[];
 }
 
 export interface ForecastBulkResponse {
   success: boolean;
   message: string;
+  version_no: number;
   imported_count: number;
   skipped_count: number;
   error_count: number;
-  errors?: Array<{
-    index: number;
-    product_code: string;
-    error: string;
-  }>;
+  error_details?: string;
 }
 
-// ===== Re-match =====
-export interface ReMatchResponse {
-  id: number;
-  order_no: string;
-  lines: OrderLine[];
-  created_at: string;
-  updated_at: string;
-}
-
-// ===== API Response Base =====
-export interface ApiResponse<T> {
-  success: boolean;
-  message?: string;
-  data?: T;
-}
-// 既存のtypes/index.tsに追加する型定義
-
-// ===== 倉庫配分 =====
-export interface WarehouseAllocation {
-  warehouse_code: string;
-  warehouse_name?: string;
-  allocated_quantity: number;
-  unit: string;
-}
-
-// ===== 拡張された受注明細（倉庫配分情報付き） =====
-export interface OrderLineWithAllocations extends OrderLine {
-  warehouse_allocations?: WarehouseAllocation[];
-}
-
-// ===== 拡張された受注（倉庫配分情報付き） =====
-export interface OrderWithAllocations extends Order {
-  lines: OrderLineWithAllocations[];
-}
-
-// ===== Forecast一覧表示用 =====
-export interface ForecastListItem {
-  id: number;
-  product_code: string;
-  product_name?: string;
-  client_code: string;
-  client_name?: string;
-  supplier_code?: string;
-  supplier_name?: string;
-  granularity: "daily" | "dekad" | "monthly";
-  version_no: string;
-  is_active: boolean;
-  updated_at: string;
-  // 日別データ（最大31日分）
-  daily_data?: { [day: number]: number };
-  // 旬別データ
-  dekad_data?: {
-    early: number; // 上旬
-    middle: number; // 中旬
-    late: number; // 下旬
-  };
-  // 月別データ（最大12ヶ月分）
-  monthly_data?: { [month: string]: number };
-}
-
-// ===== Forecast一覧のフィルターパラメータ =====
-export interface ForecastListParams {
-  product_code?: string;
-  product_name?: string;
-  client_code?: string;
-  supplier_code?: string;
-  version_no?: string;
-  is_active?: boolean;
-  skip?: number;
-  limit?: number;
-}
-
-// ===== Forecast詳細（展開時） =====
-export interface ForecastDetail extends ForecastListItem {
-  version_history?: Array<{
-    version_no: string;
-    updated_at: string;
-  }>;
-}
-
-// ===== 倉庫マスタ =====
-export interface Warehouse {
-  warehouse_code: string;
-  warehouse_name: string;
-  location?: string;
-  is_active: number; // 1: 有効, 0: 無効
-}
-
-// ===== ロット情報（受注カード用） =====
-export interface LotForOrder {
-  id: number;
-  lot_number: string;
-  supplier_code: string;
-  supplier_name?: string;
-  product_code: string;
-  expiry_date: string | null;
-  available_quantity: number;
-  unit: string;
-  warehouse_code: string;
+// --- 再マッチング (Re-match) ---
+export interface ReMatchResponse extends OrderWithLinesResponse {
+  // OrderWithLinesResponse と同じ
 }
