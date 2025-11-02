@@ -47,7 +47,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 /**
- * 汎用API呼び出し (GET, POST)
+ * 汎用API呼び出し
  */
 async function fetchApi<T>(
   endpoint: string,
@@ -226,6 +226,7 @@ export const api = {
 
   /**
    * 受注明細のステータスを更新
+   * ※ サーバ側は `status` フィールドを期待
    */
   updateOrderLineStatus: (orderLineId: number, newStatus: string) =>
     fetchApi<{
@@ -235,7 +236,7 @@ export const api = {
       new_status: string;
     }>(`/orders/${orderLineId}/status`, {
       method: "PATCH",
-      body: JSON.stringify({ new_status: newStatus }),
+      body: JSON.stringify({ status: newStatus }),
     }),
 
   /**
@@ -282,23 +283,25 @@ export const api = {
     const headers = Object.keys(data[0]);
     const csvContent = [
       headers.join(","),
-      ...data.map((row) =>
-        headers
-          .map((header) => {
-            const value = row[header];
-            if (value === null || value === undefined) return "";
-            const stringValue = String(value);
-            if (
-              stringValue.includes(",") ||
-              stringValue.includes("\n") ||
-              stringValue.includes('"')
-            ) {
-              return `"${stringValue.replace(/"/g, '""')}"`;
-            }
-            return stringValue;
-          })
-          .join(",")
-      ),
+      data
+        .map((row) =>
+          headers
+            .map((header) => {
+              const value = row[header];
+              if (value === null || value === undefined) return "";
+              const stringValue = String(value);
+              if (
+                stringValue.includes(",") ||
+                stringValue.includes("\n") ||
+                stringValue.includes('"')
+              ) {
+                return `"${stringValue.replace(/"/g, '""')}"`;
+              }
+              return stringValue;
+            })
+            .join(",")
+        )
+        .join("\n"),
     ].join("\n");
 
     const blob = new Blob([`\uFEFF${csvContent}`], {

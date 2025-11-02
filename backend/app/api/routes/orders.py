@@ -7,6 +7,7 @@ from datetime import date
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import and_, delete, func, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -48,6 +49,13 @@ except ImportError:
     print("⚠️  ForecastMatcher not available - forecast matching will be skipped")
 
 router = APIRouter(prefix="/orders", tags=["orders"])
+
+
+# ===== リクエストスキーマ =====
+class StatusUpdateRequest(BaseModel):
+    """ステータス更新用のリクエストボディ"""
+
+    status: str
 
 
 @router.get("", response_model=List[OrderResponse])
@@ -680,7 +688,7 @@ def cancel_lot_allocations(
 
 @router.patch("/{order_line_id}/status")
 def update_order_line_status(
-    order_line_id: int, new_status: str, db: Session = Depends(get_db)
+    order_line_id: int, request: StatusUpdateRequest, db: Session = Depends(get_db)
 ):
     """
     受注明細のステータスを更新
@@ -688,6 +696,8 @@ def update_order_line_status(
     - 引当完了時に "allocated" に変更
     - 出荷時に "shipped" に変更
     """
+    new_status = request.status
+
     # 受注明細を取得
     stmt = select(OrderLine).where(OrderLine.id == order_line_id)
     order_line = db.execute(stmt).scalar_one_or_none()
@@ -714,7 +724,7 @@ def update_order_line_status(
     # "allocated" に変更する場合、引当数量をチェック
     if new_status == "allocated":
         # 引当済み数量を計算
-        stmt_alloc = select(func.sum(Allocation.allocated_quantity)).where(
+        stmt_alloc = select(func.sum(Allocation.allocated_qty)).where(
             Allocation.order_line_id == order_line_id
         )
         total_allocated = db.execute(stmt_alloc).scalar() or 0.0
