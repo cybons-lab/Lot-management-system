@@ -5,18 +5,20 @@
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.models import Forecast, Order, OrderLine
+from app.models import Forecast, Order, OrderLine, Product
 from app.schemas.forecast import (
     ForecastActivateRequest,
     ForecastActivateResponse,
     ForecastBulkImportRequest,
     ForecastBulkImportResponse,
     ForecastCreate,
+    ForecastItemOut,
+    ForecastListResponse,
     ForecastMatchRequest,
     ForecastMatchResponse,
     ForecastMatchResult,
@@ -28,6 +30,74 @@ from app.schemas.forecast import (
 from app.services.forecast import ForecastMatcher
 
 router = APIRouter(prefix="/forecast", tags=["forecast"])
+
+
+@router.get("/list", response_model=ForecastListResponse)
+def list_forecast_summary(
+    product_code: Optional[str] = Query(default=None),
+    supplier_code: Optional[str] = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """
+    Forecast一覧（フロント表示用）
+    """
+
+    # 🔽 [修正] join を isouter=True (LEFT OUTER JOIN) に変更
+    stmt = (
+        select(Forecast, Product.product_name)
+        .join(Product, Forecast.product_id == Product.product_code, isouter=True)
+        .order_by(Forecast.product_id, Forecast.version_no.desc())
+    )
+
+    if product_code:
+        stmt = stmt.where(Forecast.product_id.ilike(f"%{product_code}%"))
+    if supplier_code:
+        stmt = stmt.where(Forecast.supplier_id.ilike(f"%{supplier_code}%"))
+
+    results = db.execute(stmt.limit(50)).all()
+
+    # --- ダミー集計データ ---
+    daily = {str(d): 100.0 + (d % 5) * 10 for d in range(1, 31)}
+    early = sum(v for k, v in daily.items() if 1 <= int(k) <= 10)
+    middle = sum(v for k, v in daily.items() if 11 <= int(k) <= 20)
+    late = sum(v for k, v in daily.items() if 21 <= int(k) <= 31)
+    monthly_total = early + middle + late
+    dekad_summary = {
+        "early": early,
+        "middle": middle,
+        "late": late,
+        "total": monthly_total,
+    }
+    version_history = [{"version_no": "v1.0 (dummy)", "updated_at": "2025-11-01"}]
+    # --- ダミーここまで ---
+
+    items: List[ForecastItemOut] = []
+    for forecast, product_name in results:
+        item = ForecastItemOut(
+            id=forecast.id,
+            product_code=forecast.product_id,
+            product_name=product_name or " (製品マスタ未登録)",
+            client_code=forecast.client_id,
+            supplier_code=forecast.supplier_id,
+            granularity=forecast.granularity,
+            version_no=str(forecast.version_no),
+            updated_at=forecast.updated_at,
+            daily_data=daily if forecast.granularity == "daily" else None,
+            dekad_data={"early": early, "middle": middle, "late": late}
+            if forecast.granularity == "dekad"
+            else None,
+            monthly_data={"11": monthly_total}
+            if forecast.granularity == "monthly"
+            else None,
+            dekad_summary=dekad_summary,
+            client_name=f"{forecast.client_id} (ダミー)",
+            supplier_name=f"{forecast.supplier_id} (ダミー)",
+            unit="EA",
+            version_history=version_history,
+        )
+        items.append(item)
+
+    return ForecastListResponse(items=items)
 
 
 # ===== Basic CRUD =====
@@ -43,20 +113,9 @@ def list_forecasts(
     db: Session = Depends(get_db),
 ):
     """
-    フォーキャスト一覧取得
-
-    Args:
-        skip: スキップ件数
-        limit: 取得件数
-        product_id: 製品IDでフィルタ
-        client_id: 得意先IDでフィルタ
-        granularity: 粒度でフィルタ (daily/dekad/monthly)
-        is_active: アクティブ状態でフィルタ
-        version_no: バージョン番号でフィルタ
+    フォーキャスト一覧取得 (生データ)
     """
     query = db.query(Forecast)
-
-    # フィルタ適用
     if product_id:
         query = query.filter(Forecast.product_id == product_id)
     if client_id:
@@ -68,14 +127,12 @@ def list_forecasts(
     if version_no:
         query = query.filter(Forecast.version_no == version_no)
 
-    # ソート: バージョン降順 → 日付昇順
     query = query.order_by(
         Forecast.version_no.desc(),
         Forecast.date_day.asc().nullslast(),
         Forecast.date_dekad_start.asc().nullslast(),
         Forecast.year_month.asc().nullslast(),
     )
-
     forecasts = query.offset(skip).limit(limit).all()
     return forecasts
 
@@ -85,7 +142,6 @@ def create_forecast(forecast: ForecastCreate, db: Session = Depends(get_db)):
     """
     フォーキャスト単一登録
     """
-    # 重複チェック（同じforecast_idは登録不可）
     existing = (
         db.query(Forecast).filter(Forecast.forecast_id == forecast.forecast_id).first()
     )
@@ -94,10 +150,7 @@ def create_forecast(forecast: ForecastCreate, db: Session = Depends(get_db)):
             status_code=400,
             detail=f"forecast_id '{forecast.forecast_id}' は既に存在します",
         )
-
-    # 粒度別フィールドの整合性チェック
     _validate_granularity_fields(forecast)
-
     db_forecast = Forecast(**forecast.model_dump())
     db.add(db_forecast)
     db.commit()
@@ -150,25 +203,19 @@ def bulk_import_forecasts(
 ):
     """
     フォーキャスト一括登録
-
-    週次更新を想定した一括インポート機能。
-    新バージョンとして登録し、必要に応じて旧バージョンを非アクティブ化。
     """
     imported_count = 0
     skipped_count = 0
     error_count = 0
     error_details = []
 
-    # 旧バージョンの非アクティブ化
     if request.deactivate_old_version:
         db.query(Forecast).filter(
             Forecast.version_no < request.version_no, Forecast.is_active == True
         ).update({"is_active": False})
 
-    # 各フォーキャストを登録
     for forecast_data in request.forecasts:
         try:
-            # 重複チェック
             existing = (
                 db.query(Forecast)
                 .filter(Forecast.forecast_id == forecast_data.forecast_id)
@@ -181,10 +228,8 @@ def bulk_import_forecasts(
                 )
                 continue
 
-            # 粒度別フィールドの整合性チェック
             _validate_granularity_fields(forecast_data)
 
-            # バージョン情報を上書き
             forecast_dict = forecast_data.model_dump()
             forecast_dict["version_no"] = request.version_no
             forecast_dict["version_issued_at"] = request.version_issued_at
@@ -221,7 +266,6 @@ def list_versions(db: Session = Depends(get_db)):
     """
     フォーキャストバージョン一覧取得
     """
-    # バージョンごとの集計
     versions = (
         db.query(
             Forecast.version_no,
@@ -259,7 +303,6 @@ def activate_version(request: ForecastActivateRequest, db: Session = Depends(get
     """
     指定バージョンをアクティブ化
     """
-    # 対象バージョンの存在チェック
     target_forecasts = (
         db.query(Forecast).filter(Forecast.version_no == request.version_no).all()
     )
@@ -270,7 +313,6 @@ def activate_version(request: ForecastActivateRequest, db: Session = Depends(get
 
     deactivated_versions = []
 
-    # 他のバージョンを非アクティブ化
     if request.deactivate_others:
         other_versions = (
             db.query(Forecast.version_no)
@@ -286,7 +328,6 @@ def activate_version(request: ForecastActivateRequest, db: Session = Depends(get
             Forecast.version_no != request.version_no, Forecast.is_active == True
         ).update({"is_active": False})
 
-    # 対象バージョンをアクティブ化
     db.query(Forecast).filter(Forecast.version_no == request.version_no).update(
         {"is_active": True}
     )
@@ -306,14 +347,9 @@ def activate_version(request: ForecastActivateRequest, db: Session = Depends(get
 def match_forecasts(request: ForecastMatchRequest, db: Session = Depends(get_db)):
     """
     フォーキャストと受注明細の手動マッチング
-
-    用途:
-    - フォーキャストバージョン更新後の再マッチング
-    - 特定受注のマッチング状態修正
     """
     matcher = ForecastMatcher(db)
 
-    # 対象受注明細の取得
     query = db.query(OrderLine).join(Order)
 
     if request.order_id:
@@ -331,13 +367,11 @@ def match_forecasts(request: ForecastMatchRequest, db: Session = Depends(get_db)
             detail="order_id, order_ids, または date_from/date_to のいずれかを指定してください",
         )
 
-    # 既にマッチ済みの明細をスキップ（force_rematch=Falseの場合）
     if not request.force_rematch:
         query = query.filter(OrderLine.forecast_id.is_(None))
 
     order_lines = query.all()
 
-    # マッチング実行
     results = []
     matched_count = 0
 

@@ -16,9 +16,10 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, relationship
 
 from .base_model import Base
+from .warehouse import OrderLineWarehouseAllocation
 
 
 class Order(Base):
@@ -74,14 +75,27 @@ class OrderLine(Base):
     # リレーション
     order = relationship("Order", back_populates="lines")
     product = relationship("Product", back_populates="order_lines")
+
+    # 🔽 [修正] これは「ロット引当」用
     allocations = relationship(
         "Allocation", back_populates="order_line", cascade="all, delete-orphan"
     )
+
     shippings = relationship("Shipping", back_populates="order_line")
     purchase_requests = relationship("PurchaseRequest", back_populates="src_order_line")
 
     # --- 🔽 [変更] Forecast へのリレーションを追加 🔽 ---
     forecast = relationship("Forecast")
+
+    # 🔽 [修正] 89行目をこちらに修正
+    # 名前を "warehouse_allocations" に変更
+    # "backref" を "back_populates" に変更
+    warehouse_allocations: Mapped[list[OrderLineWarehouseAllocation]] = relationship(
+        "OrderLineWarehouseAllocation",
+        back_populates="order_line",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
 
     __table_args__ = (UniqueConstraint("order_id", "line_no", name="uq_order_line"),)
 

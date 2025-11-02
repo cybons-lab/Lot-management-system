@@ -1,10 +1,11 @@
+# backend/app/api/routes/admin.py
 """
 管理機能のAPIエンドポイント
 ヘルスチェック、データベースリセット等
 """
 
 import traceback
-from datetime import date  # ⬅️ 1. この行を追加 (または確認)
+from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, text
@@ -23,6 +24,8 @@ from app.models import (
     ReceiptLine,
     StockMovement,
 )
+
+# 🔽 [追加] 新しい Warehouse モデルもインポート
 from app.schemas import (
     DashboardStatsResponse,
     FullSampleDataRequest,
@@ -70,7 +73,9 @@ def reset_database(db: Session = Depends(get_db)):
 
         # AdminPage.tsx の load_full_sample_data がマスタも投入するが、
         # ここでも最低限のマスタを投入しておく（init-sample-dataの簡易版）
-        sample_masters = """
+
+        # 🔽 [修正] 既存のマスタデータ
+        sample_masters_old = """
         INSERT OR IGNORE INTO warehouses (warehouse_code, warehouse_name, is_active) VALUES
         ('WH001', '第一倉庫', 1), ('WH002', '第二倉庫', 1);
         INSERT OR IGNORE INTO suppliers (supplier_code, supplier_name) VALUES
@@ -78,9 +83,23 @@ def reset_database(db: Session = Depends(get_db)):
         INSERT OR IGNORE INTO customers (customer_code, customer_name) VALUES
         ('CUS001', '得意先A'), ('CUS002', '得意先B');
         """
-        for statement in sample_masters.split(";"):
+        for statement in sample_masters_old.split(";"):
             if statement.strip():
                 db.execute(text(statement))
+
+        # 🔽 [ここから追加]
+        # 新しい 'warehouse' テーブル (IDが主キー) にもデータを投入
+        sample_masters_new = """
+        INSERT OR IGNORE INTO warehouse (warehouse_code, warehouse_name) VALUES
+        ('WH001', '第一倉庫 (新)'), 
+        ('WH002', '第二倉庫 (新)'),
+        ('WH003', '予備倉庫 (新)');
+        """
+        for statement in sample_masters_new.split(";"):
+            if statement.strip():
+                db.execute(text(statement))
+        # 🔼 [追加ここまで]
+
         db.commit()
 
         return ResponseBase(success=True, message="データベースをリセットしました")
@@ -135,8 +154,8 @@ def load_full_sample_data(data: FullSampleDataRequest, db: Session = Depends(get
 
     # 既存のマスタデータを投入 (SETUP_GUIDE.md にあるもの)
     try:
-        # サンプルマスタデータ
-        sample_masters = """
+        # 🔽 [修正] 既存のマスタデータ
+        sample_masters_old = """
         INSERT OR IGNORE INTO warehouses (warehouse_code, warehouse_name, is_active) VALUES
         ('WH001', '第一倉庫', 1), ('WH002', '第二倉庫', 1);
         INSERT OR IGNORE INTO suppliers (supplier_code, supplier_name) VALUES
@@ -144,9 +163,23 @@ def load_full_sample_data(data: FullSampleDataRequest, db: Session = Depends(get
         INSERT OR IGNORE INTO customers (customer_code, customer_name) VALUES
         ('CUS001', '得意先A'), ('CUS002', '得意先B');
         """
-        for statement in sample_masters.split(";"):
+        for statement in sample_masters_old.split(";"):
             if statement.strip():
                 db.execute(text(statement))
+
+        # 🔽 [ここから追加]
+        # 新しい 'warehouse' テーブル (IDが主キー) にもデータを投入
+        sample_masters_new = """
+        INSERT OR IGNORE INTO warehouse (warehouse_code, warehouse_name) VALUES
+        ('WH001', '第一倉庫 (新)'), 
+        ('WH002', '第二倉庫 (新)'),
+        ('WH003', '予備倉庫 (新)');
+        """
+        for statement in sample_masters_new.split(";"):
+            if statement.strip():
+                db.execute(text(statement))
+        # 🔼 [追加ここまで]
+
         db.commit()
 
     except Exception as e:

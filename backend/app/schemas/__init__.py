@@ -10,7 +10,7 @@ from .admin import (
 )
 from .base import BaseSchema, ResponseBase, TimestampMixin
 
-# 🔽 [追加] Forecastスキーマのインポート
+# 🔽 [修正] Forecastスキーマのインポート
 from .forecast import (
     ForecastActivateRequest,
     ForecastActivateResponse,
@@ -18,6 +18,8 @@ from .forecast import (
     ForecastBulkImportRequest,
     ForecastBulkImportResponse,
     ForecastCreate,
+    ForecastItemOut,  # 🔽 [追加]
+    ForecastListResponse,  # 🔽 [追加]
     ForecastMatchRequest,
     ForecastMatchResponse,
     ForecastMatchResult,
@@ -86,7 +88,7 @@ from .masters import (
     SupplierCreate,
     SupplierResponse,
     SupplierUpdate,
-    # Warehouse
+    # Warehouse (Old)
     WarehouseBase,
     WarehouseCreate,
     WarehouseResponse,
@@ -105,8 +107,10 @@ from .orders import (
     # OrderLine
     OrderLineBase,
     OrderLineCreate,
+    OrderLineOut,
     OrderLineResponse,
     OrderResponse,
+    OrdersWithAllocResponse,
     OrderUpdate,
     OrderWithLinesResponse,
     # PurchaseRequest
@@ -114,12 +118,19 @@ from .orders import (
     PurchaseRequestCreate,
     PurchaseRequestResponse,
     PurchaseRequestUpdate,
+    SaveAllocationsRequest,
     # Shipping
     ShippingBase,
     ShippingCreate,
     ShippingResponse,
     ShippingUpdate,
+    # warehouse allocation
+    WarehouseAllocIn,
+    WarehouseAllocOut,
 )
+
+# 🔽 [追加] 新しい倉庫スキーマ
+from .warehouses import WarehouseListResponse, WarehouseOut
 
 __all__ = [
     # Base
@@ -168,7 +179,7 @@ __all__ = [
     "ExpiryRuleCreate",
     "ExpiryRuleUpdate",
     "ExpiryRuleResponse",
-    # Sales
+    # Sales (orders)
     "OrderBase",
     "OrderCreate",
     "OrderUpdate",
@@ -202,7 +213,7 @@ __all__ = [
     # Admin
     "FullSampleDataRequest",
     "DashboardStatsResponse",
-    # 🔽 [追加] Forecastスキーマ
+    # 🔽 [修正] Forecastスキーマ
     "ForecastBase",
     "ForecastCreate",
     "ForecastUpdate",
@@ -216,4 +227,14 @@ __all__ = [
     "ForecastVersionListResponse",
     "ForecastActivateRequest",
     "ForecastActivateResponse",
+    "ForecastItemOut",  # 🔽 [追加]
+    "ForecastListResponse",  # 🔽 [追加]
+    # 🔽 [追加] Warehouse Allocation Schemas
+    "WarehouseOut",
+    "WarehouseListResponse",
+    "WarehouseAllocIn",
+    "WarehouseAllocOut",
+    "OrderLineOut",
+    "OrdersWithAllocResponse",
+    "SaveAllocationsRequest",
 ]
