@@ -1,15 +1,15 @@
 from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, CheckConstraint, Column, Date, DateTime, Integer, String
-from sqlalchemy.orm import declarative_base
 
-Base = declarative_base()
+from .base_model import Base
 
 
 class Forecast(Base):
-    __tablename__ = "forecast"
+    __tablename__ = "forecast"  # FK の参照名と完全一致
+    id = Column(Integer, primary_key=True)  # 主キー必須
 
-    forecast_id = Column(String(36), primary_key=True)
+    forecast_id = Column(String(36), nullable=False, unique=True)
     product_id = Column(String(64), nullable=False)
     client_id = Column(String(64), nullable=False)
     supplier_id = Column(String(64), nullable=False)

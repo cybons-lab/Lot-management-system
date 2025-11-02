@@ -3,9 +3,9 @@
 販売関連のPydanticスキーマ
 """
 
-from pydantic import Field
-from typing import Optional
 from datetime import date, datetime
+from typing import Optional
+
 from .base import BaseSchema, TimestampMixin
 
 
@@ -55,10 +55,18 @@ class OrderLineResponse(OrderLineBase):
     created_at: datetime
     allocated_qty: Optional[float] = None  # 引当済数量(計算値)
 
+    # --- 🔽 [変更] forecast 関連フィールドを追加 🔽 ---
+    forecast_id: Optional[int] = None
+    forecast_granularity: Optional[str] = None
+    forecast_match_status: Optional[str] = None
+    forecast_qty: Optional[float] = None
+    forecast_version_no: Optional[int] = None
+
 
 # --- Order with Lines ---
 class OrderWithLinesResponse(OrderResponse):
     """受注詳細レスポンス(明細含む)"""
+
     lines: list[OrderLineResponse] = []
 
 
@@ -80,6 +88,7 @@ class AllocationResponse(AllocationBase):
 
 class DragAssignRequest(BaseSchema):
     """ドラッグ引当リクエスト"""
+
     order_line_id: int
     lot_id: int
     allocate_qty: float
@@ -87,6 +96,7 @@ class DragAssignRequest(BaseSchema):
 
 class DragAssignResponse(BaseSchema):
     """ドラッグ引当レスポンス"""
+
     success: bool
     message: str
     allocated_id: int
