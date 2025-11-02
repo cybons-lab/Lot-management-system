@@ -1,11 +1,25 @@
 # backend/alembic/env.py
-# (UnicodeDecodeErrorを避けるため、コメントも含めASCII文字のみで構成)
 from __future__ import annotations
 
+# --- ▼▼▼ ここから追加 ▼▼▼ ---
+import os
+import sys
 from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
+
+# 'backend' フォルダ (app/ と alembic/ がある場所) へのパスを追加
+# これにより、'app' パッケージをインポートできる
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+# app/models/base_model.py から Base をインポート
+# app/models/__init__.py が他の全モデルをインポートするため、
+# 'Base.metadata' に全テーブル定義がアタッチされる
+from app.models import Base
+
+# --- ▲▲▲ ここまで追加 ▲▲▲ ---
+
 
 # alembic.ini の設定を読み込みます
 config = context.config
@@ -14,9 +28,10 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# autogenerate(自動検出)を使わない手書きマイグレーションの場合、
-# target_metadata は None のままで問題ありません。
-target_metadata = None
+# --- ▼▼▼ ここを修正 ▼▼▼ ---
+# autogenerate(自動検出)のために、Base.metadata を設定します
+target_metadata = Base.metadata
+# --- ▲▲▲ 修正完了 ▲▲▲ ---
 
 
 def run_migrations_offline() -> None:
