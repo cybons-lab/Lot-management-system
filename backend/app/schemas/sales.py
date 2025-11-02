@@ -3,8 +3,12 @@
 販売関連のPydanticスキーマ
 """
 
+from __future__ import annotations
+
 from datetime import date, datetime
 from typing import Optional
+
+from pydantic import Field
 
 from .base import BaseSchema, TimestampMixin
 
@@ -15,10 +19,6 @@ class OrderBase(BaseSchema):
     customer_code: str
     order_date: Optional[date] = None
     status: str = "open"
-
-
-class OrderCreate(OrderBase):
-    pass
 
 
 class OrderUpdate(BaseSchema):
@@ -49,6 +49,10 @@ class OrderLineCreate(OrderLineBase):
     pass
 
 
+class OrderCreate(OrderBase):
+    lines: list[OrderLineCreate] | None = None
+
+
 class OrderLineResponse(OrderLineBase):
     id: int
     order_id: int
@@ -67,7 +71,7 @@ class OrderLineResponse(OrderLineBase):
 class OrderWithLinesResponse(OrderResponse):
     """受注詳細レスポンス(明細含む)"""
 
-    lines: list[OrderLineResponse] = []
+    lines: list[OrderLineResponse] = Field(default_factory=list)
 
 
 # --- Allocation ---

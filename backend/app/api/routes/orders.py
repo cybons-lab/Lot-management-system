@@ -109,7 +109,7 @@ def create_order(order: OrderCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="得意先が見つかりません")
 
     # 受注ヘッダ作成
-    db_order = Order(**order.model_dump())
+    db_order = Order(**order.model_dump(exclude={"lines"}))
     db.add(db_order)
     db.flush()
 
