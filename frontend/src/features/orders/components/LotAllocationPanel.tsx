@@ -19,14 +19,40 @@ type Props = {
   /** ロット引当実行 */
   onAllocate: (payload: { items: { lot_id: number; qty: number }[] }) => void;
 
-  /** 引当取消（型は後続で厳密化予定） */
+  /** 引当取消 */
   onCancelAllocations: (payload: any) => void;
 
   /** 倉庫別配分の保存 */
   onSaveWarehouseAllocations: (allocs: WarehouseAlloc[]) => void;
 
-  /** 行の最大数量（配分超過チェックに使用・任意） */
+  /** 行の最大数量（配分超過チェックに使用） */
   maxQty?: number;
+
+  /** トースト表示関数（オプション） */
+  onToast?: (message: { title: string; variant?: "default" | "destructive" }) => void;
+};
+
+/**
+ * 倉庫配分のバリデーション
+ */
+const validateWarehouseAllocations = (
+  allocs: WarehouseAlloc[],
+  maxQty?: number
+): { valid: boolean; message: string } => {
+  const total = allocs.reduce((sum, a) => sum + Number(a.quantity ?? 0), 0);
+
+  if (total === 0) {
+    return { valid: false, message: "配分数量が0です" };
+  }
+
+  if (typeof maxQty === "number" && total > maxQty) {
+    return {
+      valid: false,
+      message: `配分合計(${total})が行数量(${maxQty})を超えています`,
+    };
+  }
+
+  return { valid: true, message: "" };
 };
 
 export default function LotAllocationPanel(props: Props) {
@@ -40,14 +66,55 @@ export default function LotAllocationPanel(props: Props) {
     onCancelAllocations,
     onSaveWarehouseAllocations,
     maxQty,
+    onToast,
   } = props;
 
   // 入力状態
   const [selected, setSelected] = React.useState<Record<number, number>>({}); // lotId -> qty
   const [wareAlloc, setWareAlloc] = React.useState<WarehouseAlloc[]>([]);
+  const [validationError, setValidationError] = React.useState<string>("");
 
   // modal のときだけ open を判定
   if (mode === "modal" && !open) return null;
+
+  // 引当実行のハンドラ
+  const handleAllocate = () => {
+    const sum = Object.values(selected).reduce(
+      (s, q) => s + Number(q || 0),
+      0
+    );
+    if (sum <= 0) {
+      const msg = "引当数が0です";
+      setValidationError(msg);
+      onToast?.({ title: msg, variant: "destructive" });
+      return;
+    }
+    const items = Object.entries(selected)
+      .filter(([, qty]) => Number(qty) > 0)
+      .map(([lot_id, qty]) => ({
+        lot_id: Number(lot_id),
+        qty: Number(qty),
+      }));
+    
+    setValidationError("");
+    onAllocate({ items });
+    onToast?.({ title: "引当を実行しました" });
+  };
+
+  // 倉庫配分保存のハンドラ
+  const handleSaveWarehouseAlloc = () => {
+    const validation = validateWarehouseAllocations(wareAlloc, maxQty);
+    
+    if (!validation.valid) {
+      setValidationError(validation.message);
+      onToast?.({ title: validation.message, variant: "destructive" });
+      return;
+    }
+
+    setValidationError("");
+    onSaveWarehouseAllocations(wareAlloc);
+    onToast?.({ title: "倉庫配分を保存しました" });
+  };
 
   // 共通 UI 本体
   const body = (
@@ -57,87 +124,95 @@ export default function LotAllocationPanel(props: Props) {
         <div className="text-lg font-semibold">行ID: {orderLineId ?? "-"}</div>
         {mode === "modal" && (
           <button
-            className="px-3 py-1 rounded border"
+            className="px-3 py-1 rounded border hover:bg-gray-100"
             onClick={() => onClose && onClose()}>
             閉じる
           </button>
         )}
       </div>
 
+      {/* バリデーションエラー表示 */}
+      {validationError && (
+        <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+          ⚠️ {validationError}
+        </div>
+      )}
+
       {/* 候補ロット一覧 */}
       <div className="rounded-lg border p-3">
         <div className="text-sm font-medium mb-2">引当候補ロット</div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-gray-500">
-              <th className="py-1">LotID</th>
-              <th className="py-1">ロット番号</th>
-              <th className="py-1">在庫数</th>
-              <th className="py-1">引当数</th>
-            </tr>
-          </thead>
-          <tbody>
-            {candidates.map((c) => (
-              <tr key={c.lot_id} className="border-t">
-                <td className="py-1">{c.lot_id}</td>
-                <td className="py-1">{c.lot_code}</td>
-                <td className="py-1">{c.stock_qty}</td>
-                <td className="py-1">
-                  <input
-                    className="border rounded px-2 py-0.5 w-24"
-                    type="number"
-                    min={0}
-                    value={Number(selected[c.lot_id] ?? 0)}
-                    onChange={(e) =>
-                      setSelected((prev) => ({
-                        ...prev,
-                        [c.lot_id]: Number(e.target.value),
-                      }))
-                    }
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {candidates.length === 0 ? (
+          <div className="text-sm text-gray-500">候補ロットがありません</div>
+        ) : (
+          <>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-500">
+                  <th className="py-1">LotID</th>
+                  <th className="py-1">ロット番号</th>
+                  <th className="py-1">在庫数</th>
+                  <th className="py-1">引当数</th>
+                </tr>
+              </thead>
+              <tbody>
+                {candidates.map((c) => (
+                  <tr key={c.lot_id} className="border-t">
+                    <td className="py-1">{c.lot_id}</td>
+                    <td className="py-1">{c.lot_code}</td>
+                    <td className="py-1">{c.stock_qty}</td>
+                    <td className="py-1">
+                      <input
+                        className="border rounded px-2 py-0.5 w-24"
+                        type="number"
+                        min={0}
+                        max={c.stock_qty}
+                        value={Number(selected[c.lot_id] ?? 0)}
+                        onChange={(e) =>
+                          setSelected((prev) => ({
+                            ...prev,
+                            [c.lot_id]: Number(e.target.value),
+                          }))
+                        }
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-        <div className="flex gap-2 mt-3">
-          <button
-            className="px-3 py-1 rounded bg-black text-white"
-            onClick={() => {
-              const sum = Object.values(selected).reduce(
-                (s, q) => s + Number(q || 0),
-                0
-              );
-              if (sum <= 0) {
-                alert("引当数が0です");
-                return;
-              }
-              const items = Object.entries(selected)
-                .filter(([, qty]) => Number(qty) > 0)
-                .map(([lot_id, qty]) => ({
-                  lot_id: Number(lot_id),
-                  qty: Number(qty),
-                }));
-              onAllocate({ items });
-            }}>
-            引当を実行
-          </button>
+            <div className="flex gap-2 mt-3">
+              <button
+                className="px-3 py-1 rounded bg-black text-white hover:bg-gray-800"
+                onClick={handleAllocate}>
+                引当を実行
+              </button>
 
-          <button
-            className="px-3 py-1 rounded border"
-            onClick={() => onCancelAllocations({ order_line_id: orderLineId })}>
-            引当を取消
-          </button>
-        </div>
+              <button
+                className="px-3 py-1 rounded border hover:bg-gray-100"
+                onClick={() => {
+                  onCancelAllocations({ order_line_id: orderLineId });
+                  onToast?.({ title: "引当を取消しました" });
+                }}>
+                引当を取消
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* 倉庫別配分 */}
       <div className="rounded-lg border p-3">
-        <div className="text-sm text-gray-500 mb-1">倉庫別配分</div>
-        <div className="flex items-center gap-2">
+        <div className="text-sm font-medium mb-2">
+          倉庫別配分
+          {typeof maxQty === "number" && (
+            <span className="ml-2 text-xs text-gray-500">
+              (最大: {maxQty})
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 mb-3">
           <button
-            className="px-3 py-1 rounded border"
+            className="px-3 py-1 rounded border hover:bg-gray-100"
             onClick={() =>
               setWareAlloc([
                 ...(wareAlloc ?? []),
@@ -150,31 +225,28 @@ export default function LotAllocationPanel(props: Props) {
                 } as WarehouseAlloc,
               ])
             }>
-            行追加
+            + 行追加
           </button>
 
           <button
-            className="px-3 py-1 rounded bg-black text-white"
-            onClick={() => {
-              const total = (wareAlloc ?? []).reduce(
-                (s, a) => s + Number(a?.quantity ?? a?.qty ?? 0),
-                0
-              );
-              if (total <= 0) {
-                alert("配分数量が0です");
-                return;
-              }
-              if (typeof maxQty === "number" && total > maxQty) {
-                alert("配分合計が行数量を超えています");
-                return;
-              }
-              onSaveWarehouseAllocations(wareAlloc);
-            }}>
+            className="px-3 py-1 rounded bg-black text-white hover:bg-gray-800"
+            onClick={handleSaveWarehouseAlloc}>
             保存
           </button>
         </div>
 
-        <div className="mt-3 space-y-2">
+        {/* 配分合計の表示 */}
+        {wareAlloc.length > 0 && (
+          <div className="mb-2 text-sm text-gray-600">
+            配分合計:{" "}
+            <span className="font-semibold">
+              {wareAlloc.reduce((s, a) => s + Number(a.quantity ?? 0), 0)}
+            </span>
+            {typeof maxQty === "number" && ` / ${maxQty}`}
+          </div>
+        )}
+
+        <div className="space-y-2">
           {(wareAlloc ?? []).map((wa, idx) => (
             <div key={idx} className="flex gap-2">
               <input
@@ -209,6 +281,7 @@ export default function LotAllocationPanel(props: Props) {
                 className="border rounded px-2 py-0.5 w-24"
                 type="number"
                 placeholder="数量"
+                min={0}
                 value={wa.quantity ?? wa.qty ?? 0}
                 onChange={(e) => {
                   const v = Number(e.target.value);
@@ -220,7 +293,7 @@ export default function LotAllocationPanel(props: Props) {
                 }}
               />
               <button
-                className="px-2 py-0.5 rounded border"
+                className="px-2 py-0.5 rounded border hover:bg-gray-100"
                 onClick={() =>
                   setWareAlloc((arr) => arr.filter((_, i) => i !== idx))
                 }>

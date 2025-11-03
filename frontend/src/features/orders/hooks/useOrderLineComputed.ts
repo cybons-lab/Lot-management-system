@@ -1,66 +1,84 @@
 // frontend/src/features/orders/hooks/useOrderLineComputed.ts
-import { useMemo } from "react";
+import React from "react";
+import { isValidDate, diffDays } from "@/lib/utils/date";
+import type { OrderLine, OrderLineComputed, AllocatedLot } from "@/types";
 
-export type AllocationStatus = {
-  key: "none" | "partial" | "done";
-  label: string;
-  color: string;
-};
+/**
+ * 受注明細の計算済み情報を取得
+ */
+export function useOrderLineComputed(
+  line: any, // 後でOrderLine型に移行
+  order?: any
+): OrderLineComputed {
+  return React.useMemo(() => {
+    // 基本情報
+    const lineId = line?.id;
+    const orderId = order?.id ?? line?.order_id;
+    const productCode = line?.product_code ?? "";
+    const productName = line?.product_name ?? "";
+    const totalQty = Number(line?.quantity ?? 0);
+    const unit = line?.unit ?? "EA";
+    const status = line?.status ?? "open";
+    const customerCode = line?.customer_code ?? order?.customer_code ?? "";
+    const orderDate = line?.order_date ?? order?.order_date ?? "";
 
-export function useOrderLineComputed(line?: any, order?: any) {
-  const unit = line?.unit ?? order?.unit ?? "";
-  const totalQty = line?.qty ?? line?.quantity ?? 0;
+    // 引当済み数量
+    const allocatedLots: AllocatedLot[] = line?.allocated_lots ?? [];
+    const allocatedTotal = allocatedLots.reduce(
+      (sum, a) => sum + Number(a.allocated_qty ?? 0),
+      0
+    );
 
-  const allocatedLots: any[] = line?.allocated_lots ?? [];
-  const allocatedTotal = useMemo(
-    () =>
-      allocatedLots.reduce(
-        (s: number, a: any) => s + (a?.allocated_qty ?? 0),
-        0
-      ),
-    [allocatedLots]
-  );
+    // 残数量と進捗率
+    const remainingQty = Math.max(0, totalQty - allocatedTotal);
+    const progressPct =
+      totalQty > 0 ? Math.round((allocatedTotal / totalQty) * 100) : 0;
 
-  const remainingQty = Math.max(0, totalQty - allocatedTotal);
-  const progressPct = Math.min(
-    100,
-    totalQty > 0 ? Math.round((allocatedTotal / totalQty) * 100) : 0
-  );
+    // 日付情報
+    const dueDate = line?.due_date ?? null;
+    const shipDate = line?.ship_date ?? null;
+    const plannedShipDate = line?.planned_ship_date ?? null;
 
-  const status: AllocationStatus = (() => {
-    if (allocatedTotal <= 0)
-      return { key: "none", label: "未処理", color: "bg-amber-500" };
-    if (allocatedTotal < totalQty)
-      return { key: "partial", label: "一部引当", color: "bg-violet-500" };
-    return { key: "done", label: "引当済", color: "bg-emerald-500" };
-  })();
+    // 配送リードタイムの計算
+    let shippingLeadTime: string | null = null;
+    const due = dueDate;
+    const ship = shipDate ?? plannedShipDate;
 
-  const warehouseList =
-    Array.isArray(line?.warehouse_allocations) &&
-    line.warehouse_allocations.length > 0
-      ? line.warehouse_allocations
-      : order?.default_warehouses ?? [];
+    if (isValidDate(due) && isValidDate(ship)) {
+      const days = diffDays(due!, ship!);
+      if (days >= 0) {
+        shippingLeadTime = `${days}日`;
+      } else {
+        shippingLeadTime = `遅延${Math.abs(days)}日`;
+      }
+    }
 
-  const ids = {
-    orderId: order?.id ?? line?.order_id,
-    lineId: line?.id ?? line?.order_line_id ?? line?.line_id,
-  };
+    // 倉庫コード一覧
+    const warehouses = Array.from(
+      new Set(
+        allocatedLots
+          .map((a) => a.warehouse_code)
+          .filter((w): w is string => !!w)
+      )
+    );
 
-  return {
-    unit,
-    totalQty,
-    allocatedTotal,
-    remainingQty,
-    progressPct,
-    status,
-    productCode: line?.product_code,
-    productName: line?.product_name,
-    orderDate: line?.order_date ?? order?.order_date,
-    dueDate: line?.due_date,
-    plannedShipDate: line?.planned_ship_date,
-    customerCode: line?.customer_code ?? order?.customer_code,
-    supplierCode: line?.supplier_code ?? order?.supplier_code,
-    warehouseList,
-    ids,
-  };
+    return {
+      ids: { lineId, orderId },
+      productCode,
+      productName,
+      totalQty,
+      unit,
+      allocatedTotal,
+      remainingQty,
+      progressPct,
+      status,
+      customerCode,
+      orderDate,
+      dueDate: dueDate ?? undefined,
+      shipDate: shipDate ?? undefined,
+      plannedShipDate: plannedShipDate ?? undefined,
+      shippingLeadTime,
+      warehouses,
+    };
+  }, [line, order]);
 }

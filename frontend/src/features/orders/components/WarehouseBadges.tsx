@@ -1,24 +1,31 @@
 // frontend/src/features/orders/components/WarehouseBadges.tsx
 import React from "react";
-import { Badge } from "@/components/ui/badge";
 
-export default function WarehouseBadges({
-  list,
-  unit,
-}: {
-  list: any[];
-  unit: string;
-}) {
-  if (!list || list.length === 0) {
-    return <span className="text-sm text-muted-foreground">未設定</span>;
+type Props = {
+  warehouses: string[];
+};
+
+export default function WarehouseBadges({ warehouses }: Props) {
+  if (warehouses.length === 0) {
+    return (
+      <div className="text-sm text-gray-500">
+        倉庫: 未配分
+      </div>
+    );
   }
+
   return (
-    <div className="flex flex-wrap gap-2">
-      {list.map((a: any, idx: number) => (
-        <Badge key={idx} variant="secondary" className="text-sm">
-          {a?.warehouse_code}: {a?.quantity ?? a?.default_qty ?? 0} {unit}
-        </Badge>
-      ))}
+    <div className="space-y-1">
+      <div className="text-sm font-medium text-gray-600">出荷倉庫:</div>
+      <div className="flex flex-wrap gap-1">
+        {warehouses.map((wh) => (
+          <span
+            key={wh}
+            className="px-2 py-1 rounded bg-sky-100 text-sky-700 text-xs font-medium">
+            {wh}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

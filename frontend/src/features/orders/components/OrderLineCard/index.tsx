@@ -1,7 +1,7 @@
 // frontend/src/features/orders/components/OrderLineCard/index.tsx
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Edit, RefreshCcw } from "lucide-react";
+import { RefreshCcw } from "lucide-react";
 
 import OrderLineHeader from "@/features/orders/components/OrderLineHeader";
 import AllocationProgress from "@/features/orders/components/AllocationProgress";
@@ -12,6 +12,7 @@ import InfoRow from "@/components/common/InfoRow";
 import LotAllocationPanel from "@/features/orders/components/LotAllocationPanel";
 import { useOrderLineComputed } from "@/features/orders/hooks/useOrderLineComputed";
 import { useAllocationActions } from "@/features/orders/hooks/useAllocationActions";
+import { formatYmd } from "@/lib/utils/date";
 
 type Props = {
   order?: any;
@@ -21,16 +22,6 @@ type Props = {
   onRematch?: () => void;
 };
 
-function formatYmd(value?: string | Date | null) {
-  if (!value) return "";
-  const d = typeof value === "string" ? new Date(value) : value;
-  if (Number.isNaN(d.getTime())) return "";
-  const y = d.getFullYear();
-  const m = `${d.getMonth() + 1}`.padStart(2, "0");
-  const day = `${d.getDate()}`.padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
 export default function OrderLineCard({
   order,
   line,
@@ -38,11 +29,19 @@ export default function OrderLineCard({
   onRematch,
 }: Props) {
   const c = useOrderLineComputed(line, order);
+  
+  // ★ 品番を渡してフィルタリング
   const { candidatesQ, createAlloc, cancelAlloc, saveWareAlloc } =
-    useAllocationActions(c.ids.lineId);
+    useAllocationActions(c.ids.lineId, c.productCode);
 
   const canRematch = !!onRematch && !!c.ids.orderId;
   const [isEditing, setIsEditing] = React.useState(false);
+
+  // トースト表示（shadcn/uiのuseToastを想定）
+  const showToast = (message: { title: string; variant?: "default" | "destructive" }) => {
+    // 実装例: toast(message);
+    console.log("Toast:", message);
+  };
 
   return (
     <div className="rounded-xl border bg-white shadow-sm">
@@ -96,18 +95,25 @@ export default function OrderLineCard({
                   onClose={() => setIsEditing(false)}
                   orderLineId={c.ids.lineId ?? null}
                   candidates={candidatesQ.data?.items ?? []}
-                  onAllocate={(payload) => createAlloc.mutate(payload)}
-                  onCancelAllocations={(payload) => cancelAlloc.mutate(payload)}
-                  onSaveWarehouseAllocations={(allocs) =>
-                    saveWareAlloc.mutate(allocs)
-                  }
+                  onAllocate={(payload) => {
+                    createAlloc.mutate(payload);
+                    showToast({ title: "引当を実行しました" });
+                  }}
+                  onCancelAllocations={(payload) => {
+                    cancelAlloc.mutate(payload);
+                    showToast({ title: "引当を取消しました" });
+                  }}
+                  onSaveWarehouseAllocations={(allocs) => {
+                    saveWareAlloc.mutate(allocs);
+                    showToast({ title: "倉庫配分を保存しました" });
+                  }}
                   maxQty={c.totalQty}
+                  onToast={showToast}
                 />
               </div>
             )}
 
-            {/* 引当済ロット（既存表示がある場合はここに） */}
-            {/* 必要に応じて別コンポーネント化可能 */}
+            {/* 引当済ロット */}
             {Array.isArray(line?.allocated_lots) &&
             line.allocated_lots.length > 0 ? (
               <div className="rounded-lg border p-3">
@@ -153,32 +159,25 @@ export default function OrderLineCard({
             />
             <InfoRow label="数量" value={`${c.totalQty} ${c.unit}`} />
             <InfoRow label="得意先" value={c.customerCode ?? ""} />
-            {c.supplierCode && (
-              <InfoRow label="仕入先" value={c.supplierCode} />
-            )}
             <InfoRow label="納期" value={formatYmd(c.dueDate) || "—"} />
             <InfoRow
-              label="予定出荷日"
-              value={formatYmd(c.plannedShipDate) || "—"}
+              label="出荷日(予定)"
+              value={formatYmd(c.shipDate ?? c.plannedShipDate) || "—"}
             />
+            
+            {/* ★ 配送リードタイム */}
+            {c.shippingLeadTime && (
+              <InfoRow
+                label="配送リードタイム"
+                value={c.shippingLeadTime}
+                highlight={c.shippingLeadTime.includes("遅延")}
+              />
+            )}
 
-            <div className="border-t pt-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">出荷倉庫</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}>
-                  <Edit className="mr-2 h-3 w-3" />
-                  編集
-                </Button>
-              </div>
-              <WarehouseBadges list={c.warehouseList} unit={c.unit} />
-            </div>
+            <WarehouseBadges warehouses={c.warehouses} />
+            <ForecastSection productCode={c.productCode} />
           </div>
         </div>
-
-        <ForecastSection productCode={c.productCode} />
       </div>
     </div>
   );
