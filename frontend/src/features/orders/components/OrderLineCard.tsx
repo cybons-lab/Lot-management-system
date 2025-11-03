@@ -1,11 +1,4 @@
-import LotAllocationPanel from "@/features/orders/components/LotAllocationPanel";
 import React, { useMemo } from "react";
-import {
-  useCandidateLots,
-  useCreateAllocations,
-  useCancelAllocations,
-  useSaveWarehouseAllocations,
-} from "@/features/orders/hooks/useAllocations";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -17,6 +10,14 @@ import {
   Edit,
   RefreshCcw,
 } from "lucide-react";
+
+import LotAllocationPanel from "@/features/orders/components/LotAllocationPanel";
+import {
+  useCandidateLots,
+  useCreateAllocations,
+  useCancelAllocations,
+  useSaveWarehouseAllocations,
+} from "@/features/orders/hooks/useAllocations";
 
 type Props = {
   /** 受注全体の情報。行APIのみの場合は未指定でOK */
@@ -39,36 +40,16 @@ function formatYmd(value?: string | Date | null) {
   return `${y}-${m}-${day}`;
 }
 
-function getStatus(line: any) {
-  if (!line) {
-    return {
-      label: "不明",
-      color: "bg-gray-100",
-      icon: AlertTriangle,
-    };
-  }
-  if (line.allocated_lots && line.allocated_lots.length > 0) {
-    return {
-      label: "引当済",
-      color: "bg-emerald-100",
-      icon: CheckCircle2,
-    };
-  }
-  return {
-    label: "未処理",
-    color: "bg-amber-100",
-    icon: AlertTriangle,
-  };
-}
-
 function StatusIcon({
   className,
+  status,
 }: {
   className?: string;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  color?: string;
+  status: "none" | "partial" | "done";
 }) {
-  return <Package className={className} />;
+  if (status === "done") return <CheckCircle2 className={className} />;
+  if (status === "partial") return <Package className={className} />;
+  return <AlertTriangle className={className} />;
 }
 
 export default function OrderLineCard({
@@ -92,28 +73,43 @@ export default function OrderLineCard({
   const remainingQty = Math.max(0, totalQty - allocatedTotal);
   const progressPct = Math.min(
     100,
-    totalQty > 0 ? (allocatedTotal / totalQty) * 100 : 0
+    totalQty > 0 ? Math.round((allocatedTotal / totalQty) * 100) : 0
   );
-  const progressClass =
-    progressPct >= 100 ? "bg-emerald-200" : progressPct > 0 ? "bg-sky-200" : "";
 
-  const status = getStatus(line);
-  const canRematch = typeof onRematch === "function" && !!order?.id;
+  const status:
+    | { label: string; color: string; key: "none" | "partial" | "done" }
+    | undefined = (() => {
+    if (allocatedTotal <= 0)
+      return { label: "未処理", color: "bg-amber-500", key: "none" };
+    if (allocatedTotal < totalQty)
+      return { label: "一部引当", color: "bg-violet-500", key: "partial" };
+    return { label: "引当済", color: "bg-emerald-500", key: "done" };
+  })();
 
+  const progressClass = "h-2";
+
+  const canRematch = !!onRematch && (order?.id ?? line?.order_id);
+
+  // ---- インライン編集用（必要時のみ有効化） ----
   const [isEditing, setIsEditing] = React.useState(false);
+  const lineId: number | undefined =
+    line?.id ?? line?.order_line_id ?? line?.line_id ?? undefined;
 
-  // Inline panel hooks (lazy enabled)
-  const lineId = line?.id ?? line?.order_line_id ?? undefined;
   const candidatesQ = useCandidateLots(isEditing ? lineId : undefined);
   const createAlloc = useCreateAllocations(lineId ?? 0);
   const cancelAlloc = useCancelAllocations(lineId ?? 0);
   const saveWareAlloc = useSaveWarehouseAllocations(lineId ?? 0);
 
+  // フォーキャスト折りたたみ
+  const [openForecast, setOpenForecast] = React.useState(false);
+
   return (
     <div className="rounded-xl border bg-white shadow-sm">
       {/* ヘッダー */}
       <div
-        className={`flex items-center justify-between border-b p-4 ${status.color} bg-opacity-10`}>
+        className={`flex items-center justify-between border-b p-4 ${
+          status?.color ?? ""
+        } bg-opacity-10`}>
         <div className="min-w-0">
           <div className="flex items-center gap-3">
             <span className="text-base font-semibold truncate">
@@ -128,9 +124,13 @@ export default function OrderLineCard({
         <div className="flex items-center gap-3 shrink-0">
           <div className="flex items-center gap-1 text-sm">
             <StatusIcon
-              className={`h-4 w-4 ${status.color.replace("bg-", "text-")}`}
+              className={`h-4 w-4 ${(status?.color ?? "").replace(
+                "bg-",
+                "text-"
+              )}`}
+              status={status?.key ?? "none"}
             />
-            <span className="font-medium">{status.label}</span>
+            <span className="font-medium">{status?.label}</span>
           </div>
           <div className="text-sm text-muted-foreground flex items-center gap-2">
             <Calendar className="h-4 w-4" />
@@ -142,7 +142,7 @@ export default function OrderLineCard({
         </div>
       </div>
 
-      {/* ボディ */}
+      {/* 本体 */}
       <div className="p-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 左：ロット引当 */}
@@ -165,52 +165,21 @@ export default function OrderLineCard({
               </div>
             </div>
 
-            {/* 引当済みロットの一覧 */}
-            <div className="rounded-lg border p-3 bg-white">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-slate-700">
-                  引当済ロット
-                </span>
-                <div className="flex items-center gap-2">
-                  {canRematch && (
-                    <Button size="sm" variant="outline" onClick={onRematch}>
-                      <RefreshCcw className="mr-1 h-3 w-3" />
-                      ロット再マッチ
-                    </Button>
-                  )}
-                  <Button size="sm" onClick={onOpenAllocation}>
-                    ロット編集
-                  </Button>
-                </div>
-              </div>
-              {allocatedLots.length === 0 ? (
-                <div className="text-xs text-muted-foreground">
-                  まだロットが引当されていません
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {allocatedLots.map((a: any) => (
-                    <div
-                      key={
-                        a?.allocation_id ??
-                        `${a?.lot_code}-${a?.warehouse_code}`
-                      }
-                      className="flex items-center justify-between text-sm">
-                      <div className="min-w-0">
-                        <div className="font-mono truncate">{a?.lot_code}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {a?.allocated_qty} {unit} / {a?.warehouse_code}
-                        </div>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatYmd(a?.ship_date)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            {/* 再マッチ（受注単位） */}
+            <div className="flex items-center gap-2">
+              {canRematch && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={onRematch}
+                  className="shrink-0">
+                  <RefreshCcw className="mr-1 h-3 w-3" />
+                  ロット再マッチ
+                </Button>
               )}
             </div>
 
+            {/* インライン編集トグル */}
             <div className="mt-3">
               <Button
                 size="sm"
@@ -220,6 +189,7 @@ export default function OrderLineCard({
               </Button>
             </div>
 
+            {/* インライン編集パネル */}
             {isEditing && (
               <div className="mt-3">
                 <LotAllocationPanel
@@ -235,6 +205,37 @@ export default function OrderLineCard({
                   }
                   maxQty={totalQty}
                 />
+              </div>
+            )}
+
+            {/* 既存の割当一覧 */}
+            {Array.isArray(allocatedLots) && allocatedLots.length > 0 ? (
+              <div className="rounded-lg border p-3">
+                <div className="text-sm font-medium mb-2">引当済ロット</div>
+                <div className="space-y-2">
+                  {allocatedLots.map((a: any) => (
+                    <div
+                      key={
+                        a?.allocation_id ??
+                        `${a?.lot_code}-${a?.warehouse_code}`
+                      }
+                      className="flex items-center justify-between text-sm">
+                      <div className="min-w-0">
+                        <div className="font-mono truncate">{a?.lot_code}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {a?.allocated_qty} {unit} / {a?.warehouse_code}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg border p-3">
+                <div className="text-sm font-medium mb-2">引当済ロット</div>
+                <div className="text-sm text-muted-foreground">
+                  まだロットが引当されていません
+                </div>
               </div>
             )}
           </div>
@@ -255,18 +256,18 @@ export default function OrderLineCard({
               label="得意先"
               value={line?.customer_code ?? order?.customer_code ?? ""}
             />
-            <InfoRow
-              label="出荷日"
-              value={
-                formatYmd(line?.ship_date ?? line?.planned_ship_date) || "—"
-              }
-            />
             {(line?.supplier_code ?? order?.supplier_code) && (
               <InfoRow
                 label="仕入先"
                 value={line?.supplier_code ?? order?.supplier_code}
               />
             )}
+            {/* 納期／予定出荷日 */}
+            <InfoRow label="納期" value={formatYmd(line?.due_date) || "—"} />
+            <InfoRow
+              label="予定出荷日"
+              value={formatYmd(line?.planned_ship_date) || "—"}
+            />
 
             {/* 倉庫配分表示 */}
             <div className="border-t pt-3">
@@ -277,6 +278,7 @@ export default function OrderLineCard({
                   編集
                 </Button>
               </div>
+
               <div className="flex flex-wrap gap-2">
                 {(() => {
                   const list =
@@ -299,29 +301,30 @@ export default function OrderLineCard({
                 })()}
               </div>
             </div>
-
-            {/* 下段：フォーキャスト（プレースホルダ） */}
-            <div className="lg:col-span-2">
-              <div className="border-b pb-3 mb-4">
-                <h3 className="text-sm font-medium text-violet-700">
-                  フォーキャスト
-                </h3>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                将来的に製品別の見込み数量を表示（API結線予定）
-              </div>
-            </div>
           </div>
         </div>
 
-        <div className="border-t mt-4 pt-3 flex justify-end">
-          <a
-            href={`/forecast?product=${encodeURIComponent(
-              line?.product_code ?? ""
-            )}`}
-            className="text-sm underline">
-            フォーキャストを見る
-          </a>
+        {/* 下段：フォーキャスト導線（折りたたみ） */}
+        <div className="border-t mt-4 pt-3">
+          <div className="flex items-center justify-between">
+            <button
+              className="text-sm underline"
+              onClick={() => setOpenForecast((v) => !v)}>
+              フォーキャストを見る
+            </button>
+            <a
+              href={`/forecast?product=${encodeURIComponent(
+                line?.product_code ?? ""
+              )}`}
+              className="text-xs underline text-muted-foreground">
+              別ページで開く
+            </a>
+          </div>
+          {openForecast && (
+            <div className="mt-3 rounded-lg border p-3 text-sm text-muted-foreground">
+              将来的に製品別の見込み数量を表示（API結線予定）
+            </div>
+          )}
         </div>
       </div>
     </div>
