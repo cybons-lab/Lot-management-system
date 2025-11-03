@@ -180,6 +180,12 @@ export default function OrderLineCard({
               label="得意先"
               value={line?.customer_code ?? order?.customer_code ?? ""}
             />
+            <InfoRow
+              label="出荷日"
+              value={
+                formatYmd(line?.ship_date ?? line?.planned_ship_date) || "—"
+              }
+            />
             {(line?.supplier_code ?? order?.supplier_code) && (
               <InfoRow
                 label="仕入先"
