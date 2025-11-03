@@ -203,16 +203,25 @@ export default function OrderLineCard({
                 </Button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {Array.isArray(line?.warehouse_allocations) &&
-                line.warehouse_allocations.length > 0 ? (
-                  line.warehouse_allocations.map((a: any, idx: number) => (
-                    <Badge key={idx} variant="secondary" className="text-sm">
-                      {a?.warehouse_code}: {a?.quantity} {unit}
-                    </Badge>
-                  ))
-                ) : (
-                  <span className="text-sm text-muted-foreground">未設定</span>
-                )}
+                {(() => {
+                  const list =
+                    Array.isArray(line?.warehouse_allocations) &&
+                    line.warehouse_allocations.length > 0
+                      ? line.warehouse_allocations
+                      : order?.default_warehouses ?? [];
+                  return list && list.length > 0 ? (
+                    list.map((a: any, idx: number) => (
+                      <Badge key={idx} variant="secondary" className="text-sm">
+                        {a?.warehouse_code}:{" "}
+                        {a?.quantity ?? a?.default_qty ?? 0} {unit}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      未設定
+                    </span>
+                  );
+                })()}
               </div>
             </div>
           </div>
