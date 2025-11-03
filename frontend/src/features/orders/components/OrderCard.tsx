@@ -13,7 +13,7 @@ export default function OrderCard({ order, onSelectLine, onReMatch }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <div className="text-lg font-semibold">
-            受注番号: {order.order_code ?? order.id}
+            受注番号: {order.order_no ?? order.id}
           </div>
           <div className="text-sm text-gray-500">
             顧客: {order.customer_code} / 作成日:{" "}

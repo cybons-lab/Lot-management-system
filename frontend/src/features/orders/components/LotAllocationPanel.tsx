@@ -103,7 +103,15 @@ export default function LotAllocationPanel({
             <button
               className="px-3 py-1 rounded border"
               onClick={() =>
-                setWareAlloc([{ warehouse_id: 1, lot_id: 0, qty: 0 }])
+                setWareAlloc([
+                  {
+                    warehouse_id: 1,
+                    lot_id: 0,
+                    qty: 0,
+                    warehouse_code: "",
+                    quantity: 0,
+                  },
+                ])
               }>
               行追加
             </button>
