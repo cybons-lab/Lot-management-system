@@ -1,22 +1,22 @@
 // frontend/src/components/common/InfoRow.tsx
 import React from "react";
 
-export default function InfoRow({
-  label,
-  value,
-  highlight,
-}: {
+type Props = {
   label: string;
-  value: string;
+  value: string | number;
   highlight?: boolean;
-}) {
+};
+
+export default function InfoRow({ label, value, highlight }: Props) {
   return (
-    <div className="flex justify-between items-center">
-      <span className="text-sm text-muted-foreground">{label}:</span>
+    <div className="flex justify-between items-center text-sm">
+      <span className="text-gray-600">{label}:</span>
       <span
-        className={`text-sm ${
-          highlight ? "font-semibold text-foreground" : "text-foreground/90"
-        }`}>
+        className={
+          highlight
+            ? "font-semibold text-sky-700"
+            : "font-medium text-gray-900"
+        }>
         {value}
       </span>
     </div>

@@ -1,35 +1,53 @@
 // frontend/src/features/orders/components/AllocationProgress.tsx
 import React from "react";
-import { Progress } from "@/components/ui/progress";
 
-export default function AllocationProgress({
-  lineId,
-  progressPct,
-  allocatedTotal,
-  totalQty,
-  unit,
-  remainingQty,
-}: {
+type Props = {
   lineId?: number;
   progressPct: number;
   allocatedTotal: number;
   totalQty: number;
   unit: string;
   remainingQty: number;
-}) {
+};
+
+export default function AllocationProgress({
+  progressPct,
+  allocatedTotal,
+  totalQty,
+  unit,
+  remainingQty,
+}: Props) {
   return (
-    <div className="rounded-lg border p-3 bg-sky-50/40">
-      <div className="flex items-center mb-2 text-sm">
-        <span className="font-medium">引当進捗（行ID: {lineId ?? "-"}）</span>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between text-sm">
+        <span className="font-medium">引当進捗</span>
       </div>
+      
       <div className="relative">
-        <Progress value={progressPct} className="h-2" />
-        <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs font-semibold text-foreground">
-          {allocatedTotal} / {totalQty} {unit}
+        <div className="w-full bg-gray-200 rounded-full h-6 overflow-hidden">
+          <div
+            className="bg-gradient-to-r from-sky-500 to-sky-600 h-full transition-all duration-300 flex items-center justify-end pr-2"
+            style={{ width: `${progressPct}%` }}>
+            <span className="text-xs font-semibold text-white">
+              {progressPct}%
+            </span>
+          </div>
         </div>
       </div>
-      <div className="mt-1 text-xs text-muted-foreground">
-        残り {remainingQty} {unit}
+      
+      <div className="text-xs text-gray-600 space-y-1">
+        <div className="flex justify-between">
+          <span>引当済:</span>
+          <span className="font-medium">{allocatedTotal} {unit}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>合計:</span>
+          <span className="font-medium">{totalQty} {unit}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>残数量:</span>
+          <span className="font-medium text-amber-600">{remainingQty} {unit}</span>
+        </div>
       </div>
     </div>
   );

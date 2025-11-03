@@ -6,9 +6,15 @@ import {
   useSaveWarehouseAllocations,
 } from "@/features/orders/hooks/useAllocations";
 
-export function useAllocationActions(lineId?: number) {
+/**
+ * 引当操作をまとめたカスタムフック
+ */
+export function useAllocationActions(lineId?: number, productCode?: string) {
   const enabled = typeof lineId === "number" && lineId > 0;
-  const candidatesQ = useCandidateLots(enabled ? lineId : undefined);
+  const candidatesQ = useCandidateLots(
+    enabled ? lineId : undefined,
+    productCode
+  );
   const createAlloc = useCreateAllocations(lineId ?? 0);
   const cancelAlloc = useCancelAllocations(lineId ?? 0);
   const saveWareAlloc = useSaveWarehouseAllocations(lineId ?? 0);
