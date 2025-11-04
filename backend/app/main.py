@@ -17,10 +17,10 @@ from app.api.routes import (
     integration_router,
     lots_router,
     masters_router,
+    orders_router,
     receipts_router,
     warehouse_alloc_router,
 )
-from app.api.routes.orders_refactored import router as orders_refactored_router
 from app.core.config import settings
 from app.core.database import init_db
 
@@ -58,7 +58,7 @@ app.add_middleware(
 app.include_router(masters_router, prefix=settings.API_PREFIX)
 app.include_router(lots_router, prefix=settings.API_PREFIX)
 app.include_router(receipts_router, prefix=settings.API_PREFIX)
-app.include_router(orders_refactored_router, prefix=settings.API_PREFIX)
+app.include_router(orders_router, prefix=settings.API_PREFIX)
 app.include_router(integration_router, prefix=settings.API_PREFIX)
 app.include_router(admin_router, prefix=settings.API_PREFIX)
 app.include_router(admin_presets_router, prefix=settings.API_PREFIX)

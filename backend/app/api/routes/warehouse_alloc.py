@@ -13,7 +13,7 @@ from app.api.deps import get_db
 from app.models import Warehouse
 from app.schemas.warehouses import WarehouseListResponse, WarehouseOut
 
-router = APIRouter(prefix="/warehouse-alloc", tags=["Warehouse Alloc"])
+router = APIRouter(prefix="/warehouse-alloc", tags=["warehouse-alloc"])
 
 
 @router.get("/warehouses", response_model=WarehouseListResponse)

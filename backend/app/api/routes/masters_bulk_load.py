@@ -1,4 +1,5 @@
 """Bulk load endpoint for master data."""
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -6,7 +7,7 @@ from app.api.deps import get_db
 from app.models import Customer, Product, Supplier, Warehouse
 from app.schemas import MasterBulkLoadRequest, MasterBulkLoadResponse
 
-router = APIRouter()
+router = APIRouter(tags=["masters"])
 
 
 def _convert_requires_lot_number(payload: dict) -> dict:
@@ -15,9 +16,7 @@ def _convert_requires_lot_number(payload: dict) -> dict:
     return payload
 
 
-def perform_master_bulk_load(
-    db: Session, request: MasterBulkLoadRequest
-) -> MasterBulkLoadResponse:
+def perform_master_bulk_load(db: Session, request: MasterBulkLoadRequest) -> MasterBulkLoadResponse:
     """Persist master records if not existing and collect warnings."""
 
     created: dict[str, list[str]] = {
@@ -31,11 +30,7 @@ def perform_master_bulk_load(
     try:
         for warehouse in request.warehouses:
             code = warehouse.warehouse_code
-            exists = (
-                db.query(Warehouse)
-                .filter(Warehouse.warehouse_code == code)
-                .first()
-            )
+            exists = db.query(Warehouse).filter(Warehouse.warehouse_code == code).first()
             if exists:
                 warnings.append(f"倉庫コード {code} は既に存在します")
                 continue
@@ -44,11 +39,7 @@ def perform_master_bulk_load(
 
         for supplier in request.suppliers:
             code = supplier.supplier_code
-            exists = (
-                db.query(Supplier)
-                .filter(Supplier.supplier_code == code)
-                .first()
-            )
+            exists = db.query(Supplier).filter(Supplier.supplier_code == code).first()
             if exists:
                 warnings.append(f"仕入先コード {code} は既に存在します")
                 continue
@@ -57,11 +48,7 @@ def perform_master_bulk_load(
 
         for customer in request.customers:
             code = customer.customer_code
-            exists = (
-                db.query(Customer)
-                .filter(Customer.customer_code == code)
-                .first()
-            )
+            exists = db.query(Customer).filter(Customer.customer_code == code).first()
             if exists:
                 warnings.append(f"得意先コード {code} は既に存在します")
                 continue
@@ -70,9 +57,7 @@ def perform_master_bulk_load(
 
         for product in request.products:
             code = product.product_code
-            exists = (
-                db.query(Product).filter(Product.product_code == code).first()
-            )
+            exists = db.query(Product).filter(Product.product_code == code).first()
             if exists:
                 warnings.append(f"製品コード {code} は既に存在します")
                 continue

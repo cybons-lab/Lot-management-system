@@ -26,11 +26,11 @@ from app.services.allocations import (
     preview_fefo_allocation,
 )
 
-router = APIRouter(tags=["allocations"])
+router = APIRouter(prefix="/allocations", tags=["allocations"])
 
 
 # --- 追加: 旧 drag-assign 互換API ---
-@router.post("/allocations/drag-assign")
+@router.post("/drag-assign")
 def drag_assign_allocation(request: DragAssignRequest, db: Session = Depends(get_db)):
     """
     互換エンドポイント: ドラッグ引当
@@ -71,7 +71,7 @@ def drag_assign_allocation(request: DragAssignRequest, db: Session = Depends(get
 
 
 # --- 既存機能 ---
-@router.delete("/allocations/{allocation_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{allocation_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_allocation(allocation_id: int, db: Session = Depends(get_db)):
     """引当取消（DELETE API, ソフトキャンセル対応）"""
     try:
@@ -111,7 +111,7 @@ def _to_preview_response(service_result) -> FefoPreviewResponse:
     )
 
 
-@router.post("/allocations/preview", response_model=FefoPreviewResponse)
+@router.post("/preview", response_model=FefoPreviewResponse)
 def preview_allocations(
     request: FefoPreviewRequest, db: Session = Depends(get_db)
 ) -> FefoPreviewResponse:

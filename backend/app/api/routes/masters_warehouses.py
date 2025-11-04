@@ -1,4 +1,5 @@
 """Warehouse master CRUD endpoints."""
+
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -8,7 +9,7 @@ from app.api.deps import get_db
 from app.models import Warehouse
 from app.schemas import WarehouseCreate, WarehouseResponse, WarehouseUpdate
 
-router = APIRouter(prefix="/warehouses")
+router = APIRouter(prefix="/warehouses", tags=["masters"])
 
 
 @router.get("", response_model=List[WarehouseResponse])
@@ -20,11 +21,7 @@ def list_warehouses(
     """List warehouses."""
 
     warehouses = (
-        db.query(Warehouse)
-        .order_by(Warehouse.warehouse_code)
-        .offset(skip)
-        .limit(limit)
-        .all()
+        db.query(Warehouse).order_by(Warehouse.warehouse_code).offset(skip).limit(limit).all()
     )
     return warehouses
 
@@ -33,11 +30,7 @@ def list_warehouses(
 def get_warehouse(warehouse_code: str, db: Session = Depends(get_db)):
     """Get warehouse by code."""
 
-    warehouse = (
-        db.query(Warehouse)
-        .filter(Warehouse.warehouse_code == warehouse_code)
-        .first()
-    )
+    warehouse = db.query(Warehouse).filter(Warehouse.warehouse_code == warehouse_code).first()
     if not warehouse:
         raise HTTPException(status_code=404, detail="倉庫が見つかりません")
     return warehouse
@@ -48,9 +41,7 @@ def create_warehouse(warehouse: WarehouseCreate, db: Session = Depends(get_db)):
     """Create warehouse."""
 
     exists = (
-        db.query(Warehouse)
-        .filter(Warehouse.warehouse_code == warehouse.warehouse_code)
-        .first()
+        db.query(Warehouse).filter(Warehouse.warehouse_code == warehouse.warehouse_code).first()
     )
     if exists:
         raise HTTPException(status_code=400, detail="倉庫コードが既に存在します")
@@ -68,11 +59,7 @@ def update_warehouse(
 ):
     """Update warehouse."""
 
-    db_warehouse = (
-        db.query(Warehouse)
-        .filter(Warehouse.warehouse_code == warehouse_code)
-        .first()
-    )
+    db_warehouse = db.query(Warehouse).filter(Warehouse.warehouse_code == warehouse_code).first()
     if not db_warehouse:
         raise HTTPException(status_code=404, detail="倉庫が見つかりません")
 
@@ -88,11 +75,7 @@ def update_warehouse(
 def delete_warehouse(warehouse_code: str, db: Session = Depends(get_db)):
     """Delete warehouse."""
 
-    db_warehouse = (
-        db.query(Warehouse)
-        .filter(Warehouse.warehouse_code == warehouse_code)
-        .first()
-    )
+    db_warehouse = db.query(Warehouse).filter(Warehouse.warehouse_code == warehouse_code).first()
     if not db_warehouse:
         raise HTTPException(status_code=404, detail="倉庫が見つかりません")
 

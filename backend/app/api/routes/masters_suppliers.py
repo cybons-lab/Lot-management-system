@@ -1,4 +1,5 @@
 """Supplier master CRUD endpoints."""
+
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -8,7 +9,7 @@ from app.api.deps import get_db
 from app.models import Supplier
 from app.schemas import SupplierCreate, SupplierResponse, SupplierUpdate
 
-router = APIRouter(prefix="/suppliers")
+router = APIRouter(prefix="/suppliers", tags=["masters"])
 
 
 @router.get("", response_model=List[SupplierResponse])
@@ -19,13 +20,7 @@ def list_suppliers(
 ):
     """List suppliers."""
 
-    suppliers = (
-        db.query(Supplier)
-        .order_by(Supplier.supplier_code)
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+    suppliers = db.query(Supplier).order_by(Supplier.supplier_code).offset(skip).limit(limit).all()
     return suppliers
 
 
@@ -33,9 +28,7 @@ def list_suppliers(
 def get_supplier(supplier_code: str, db: Session = Depends(get_db)):
     """Get supplier by code."""
 
-    supplier = (
-        db.query(Supplier).filter(Supplier.supplier_code == supplier_code).first()
-    )
+    supplier = db.query(Supplier).filter(Supplier.supplier_code == supplier_code).first()
     if not supplier:
         raise HTTPException(status_code=404, detail="仕入先が見つかりません")
     return supplier
@@ -45,11 +38,7 @@ def get_supplier(supplier_code: str, db: Session = Depends(get_db)):
 def create_supplier(supplier: SupplierCreate, db: Session = Depends(get_db)):
     """Create supplier."""
 
-    exists = (
-        db.query(Supplier)
-        .filter(Supplier.supplier_code == supplier.supplier_code)
-        .first()
-    )
+    exists = db.query(Supplier).filter(Supplier.supplier_code == supplier.supplier_code).first()
     if exists:
         raise HTTPException(status_code=400, detail="仕入先コードが既に存在します")
 
@@ -61,14 +50,10 @@ def create_supplier(supplier: SupplierCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{supplier_code}", response_model=SupplierResponse)
-def update_supplier(
-    supplier_code: str, supplier: SupplierUpdate, db: Session = Depends(get_db)
-):
+def update_supplier(supplier_code: str, supplier: SupplierUpdate, db: Session = Depends(get_db)):
     """Update supplier."""
 
-    db_supplier = (
-        db.query(Supplier).filter(Supplier.supplier_code == supplier_code).first()
-    )
+    db_supplier = db.query(Supplier).filter(Supplier.supplier_code == supplier_code).first()
     if not db_supplier:
         raise HTTPException(status_code=404, detail="仕入先が見つかりません")
 
@@ -84,9 +69,7 @@ def update_supplier(
 def delete_supplier(supplier_code: str, db: Session = Depends(get_db)):
     """Delete supplier."""
 
-    db_supplier = (
-        db.query(Supplier).filter(Supplier.supplier_code == supplier_code).first()
-    )
+    db_supplier = db.query(Supplier).filter(Supplier.supplier_code == supplier_code).first()
     if not db_supplier:
         raise HTTPException(status_code=404, detail="仕入先が見つかりません")
 
