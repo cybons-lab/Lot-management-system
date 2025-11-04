@@ -20,7 +20,7 @@ class LotBase(BaseSchema):
     mfg_date: Optional[date] = None
     expiry_date: Optional[date] = None
     warehouse_code: Optional[str] = None
-    warehouse_id: Optional[str] = None
+    warehouse_id: Optional[int] = None  # ✅ str → int に修正
     lot_unit: Optional[str] = None
     kanban_class: Optional[str] = None
     sales_unit: Optional[str] = None
@@ -39,7 +39,7 @@ class LotUpdate(BaseSchema):
     mfg_date: Optional[date] = None
     expiry_date: Optional[date] = None
     warehouse_code: Optional[str] = None
-    warehouse_id: Optional[str] = None
+    warehouse_id: Optional[int] = None  # ✅ str → int に修正
     lot_unit: Optional[str] = None
     qc_certificate_status: Optional[str] = None
     qc_certificate_file: Optional[str] = None
@@ -48,7 +48,7 @@ class LotUpdate(BaseSchema):
 class LotResponse(LotBase, TimestampMixin):
     id: int
     current_stock: Optional[float] = None  # 現在在庫数量
-    product_name: Optional[str] = None  # <-- この行を追加
+    product_name: Optional[str] = None
 
 
 # --- StockMovement ---
@@ -113,8 +113,8 @@ class ReceiptLineBase(BaseSchema):
     def _validate_lot_identifier(cls, data):
         lot_id = getattr(data, "lot_id", None)
         lot_number = getattr(data, "lot_number", None)
-        if lot_id is None and not lot_number:
-            raise ValueError("lot_id または lot_number のいずれかを指定してください")
+        if not lot_id and not lot_number:
+            raise ValueError("lot_id または lot_number のいずれかが必須です")
         return data
 
 
@@ -124,38 +124,27 @@ class ReceiptLineCreate(ReceiptLineBase):
 
 class ReceiptLineResponse(ReceiptLineBase):
     id: int
-    header_id: int
-    created_at: datetime
+    receipt_id: int
 
 
-# --- Receipt (Header + Lines) ---
 class ReceiptCreateRequest(BaseSchema):
-    """入荷伝票作成リクエスト(ヘッダー+明細)"""
+    """入荷伝票作成リクエスト"""
 
-    receipt_no: str
-    supplier_code: str
-    warehouse_code: str
-    receipt_date: date
-    created_by: Optional[str] = None
-    notes: Optional[str] = None
+    header: ReceiptHeaderCreate
     lines: list[ReceiptLineCreate]
 
 
-class ReceiptResponse(ReceiptHeaderResponse):
+class ReceiptResponse(BaseSchema):
     """入荷伝票レスポンス"""
 
-    lines: list[ReceiptLineResponse] = []
+    header: ReceiptHeaderResponse
+    lines: list[ReceiptLineResponse]
 
 
 # --- ExpiryRule ---
 class ExpiryRuleBase(BaseSchema):
-    product_code: Optional[str] = None
-    supplier_code: Optional[str] = None
-    rule_type: str  # days_from_receipt, days_from_mfg, fixed_date
-    days: Optional[int] = None
-    fixed_date: Optional[date] = None
-    is_active: int = 1
-    priority: int
+    product_code: str
+    shelf_life_days: int
 
 
 class ExpiryRuleCreate(ExpiryRuleBase):
@@ -163,12 +152,8 @@ class ExpiryRuleCreate(ExpiryRuleBase):
 
 
 class ExpiryRuleUpdate(BaseSchema):
-    rule_type: Optional[str] = None
-    days: Optional[int] = None
-    fixed_date: Optional[date] = None
-    is_active: Optional[int] = None
-    priority: Optional[int] = None
+    shelf_life_days: int
 
 
-class ExpiryRuleResponse(ExpiryRuleBase):
+class ExpiryRuleResponse(ExpiryRuleBase, TimestampMixin):
     id: int

@@ -1,237 +1,92 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { api } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Upload, CheckCircle2, XCircle, AlertCircle, Code } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Upload, FileText } from "lucide-react";
 
 export default function ForecastImportPage() {
-  const [jsonInput, setJsonInput] = useState("");
-  const [result, setResult] = useState<any>(null);
-  const { toast } = useToast();
+  const [file, setFile] = useState<File | null>(null);
 
-  const importMutation = useMutation({
-    mutationFn: (data: any) => api.bulkImportForecast(data),
-    onSuccess: (response) => {
-      setResult(response);
-      if (response.success) {
-        toast({
-          title: "インポート成功",
-          description: `${response.imported_count}件のForecastをインポートしました`,
-        });
-      } else {
-        toast({
-          title: "インポート失敗",
-          description: response.message || "インポート処理に失敗しました",
-          variant: "destructive",
-        });
-      }
-    },
-    onError: (error: any) => {
-      toast({
-        title: "エラー",
-        description: error.message || "通信エラーが発生しました",
-        variant: "destructive",
-      });
-      setResult({
-        success: false,
-        message: error.message,
-        imported_count: 0,
-        skipped_count: 0,
-        error_count: 0,
-      });
-    },
-  });
-
-  const handleSubmit = () => {
-    try {
-      const parsed = JSON.parse(jsonInput);
-
-      // 簡易バリデーション
-      if (!parsed.forecasts || !Array.isArray(parsed.forecasts)) {
-        throw new Error('JSONフォーマットエラー: "forecasts" 配列が必要です');
-      }
-
-      importMutation.mutate(parsed);
-    } catch (error: any) {
-      toast({
-        title: "JSONパースエラー",
-        description: error.message,
-        variant: "destructive",
-      });
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
     }
   };
 
-  const handleLoadSample = () => {
-    const sample = {
-      forecasts: [
-        {
-          product_code: "PRD-001",
-          client_code: "CUS001",
-          granularity: "daily",
-          date_day: "2025-11-15",
-          forecast_qty: 100.0,
-          version_no: "v1.0",
-        },
-        {
-          product_code: "PRD-0002",
-          client_code: "CUS001",
-          granularity: "monthly",
-          year_month: "2025-11",
-          forecast_qty: 500.0,
-          version_no: "v1.0",
-        },
-      ],
-    };
-    setJsonInput(JSON.stringify(sample, null, 2));
+  const handleUpload = () => {
+    if (!file) return;
+    // TODO: Implement upload logic
+    console.log("Uploading file:", file.name);
   };
 
   return (
     <div className="space-y-6">
-      {/* ヘッダー */}
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">
-          Forecastインポート
-        </h2>
+        <h2 className="text-3xl font-bold tracking-tight">Forecast インポート</h2>
         <p className="text-muted-foreground">
-          JSON形式でForecastデータを一括インポートできます
+          需要予測データをCSVファイルからインポートします
         </p>
       </div>
 
-      {/* 入力エリア */}
       <div className="rounded-lg border bg-card p-6">
+        <h3 className="text-lg font-semibold mb-4">ファイルアップロード</h3>
+        
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="json-input">JSONデータ</Label>
-            <Button variant="outline" size="sm" onClick={handleLoadSample}>
-              <Code className="mr-2 h-4 w-4" />
-              サンプルを読み込む
-            </Button>
-          </div>
-          <Textarea
-            id="json-input"
-            placeholder='{"forecasts": [...]}'
-            value={jsonInput}
-            onChange={(e) => setJsonInput(e.target.value)}
-            className="font-mono text-sm"
-            rows={15}
-          />
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              {jsonInput.length}文字
-            </p>
-            <Button
-              onClick={handleSubmit}
-              disabled={!jsonInput || importMutation.isPending}>
-              <Upload className="mr-2 h-4 w-4" />
-              {importMutation.isPending ? "インポート中..." : "インポート"}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* 結果表示 */}
-      {result && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">インポート結果</h3>
-
-          {/* サマリーカード */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <ResultCard
-              icon={CheckCircle2}
-              label="インポート成功"
-              value={result.imported_count}
-              colorClass="border-l-4 border-l-green-500"
-            />
-            <ResultCard
-              icon={AlertCircle}
-              label="スキップ"
-              value={result.skipped_count}
-              colorClass="border-l-4 border-l-yellow-500"
-            />
-            <ResultCard
-              icon={XCircle}
-              label="エラー"
-              value={result.error_count}
-              colorClass="border-l-4 border-l-destructive"
-            />
-          </div>
-
-          {/* メッセージ */}
-          {result.message && (
-            <div
-              className={`rounded-lg border p-4 ${
-                result.success
-                  ? "border-green-200 bg-green-50 text-green-800"
-                  : "border-red-200 bg-red-50 text-red-800"
-              }`}>
-              <p className="text-sm font-medium">{result.message}</p>
-            </div>
-          )}
-
-          {/* エラー詳細 */}
-          {result.errors && result.errors.length > 0 && (
-            <div className="rounded-lg border border-destructive bg-destructive/10 p-4">
-              <h4 className="mb-2 font-semibold text-destructive">
-                エラー詳細
-              </h4>
-              <div className="space-y-2">
-                {result.errors.map((error: any, index: number) => (
-                  <div key={index} className="text-sm text-destructive">
-                    <span className="font-medium">
-                      行{error.index + 1} ({error.product_code}):
-                    </span>{" "}
-                    {error.error}
-                  </div>
-                ))}
+          <div className="border-2 border-dashed rounded-lg p-8 text-center">
+            <div className="flex flex-col items-center gap-4">
+              <Upload className="h-12 w-12 text-muted-foreground" />
+              <div>
+                <Label htmlFor="file-upload" className="cursor-pointer">
+                  <span className="text-primary hover:underline">
+                    ファイルを選択
+                  </span>
+                  またはドラッグ&ドロップ
+                </Label>
+                <Input
+                  id="file-upload"
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <p className="text-sm text-muted-foreground mt-2">
+                  CSV形式のみ対応
+                </p>
               </div>
             </div>
+          </div>
+
+          {file && (
+            <div className="flex items-center gap-2 p-4 rounded-lg bg-muted">
+              <FileText className="h-5 w-5 text-primary" />
+              <span className="flex-1">{file.name}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setFile(null)}
+              >
+                削除
+              </Button>
+            </div>
           )}
-        </div>
-      )}
 
-      {/* 使い方ガイド */}
-      <div className="rounded-lg border bg-muted/50 p-6">
-        <h3 className="mb-3 text-lg font-semibold">JSONフォーマット</h3>
-        <pre className="overflow-x-auto rounded bg-background p-4 text-sm">
-          {`{
-  "forecasts": [
-    {
-      "product_code": "PRD-001",
-      "client_code": "CUS001",
-      "granularity": "daily",        // "daily" | "dekad" | "monthly"
-      "date_day": "2025-11-15",      // daily の場合
-      "date_dekad_start": null,      // dekad の場合
-      "year_month": null,            // monthly の場合 (例: "2025-11")
-      "forecast_qty": 100.0,
-      "version_no": "v1.0"
-    }
-  ]
-}`}
-        </pre>
+          <Button
+            onClick={handleUpload}
+            disabled={!file}
+            className="w-full"
+          >
+            アップロード
+          </Button>
+        </div>
       </div>
-    </div>
-  );
-}
 
-interface ResultCardProps {
-  icon: React.ElementType;
-  label: string;
-  value: number;
-  colorClass: string;
-}
-
-function ResultCard({ icon: Icon, label, value, colorClass }: ResultCardProps) {
-  return (
-    <div className={`rounded-lg border bg-card p-4 shadow-sm ${colorClass}`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">{label}</p>
-          <p className="text-2xl font-bold">{value}</p>
+      <div className="rounded-lg border bg-card p-6">
+        <h3 className="text-lg font-semibold mb-4">CSVフォーマット</h3>
+        <div className="bg-muted p-4 rounded-lg font-mono text-sm">
+          <div>product_code,forecast_date,quantity</div>
+          <div>PROD-001,2025-01-01,100</div>
+          <div>PROD-002,2025-01-01,200</div>
         </div>
-        <Icon className="h-6 w-6 text-muted-foreground" />
       </div>
     </div>
   );
