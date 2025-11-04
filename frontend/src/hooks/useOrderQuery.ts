@@ -25,6 +25,7 @@ export interface OrderDetail {
   id: number;
   order_no: string;
   customer_code: string;
+  customer_name?: string | null;
   order_date: string;
   status?: string;
   lines: OrderLine[];

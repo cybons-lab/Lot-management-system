@@ -1,6 +1,7 @@
 // frontend/src/features/orders/components/LotListWithAllocation.tsx
 import React from "react";
 import { Check, X } from "lucide-react";
+import { formatCodeAndName } from "@/lib/utils";
 import type { LotCandidate, AllocatedLot } from "@/types";
 
 type Props = {
@@ -75,7 +76,7 @@ export default function LotListWithAllocation({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="inline-flex items-center rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700">
-                      {lot.warehouse_code || "—"}
+                      {formatCodeAndName(lot.warehouse_code || "", lot.warehouse_name)}
                     </span>
                     {isAllocated && (
                       <Check className="h-4 w-4 text-green-600 shrink-0" />
@@ -105,7 +106,10 @@ export default function LotListWithAllocation({
                   {isAllocated && allocation && (
                     <div className="mt-2 flex items-center gap-2">
                       <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                        {allocation.warehouse_code || lot.warehouse_code || "—"}
+                        {formatCodeAndName(
+                          allocation.warehouse_code ?? lot.warehouse_code ?? "",
+                          allocation.warehouse_name
+                        ) || "—"}
                       </span>
                       <span className="text-xs font-medium text-green-700">
                         引当済: {allocation.allocated_qty} {unit}

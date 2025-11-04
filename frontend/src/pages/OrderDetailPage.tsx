@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, RefreshCw, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { formatCodeAndName } from '@/lib/utils';
 
 export default function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -90,7 +91,10 @@ export default function OrderDetailPage() {
         <h3 className="mb-4 text-lg font-semibold">基本情報</h3>
         <div className="grid gap-4 md:grid-cols-2">
           <InfoItem label="受注番号" value={order.order_no} />
-          <InfoItem label="得意先コード" value={order.customer_code} />
+          <InfoItem
+            label="得意先"
+            value={formatCodeAndName(order.customer_code, (order as { customer_name?: string | null }).customer_name)}
+          />
           <InfoItem
             label="受注日"
             value={order.order_date ? format(new Date(order.order_date), 'yyyy-MM-dd') : '-'}

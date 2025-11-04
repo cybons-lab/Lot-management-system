@@ -1,5 +1,6 @@
 // frontend/src/features/orders/components/OrderCard.tsx
 import type { OrderWithLinesResponse } from "@/types";
+import { formatCodeAndName } from "@/lib/utils";
 
 type Props = {
   order: OrderWithLinesResponse;
@@ -16,7 +17,7 @@ export default function OrderCard({ order, onSelectLine, onReMatch }: Props) {
             受注番号: {order.order_no ?? order.id}
           </div>
           <div className="text-sm text-gray-500">
-            顧客: {order.customer_code} / 作成日:{" "}
+            顧客: {formatCodeAndName(order.customer_code, (order as { customer_name?: string | null }).customer_name)} / 作成日:{" "}
             {order.created_at?.slice(0, 10) ?? "-"}
           </div>
         </div>

@@ -15,6 +15,7 @@ export interface LotResponse {
   receipt_date: string;
   expiry_date?: string | null;
   warehouse_code?: string | null;
+  warehouse_name?: string | null;
   stock_quantity: number;
   allocated_quantity: number;
   available_quantity: number;
@@ -71,6 +72,7 @@ export interface OrderResponse {
   order_number: string;
   order_date: string;
   customer_code: string;
+  customer_name?: string | null;
   status: string;
   created_at: string;
   updated_at: string;

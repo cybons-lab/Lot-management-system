@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge"; // Badgeコンポーネントも必要になります
+import { formatCodeAndName } from "@/lib/utils";
 
 export default function OrderPage() {
   const {
@@ -52,7 +53,7 @@ export default function OrderPage() {
           <TableHeader>
             <TableRow>
               <TableHead>受注番号</TableHead>
-              <TableHead>得意先コード</TableHead>
+              <TableHead>得意先</TableHead>
               <TableHead>受注日</TableHead>
               <TableHead>ステータス</TableHead>
               <TableHead>SAP連携</TableHead>
@@ -86,7 +87,9 @@ export default function OrderPage() {
                   <TableCell className="font-medium">
                     {order.order_no}
                   </TableCell>
-                  <TableCell>{order.customer_code}</TableCell>
+                  <TableCell>
+                    {formatCodeAndName(order.customer_code, order.customer_name)}
+                  </TableCell>
                   <TableCell>
                     {order.order_date
                       ? format(parseISO(order.order_date), "yyyy/MM/dd")

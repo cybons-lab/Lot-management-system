@@ -12,6 +12,7 @@ export interface Lot {
   product_code: string;
   warehouse_id?: number;
   warehouse_code?: string;
+  warehouse_name?: string | null;
   expiry_date?: string;
   receipt_date?: string;
   current_stock?: {

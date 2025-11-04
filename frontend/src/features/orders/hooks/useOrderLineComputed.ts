@@ -1,6 +1,7 @@
 // frontend/src/features/orders/hooks/useOrderLineComputed.ts
 import React from "react";
 import { isValidDate, diffDays } from "@/lib/utils/date";
+import { formatCodeAndName } from "@/lib/utils";
 import type { OrderLine, OrderLineComputed, AllocatedLot } from "@/types";
 
 /**
@@ -21,6 +22,7 @@ export function useOrderLineComputed(
     const status = line?.status ?? "open";
     const customerCode = line?.customer_code ?? order?.customer_code ?? "";
     const orderDate = line?.order_date ?? order?.order_date ?? "";
+    const customerName = line?.customer_name ?? order?.customer_name ?? "";
 
     // 引当済み数量
     const allocatedLots: AllocatedLot[] = line?.allocated_lots ?? [];
@@ -57,8 +59,10 @@ export function useOrderLineComputed(
     const warehouses = Array.from(
       new Set(
         allocatedLots
-          .map((a) => a.warehouse_code)
-          .filter((w): w is string => !!w)
+          .map((a) =>
+            formatCodeAndName(a.warehouse_code ?? "", a.warehouse_name ?? "")
+          )
+          .filter((w) => !!w)
       )
     );
 
@@ -73,6 +77,7 @@ export function useOrderLineComputed(
       progressPct,
       status,
       customerCode,
+      customerName,
       orderDate,
       dueDate: dueDate ?? undefined,
       shipDate: shipDate ?? undefined,

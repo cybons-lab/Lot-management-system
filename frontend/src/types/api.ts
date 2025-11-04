@@ -8,6 +8,7 @@ export interface Order {
   id: number;
   order_no: string;
   customer_code: string;
+  customer_name?: string | null;
   order_date: string;
   status?: string;
   lines: OrderLine[];
@@ -51,6 +52,7 @@ export interface Lot {
   product_code: string;
   warehouse_id?: number;
   warehouse_code?: string;
+  warehouse_name?: string;
   expiry_date?: string;
   receipt_date?: string;
   current_stock?: LotCurrentStock;

@@ -12,6 +12,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type DragAssignRequest } from "@/services/api";
 import { http } from "@/services/http";
+import { formatCodeAndName } from "@/lib/utils";
 
 // ===== 型定義 =====
 interface AllocatedLot {
@@ -156,7 +157,8 @@ export default function OrderCardPage() {
             <option value="">-- 受注を選択 --</option>
             {ordersQuery.data?.map((order: any) => (
               <option key={order.id} value={order.id}>
-                {order.order_no} - {order.customer_code}
+                {order.order_no} -
+                {formatCodeAndName(order.customer_code, order.customer_name)}
               </option>
             ))}
           </select>
@@ -321,7 +323,10 @@ export default function OrderCardPage() {
               <div className="rounded-lg border bg-card p-4">
                 <h3 className="text-sm font-semibold mb-3">■ 受注情報</h3>
                 <div className="space-y-2 text-sm">
-                  <InfoRow label="得意先" value={order?.customer_code || "-"} />
+                  <InfoRow
+                    label="得意先"
+                    value={formatCodeAndName(order?.customer_code, order?.customer_name)}
+                  />
                   <InfoRow label="納品先" value="-" hint="納品先情報は準備中" />
                   <InfoRow label="納期" value={dueDate} />
                   <InfoRow label="出荷日(予定)" value="-" hint="出荷日情報は準備中" />
