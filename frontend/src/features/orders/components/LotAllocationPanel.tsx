@@ -1,5 +1,7 @@
 // frontend/src/features/orders/components/LotAllocationPanel.tsx
 import React from "react";
+import { Progress } from "@/components/ui/progress";
+import { formatCodeAndName } from "@/lib/utils";
 import type { LotCandidate, WarehouseAlloc } from "@/types";
 
 type Props = {
@@ -74,6 +76,25 @@ export default function LotAllocationPanel(props: Props) {
   const [wareAlloc, setWareAlloc] = React.useState<WarehouseAlloc[]>([]);
   const [validationError, setValidationError] = React.useState<string>("");
 
+  const totalSelected = React.useMemo(
+    () => Object.values(selected).reduce((sum, value) => sum + Number(value || 0), 0),
+    [selected]
+  );
+  const requiredQty = typeof maxQty === "number" ? maxQty : 0;
+  const progressPct =
+    requiredQty > 0
+      ? Math.min(100, Math.max(0, Math.round((totalSelected / requiredQty) * 100)))
+      : 0;
+  const remainingQty =
+    requiredQty > 0 ? Math.max(0, requiredQty - totalSelected) : undefined;
+  const isOverAllocated =
+    typeof maxQty === "number" && totalSelected > (maxQty ?? 0);
+
+  React.useEffect(() => {
+    setSelected({});
+    setValidationError("");
+  }, [orderLineId, candidates]);
+
   // modal のときだけ open を判定
   if (mode === "modal" && !open) return null;
 
@@ -85,6 +106,12 @@ export default function LotAllocationPanel(props: Props) {
     );
     if (sum <= 0) {
       const msg = "引当数が0です";
+      setValidationError(msg);
+      onToast?.({ title: msg, variant: "destructive" });
+      return;
+    }
+    if (typeof maxQty === "number" && sum > maxQty) {
+      const msg = `引当合計(${sum})が要求数量(${maxQty})を超えています`;
       setValidationError(msg);
       onToast?.({ title: msg, variant: "destructive" });
       return;
@@ -150,6 +177,7 @@ export default function LotAllocationPanel(props: Props) {
                 <tr className="text-left text-gray-500">
                   <th className="py-1">LotID</th>
                   <th className="py-1">ロット番号</th>
+                  <th className="py-1">倉庫</th>
                   <th className="py-1">在庫数</th>
                   <th className="py-1">引当数</th>
                 </tr>
@@ -159,6 +187,9 @@ export default function LotAllocationPanel(props: Props) {
                   <tr key={c.lot_id} className="border-t">
                     <td className="py-1">{c.lot_id}</td>
                     <td className="py-1">{c.lot_code}</td>
+                    <td className="py-1">
+                      {formatCodeAndName(c.warehouse_code, c.warehouse_name) || "—"}
+                    </td>
                     <td className="py-1">
                       {c.available_qty} {c.base_unit}
                       {typeof c.lot_unit_qty === "number" &&
@@ -189,10 +220,37 @@ export default function LotAllocationPanel(props: Props) {
               </tbody>
             </table>
 
+            {typeof maxQty === "number" && (
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between text-xs text-gray-600">
+                  <span>引当合計</span>
+                  <span>
+                    <span className="font-semibold">{totalSelected}</span>
+                    {` / ${maxQty}`}
+                  </span>
+                </div>
+                <Progress value={progressPct} />
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>進捗</span>
+                  <span>
+                    {progressPct}%
+                    {typeof remainingQty === "number" && ` (残り ${remainingQty})`}
+                  </span>
+                </div>
+                {isOverAllocated && (
+                  <div className="text-xs text-red-600">
+                    引当合計が要求数量を超えています。
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-2 mt-3">
               <button
-                className="px-3 py-1 rounded bg-black text-white hover:bg-gray-800"
-                onClick={handleAllocate}>
+                className="px-3 py-1 rounded bg-black text-white hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleAllocate}
+                disabled={isOverAllocated}
+              >
                 引当を実行
               </button>
 
@@ -230,6 +288,7 @@ export default function LotAllocationPanel(props: Props) {
                   lot_id: 0,
                   qty: 0,
                   warehouse_code: "",
+                  warehouse_name: "",
                   quantity: 0,
                 } as WarehouseAlloc,
               ])
@@ -273,15 +332,22 @@ export default function LotAllocationPanel(props: Props) {
                 }}
               />
               <input
-                className="border rounded px-2 py-0.5 w-28"
+                className="border rounded px-2 py-0.5 w-36"
                 type="text"
-                placeholder="倉庫コード"
-                value={wa.warehouse_code ?? ""}
+                placeholder="倉庫コード/名称"
+                value={formatCodeAndName(wa.warehouse_code ?? "", wa.warehouse_name)}
                 onChange={(e) => {
-                  const v = e.target.value;
+                  const value = e.target.value;
+                  const [codePart, namePart] = value.trim().split(/\s+/, 2);
                   setWareAlloc((arr) =>
                     arr.map((x, i) =>
-                      i === idx ? { ...x, warehouse_code: v } : x
+                      i === idx
+                        ? {
+                            ...x,
+                            warehouse_code: codePart ?? "",
+                            warehouse_name: namePart ?? x.warehouse_name,
+                          }
+                        : x
                     )
                   );
                 }}

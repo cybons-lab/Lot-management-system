@@ -17,6 +17,7 @@ export interface OrderLine {
   planned_ship_date?: string | null;
   status?: string;
   customer_code?: string;
+  customer_name?: string;
   order_date?: string;
   allocated_lots?: AllocatedLot[];
   created_at?: string;
@@ -59,6 +60,7 @@ export interface LotCandidate {
   lot_number?: string;
   product_code: string;
   warehouse_code: string;
+  warehouse_name?: string;
   available_qty: number;
   base_unit: string;
   lot_unit_qty?: number | null;
@@ -144,6 +146,7 @@ export interface OrderLineComputed {
   progressPct: number;
   status?: string;
   customerCode?: string;
+  customerName?: string;
   orderDate?: string;
   dueDate?: string;
   shipDate?: string;

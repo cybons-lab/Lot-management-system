@@ -8,6 +8,7 @@ import AllocationProgress from "@/features/orders/components/AllocationProgress"
 import LotListWithAllocation from "@/features/orders/components/LotListWithAllocation";
 import ForecastSection from "@/features/orders/components/ForecastSection";
 import InfoRow from "@/components/common/InfoRow";
+import { formatCodeAndName } from "@/lib/utils";
 
 import { useOrderLineComputed } from "@/features/orders/hooks/useOrderLineComputed";
 import { useAllocationActions } from "@/features/orders/hooks/useAllocationActions";
@@ -129,7 +130,10 @@ export default function OrderLineCard({ order, line, onRematch }: Props) {
               highlight
             />
             <InfoRow label="数量" value={`${c.totalQty} ${c.unit}`} />
-            <InfoRow label="得意先" value={c.customerCode ?? ""} />
+            <InfoRow
+              label="得意先"
+              value={formatCodeAndName(c.customerCode, c.customerName)}
+            />
             <InfoRow label="受注日" value={formatYmd(c.orderDate) || "—"} />
             <InfoRow label="納期" value={formatYmd(c.dueDate) || "—"} />
             <InfoRow

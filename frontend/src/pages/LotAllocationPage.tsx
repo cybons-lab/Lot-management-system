@@ -9,6 +9,7 @@ import { useLotsQuery } from "@/hooks/useLotsQuery";
 import { useDragAssign } from "@/hooks/useDragAssign";
 import type { OrderLine } from "@/hooks/useOrderQuery";
 import type { Lot } from "@/hooks/useLotsQuery";
+import { formatCodeAndName } from "@/lib/utils";
 
 // ===== メインコンポーネント =====
 export const LotAllocationPage = () => {
@@ -70,7 +71,10 @@ export const LotAllocationPage = () => {
         <h2 className="text-lg font-semibold mb-3">受注情報</h2>
         <div className="grid grid-cols-2 gap-2 text-sm">
           <InfoRow label="受注番号" value={order.order_no} />
-          <InfoRow label="顧客コード" value={order.customer_code} />
+          <InfoRow
+            label="顧客"
+            value={formatCodeAndName(order.customer_code, order.customer_name)}
+          />
           <InfoRow
             label="受注日"
             value={new Date(order.order_date).toLocaleDateString()}

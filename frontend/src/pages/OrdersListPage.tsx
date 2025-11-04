@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Download, Search, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatCodeAndName } from '@/lib/utils';
 
 export default function OrdersListPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,7 +45,7 @@ export default function OrdersListPage() {
 
     const csvData = orders.map((order) => ({
       受注番号: order.order_no,
-      得意先コード: order.customer_code,
+      得意先: formatCodeAndName(order.customer_code, order.customer_name),
       受注日: order.order_date,
       納期: order.due_date || '',
       ステータス: order.status,
@@ -143,7 +144,9 @@ export default function OrdersListPage() {
                   {orders.map((order) => (
                     <tr key={order.id} className="border-b hover:bg-muted/50">
                       <td className="p-3 text-sm font-medium">{order.order_no}</td>
-                      <td className="p-3 text-sm">{order.customer_code}</td>
+                      <td className="p-3 text-sm">
+                        {formatCodeAndName(order.customer_code, order.customer_name)}
+                      </td>
                       <td className="p-3 text-sm">
                         {order.order_date ? format(new Date(order.order_date), 'yyyy-MM-dd') : '-'}
                       </td>
