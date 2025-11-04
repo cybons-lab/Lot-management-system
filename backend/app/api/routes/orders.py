@@ -3,6 +3,7 @@
 受注管理のAPIエンドポイント
 """
 
+import logging
 from datetime import date
 from typing import List, Optional
 
@@ -46,6 +47,7 @@ from app.schemas.orders import (
 )
 from app.services.quantity import QuantityConversionError, to_internal_qty
 
+logger = logging.getLogger(__name__)
 # フォーキャストマッチング機能（オプション）
 try:
     from app.services.forecast import ForecastMatcher
@@ -53,7 +55,7 @@ try:
     FORECAST_AVAILABLE = True
 except ImportError:
     FORECAST_AVAILABLE = False
-    print("⚠️  ForecastMatcher not available - forecast matching will be skipped")
+    logger.warning("⚠️ ForecastMatcher not available - forecast matching will be skipped")
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
@@ -259,7 +261,7 @@ def create_order(order: OrderCreate, db: Session = Depends(get_db)):
                         order_date=db_order.order_date,
                     )
                 except Exception as e:
-                    print(f"⚠️  Forecast matching failed for order {order.order_no}: {e}")
+                    logger.warning(f"⚠️ Forecast matching failed for order {order.order_no}: {e}")
 
     db.commit()
     db.refresh(db_order)

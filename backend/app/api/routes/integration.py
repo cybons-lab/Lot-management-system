@@ -5,6 +5,7 @@ OCR取込、SAP連携
 """
 
 import json
+import logging
 from datetime import datetime
 from typing import List
 
@@ -22,6 +23,7 @@ from app.schemas import (
 )
 from app.services.quantity import QuantityConversionError, to_internal_qty
 
+logger = logging.getLogger(__name__)
 # フォーキャストマッチング機能（オプション）
 try:
     from app.services.forecast import ForecastMatcher
@@ -29,7 +31,7 @@ try:
     FORECAST_AVAILABLE = True
 except ImportError:
     FORECAST_AVAILABLE = False
-    print("⚠️  ForecastMatcher not available - forecast matching will be skipped")
+    logger.warning("⚠️ ForecastMatcher not available - forecast matching will be skipped")
 
 router = APIRouter(prefix="/integration", tags=["integration"])
 
@@ -75,15 +77,11 @@ def submit_ocr_data(submission: OcrSubmissionRequest, db: Session = Depends(get_
 
             # 得意先チェック
             customer = (
-                db.query(Customer)
-                .filter(Customer.customer_code == record.customer_code)
-                .first()
+                db.query(Customer).filter(Customer.customer_code == record.customer_code).first()
             )
             if not customer:
                 failed_records += 1
-                error_details.append(
-                    f"得意先コード {record.customer_code} が見つかりません"
-                )
+                error_details.append(f"得意先コード {record.customer_code} が見つかりません")
                 continue
 
             # 受注ヘッダ作成
@@ -101,9 +99,7 @@ def submit_ocr_data(submission: OcrSubmissionRequest, db: Session = Depends(get_
             for line in record.lines:
                 # 製品チェック
                 product = (
-                    db.query(Product)
-                    .filter(Product.product_code == line.product_code)
-                    .first()
+                    db.query(Product).filter(Product.product_code == line.product_code).first()
                 )
                 if not product:
                     failed_records += 1
@@ -120,9 +116,7 @@ def submit_ocr_data(submission: OcrSubmissionRequest, db: Session = Depends(get_
                     )
                 except QuantityConversionError as exc:
                     failed_records += 1
-                    error_details.append(
-                        f"受注 {record.order_no} 明細 {line.line_no}: {exc}"
-                    )
+                    error_details.append(f"受注 {record.order_no} 明細 {line.line_no}: {exc}")
                     continue
 
                 db_line = OrderLine(
@@ -147,8 +141,8 @@ def submit_ocr_data(submission: OcrSubmissionRequest, db: Session = Depends(get_
                         )
                     except Exception as e:
                         # フォーキャストマッチングエラーは警告のみ
-                        print(
-                            f"⚠️  Forecast matching failed for order {record.order_no} line {line.line_no}: {e}"
+                        logger.warning(
+                            f"⚠️ Forecast matching failed for order {record.order_no} line {line.line_no}: {e}"
                         )
 
                 created_lines += 1
@@ -161,9 +155,7 @@ def submit_ocr_data(submission: OcrSubmissionRequest, db: Session = Depends(get_
 
     # OCR取込ログ作成
     status = (
-        "success"
-        if failed_records == 0
-        else ("partial" if processed_records > 0 else "failed")
+        "success" if failed_records == 0 else ("partial" if processed_records > 0 else "failed")
     )
 
     ocr_log = OcrSubmission(
@@ -183,6 +175,10 @@ def submit_ocr_data(submission: OcrSubmissionRequest, db: Session = Depends(get_
     db.add(ocr_log)
     db.commit()
 
+    logger.info(
+        f"OCR取込完了: {processed_records}/{total_records} 件成功, {failed_records} 件失敗, {skipped_records} 件スキップ"
+    )
+
     return OcrSubmissionResponse(
         status=status,
         submission_id=submission_id,
@@ -197,9 +193,7 @@ def submit_ocr_data(submission: OcrSubmissionRequest, db: Session = Depends(get_
 
 
 @router.get("/ai-ocr/submissions", response_model=List[OcrSubmissionResponse])
-def list_ocr_submissions(
-    skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
-):
+def list_ocr_submissions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """OCR取込ログ一覧取得"""
     submissions = (
         db.query(OcrSubmission)
@@ -301,10 +295,6 @@ def register_to_sap(request: SapRegisterRequest, db: Session = Depends(get_db)):
 def list_sap_logs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """SAP連携ログ一覧取得"""
     logs = (
-        db.query(SapSyncLog)
-        .order_by(SapSyncLog.executed_at.desc())
-        .offset(skip)
-        .limit(limit)
-        .all()
+        db.query(SapSyncLog).order_by(SapSyncLog.executed_at.desc()).offset(skip).limit(limit).all()
     )
     return logs

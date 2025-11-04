@@ -1,9 +1,9 @@
-# backend/app/main.py
 """
 FastAPI メインアプリケーション
 ロット管理システム v2.0
 """
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -20,25 +20,23 @@ from app.api.routes import (
     receipts_router,
     warehouse_alloc_router,
 )
-# ✅ orders_refactored を使用
 from app.api.routes.orders_refactored import router as orders_refactored_router
-
 from app.core.config import settings
 from app.core.database import init_db
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """アプリケーションのライフサイクル管理"""
-    print(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} を起動しています...")
-    print(f"📦 環境: {settings.ENVIRONMENT}")
-    print(f"💾 データベース: {settings.DATABASE_URL}")
+    logger.info(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} を起動しています...")
+    logger.info(f"📦 環境: {settings.ENVIRONMENT}")
+    logger.info(f"💾 データベース: {settings.DATABASE_URL}")
 
     init_db()
-
     yield
-
-    print("👋 アプリケーションを終了しています...")
+    logger.info("👋 アプリケーションを終了しています...")
 
 
 app = FastAPI(
@@ -56,12 +54,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # ルーター登録
 app.include_router(masters_router, prefix=settings.API_PREFIX)
 app.include_router(lots_router, prefix=settings.API_PREFIX)
 app.include_router(receipts_router, prefix=settings.API_PREFIX)
-# ✅ orders_refactored_router を使用
 app.include_router(orders_refactored_router, prefix=settings.API_PREFIX)
 app.include_router(integration_router, prefix=settings.API_PREFIX)
 app.include_router(admin_router, prefix=settings.API_PREFIX)
