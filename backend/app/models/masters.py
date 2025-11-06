@@ -16,7 +16,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import relationship, synonym
+from sqlalchemy.orm import Mapped, relationship, synonym
 
 from .base_model import AuditMixin, Base
 
@@ -37,11 +37,6 @@ class Warehouse(AuditMixin, Base):
     is_active = Column(Integer, default=1)
 
     # リレーション
-    lots = relationship(
-        "Lot",
-        back_populates="warehouse",
-        foreign_keys="Lot.warehouse_id",
-    )
     stock_movements = relationship(
         "StockMovement",
         back_populates="warehouse",
@@ -51,10 +46,14 @@ class Warehouse(AuditMixin, Base):
         back_populates="warehouse",
     )
     # OrderLineWarehouseAllocationはorders.pyで定義されている
-    warehouse_allocations = relationship(
+    warehouse_allocations: Mapped[list["OrderLineWarehouseAllocation"]] = relationship(
         "OrderLineWarehouseAllocation",
         back_populates="warehouse",
-        cascade="all, delete-orphan",
+    )
+    lots: Mapped[list["Lot"]] = relationship(
+        "Lot",
+        back_populates="warehouse",
+        foreign_keys="Lot.warehouse_id",
     )
 
 
@@ -144,7 +143,9 @@ class Product(AuditMixin, Base):
     maker_part_no = synonym("maker_item_code")
 
     __table_args__ = (
-        UniqueConstraint("supplier_code", "maker_item_code", name="uq_products_supplier_maker_item"),
+        UniqueConstraint(
+            "supplier_code", "maker_item_code", name="uq_products_supplier_maker_item"
+        ),
         UniqueConstraint(
             "supplier_code", "supplier_item_code", name="uq_products_supplier_supplier_item"
         ),
@@ -162,9 +163,7 @@ class ProductUomConversion(AuditMixin, Base):
     source_value = Column(Float, nullable=False, default=1.0)
     internal_unit_value = Column(Float, nullable=False)
 
-    __table_args__ = (
-        UniqueConstraint("product_code", "source_unit", name="uq_product_unit"),
-    )
+    __table_args__ = (UniqueConstraint("product_code", "source_unit", name="uq_product_unit"),)
 
     # リレーション
     product = relationship("Product", back_populates="conversions")

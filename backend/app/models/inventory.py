@@ -7,6 +7,7 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     Column,
     Date,
@@ -39,7 +40,7 @@ class StockMovementReason(PyEnum):
 class Lot(AuditMixin, Base):
     """
     ロットマスタ（修正版）
-    - warehouse_idのみを使用（Integer型、新warehouseテーブル参照）
+    - warehouse_idのみを使用（BigInteger型、warehouses.id参照）
     - warehouse_codeは削除
     """
 
@@ -53,9 +54,16 @@ class Lot(AuditMixin, Base):
     mfg_date = Column(Date, nullable=True)
     expiry_date = Column(Date, nullable=True)
 
-    # 🔽 修正: warehouse_idのみ使用（Integer型）
-    warehouse_id = Column(Integer, ForeignKey("warehouse.id"), nullable=True)
-
+    # 🔽 DB実態に合わせて BigInteger & FK 先を複数形へ
+    warehouse_id = Column(
+        BigInteger, ForeignKey("warehouses.id", ondelete="RESTRICT"), nullable=True
+    )
+    __table_args__ = (
+        UniqueConstraint(
+            "supplier_code", "product_code", "lot_number", name="uq_lot_supplier_product_no"
+        ),
+        Index("ix_lots_warehouse_id", "warehouse_id"),
+    )
     lot_unit = Column(String(10), nullable=True)  # ロット単位（例: CAN, KG）
     kanban_class = Column(Text, nullable=True)
     sales_unit = Column(Text, nullable=True)
@@ -81,7 +89,8 @@ class Lot(AuditMixin, Base):
     # リレーション
     supplier = relationship("Supplier", back_populates="lots")
     product = relationship("Product", back_populates="lots")
-    warehouse = relationship("Warehouse", back_populates="lots")
+    # FKカラムを明示しておくと安全
+    warehouse = relationship("Warehouse", back_populates="lots", foreign_keys="Lot.warehouse_id")
     stock_movements = relationship(
         "StockMovement", back_populates="lot", cascade="all, delete-orphan"
     )
@@ -93,7 +102,6 @@ class Lot(AuditMixin, Base):
     )
     allocations = relationship("Allocation", back_populates="lot", cascade="all, delete-orphan")
     receipt_lines = relationship("ReceiptLine", back_populates="lot")
-    warehouse = relationship("Warehouse", back_populates="lots")
 
 
 class StockMovement(AuditMixin, Base):

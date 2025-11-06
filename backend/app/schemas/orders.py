@@ -212,8 +212,11 @@ class WarehouseAllocIn(BaseSchema):
 
 
 class WarehouseAllocOut(BaseSchema):
-    warehouse_code: str
+    warehouse_id: int
     quantity: float
+    # もし倉庫コードや名称も返したいなら任意で
+    warehouse_code: Optional[str] = None
+    warehouse_name: Optional[str] = None
 
 
 class OrderLineOut(BaseSchema):
@@ -224,9 +227,9 @@ class OrderLineOut(BaseSchema):
     supplier_code: Optional[str] = None
     quantity: float
     unit: str
-    warehouse_allocations: list["WarehouseAllocOut"] = []
-    related_lots: list[LotCandidateOut] = []  # ← 型を明示
-    allocated_lots: list[dict] = []  # ← 既引当ロット
+    warehouse_allocations: List[WarehouseAllocOut] = Field(default_factory=list)
+    related_lots: List[LotCandidateOut] = Field(default_factory=list)
+    allocated_lots: List[AllocatedLotOut] = Field(default_factory=list)
 
 
 class OrdersWithAllocResponse(BaseSchema):
@@ -243,6 +246,11 @@ class AllocationWarning(BaseSchema):
     code: str
     message: str
     meta: Optional[dict] = None
+
+
+class AllocatedLotOut(BaseSchema):
+    lot_id: int
+    quantity: float
 
 
 class LotCandidateOut(BaseSchema):
@@ -272,9 +280,7 @@ class LotCandidateListResponse(BaseSchema):
 class LotAllocationRequest(BaseSchema):
     """ロット引当リクエスト"""
 
-    allocations: List[dict] = Field(
-        ..., description="[{'lot_id': int, 'qty': float}, ...]"
-    )
+    allocations: List[dict] = Field(..., description="[{'lot_id': int, 'qty': float}, ...]")
 
 
 class LotAllocationResponse(BaseSchema):

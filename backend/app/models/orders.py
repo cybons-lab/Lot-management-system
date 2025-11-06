@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     BigInteger,
+    CheckConstraint,
     Column,
     Date,
     DateTime,
@@ -28,7 +29,7 @@ from .base_model import AuditMixin, Base
 
 # 🔧 修正: 型チェック時のみインポート（循環インポートを回避）
 if TYPE_CHECKING:
-    from .masters import DeliveryPlace, Warehouse
+    from .masters import Warehouse
 
 
 class Order(AuditMixin, Base):
@@ -51,9 +52,7 @@ class Order(AuditMixin, Base):
 
     # リレーション
     customer = relationship("Customer", back_populates="orders")
-    lines = relationship(
-        "OrderLine", back_populates="order", cascade="all, delete-orphan"
-    )
+    lines = relationship("OrderLine", back_populates="order", cascade="all, delete-orphan")
     sap_sync_logs = relationship("SapSyncLog", back_populates="order")
 
 
@@ -63,9 +62,7 @@ class OrderLine(AuditMixin, Base):
     __tablename__ = "order_lines"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    order_id = Column(
-        Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False
-    )
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
     line_no = Column(Integer, nullable=False)
     product_code = Column(Text, ForeignKey("products.product_code"), nullable=False)
     quantity = Column(Float, nullable=False)
@@ -83,9 +80,7 @@ class OrderLine(AuditMixin, Base):
     forecast_matched_at = Column(DateTime, nullable=True)
     forecast_version = Column(Integer, nullable=True)
 
-    __table_args__ = (
-        UniqueConstraint("order_id", "line_no", name="uq_order_line"),
-    )
+    __table_args__ = (UniqueConstraint("order_id", "line_no", name="uq_order_line"),)
 
     # リレーション
     order = relationship("Order", back_populates="lines")
@@ -95,7 +90,7 @@ class OrderLine(AuditMixin, Base):
         "Allocation", back_populates="order_line", cascade="all, delete-orphan"
     )
     forecast = relationship("Forecast", back_populates="order_lines")
-    warehouse_allocations = relationship(
+    warehouse_allocations: Mapped[list["OrderLineWarehouseAllocation"]] = relationship(
         "OrderLineWarehouseAllocation",
         back_populates="order_line",
         cascade="all, delete-orphan",
@@ -103,21 +98,23 @@ class OrderLine(AuditMixin, Base):
 
 
 class OrderLineWarehouseAllocation(AuditMixin, Base):
-    """
-    受注明細の倉庫配分
-    各受注明細に対してどの倉庫からいくつ出荷するかを管理
-    """
-
     __tablename__ = "order_line_warehouse_allocation"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    order_line_id: Mapped[int] = mapped_column(
-        ForeignKey("order_lines.id"), nullable=False
-    )
+    order_line_id: Mapped[int] = mapped_column(ForeignKey("order_lines.id"), nullable=False)
     warehouse_id: Mapped[int] = mapped_column(
-        ForeignKey("warehouse.id"), nullable=False
+        BigInteger,
+        ForeignKey("warehouses.id"),  # ← OK
+        nullable=False,
     )
     quantity: Mapped[float] = mapped_column(Float, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("order_line_id", "warehouse_id", name="uq_orderline_warehouse"),
+        Index("ix_olwa_order_line_id", "order_line_id"),
+        Index("ix_olwa_warehouse_id", "warehouse_id"),
+        CheckConstraint("quantity > 0", name="ck_olwa_quantity_positive"),
+    )
 
     # リレーション
     order_line: Mapped["OrderLine"] = relationship(
