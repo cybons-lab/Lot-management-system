@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.models import Order, OrderLine, Customer, Product
-from app.api.deps import get_db
+from app.api.deps import get_db, get_uow
 
 # ✅ 修正: conftest.pyのdb_sessionを使用（独自engineを削除）
 
@@ -24,7 +24,23 @@ def client(db_session):
         finally:
             pass  # conftest.pyが管理するのでcloseしない
     
+    def override_get_uow():
+        """テスト用UnitOfWorkをオーバーライド"""
+        from app.services.uow import UnitOfWork
+        # db_sessionを直接使用する簡易UnitOfWork
+        class TestUnitOfWork:
+            def __init__(self, session):
+                self.session = session
+            def __enter__(self):
+                return self
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                if exc_type is None:
+                    self.session.flush()  # commitではなくflushを使用
+        
+        yield TestUnitOfWork(db_session)
+    
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_uow] = override_get_uow
     yield TestClient(app)
     app.dependency_overrides.clear()
 
