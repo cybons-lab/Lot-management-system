@@ -65,6 +65,18 @@ CREATE TEMP TABLE stg_lots(
 \copy stg_suppliers(supplier_code) FROM '/tmp/seeds/suppliers.csv' CSV HEADER;
 \copy stg_products(product_code, base_unit) FROM '/tmp/seeds/products.csv' CSV HEADER;
 \copy stg_orders(order_no, customer_code, order_date) FROM '/tmp/seeds/order_headers.csv' CSV HEADER;
+-- =========================
+-- customers（stg_orders から派生）
+-- =========================
+-- もし customers.csv を用意できない場合でも、orders の customer_code を満たすための最小顧客を作る
+-- すでに存在する顧客は温存（ON CONFLICT DO NOTHING）
+INSERT INTO customers (customer_code, customer_name)
+SELECT DISTINCT
+  o.customer_code,
+  COALESCE(NULLIF(o.customer_code, ''), 'UNKNOWN') AS customer_name
+FROM stg_orders o
+WHERE o.customer_code IS NOT NULL AND o.customer_code <> ''
+ON CONFLICT (customer_code) DO NOTHING;
 \copy stg_order_lines(line_no, order_no, product_code, quantity, unit) FROM '/tmp/seeds/order_lines.csv' CSV HEADER;
 \copy stg_lots(supplier_code, product_code, lot_number, receipt_date, warehouse_code, lot_unit) FROM '/tmp/seeds/lots_stage.csv' CSV HEADER;
 
