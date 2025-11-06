@@ -24,6 +24,11 @@ from sqlalchemy.orm import Mapped, relationship, synonym
 
 from .base_model import AuditMixin, Base
 
+# 型チェック時のみインポート（循環インポート回避）
+if TYPE_CHECKING:
+    from .inventory import Lot, StockMovement, ReceiptHeader
+    from .orders import OrderLineWarehouseAllocation
+
 
 class Warehouse(AuditMixin, Base):
     """
@@ -41,15 +46,17 @@ class Warehouse(AuditMixin, Base):
     is_active = Column(Integer, default=1)
 
     # リレーション
-    stock_movements = relationship(
+    # 🔧 修正: foreign_keys を明示
+    stock_movements: Mapped[list["StockMovement"]] = relationship(
         "StockMovement",
         back_populates="warehouse",
+        foreign_keys="StockMovement.warehouse_id",
     )
-    receipt_headers = relationship(
+    receipt_headers: Mapped[list["ReceiptHeader"]] = relationship(
         "ReceiptHeader",
         back_populates="warehouse",
+        foreign_keys="ReceiptHeader.warehouse_id",
     )
-    # OrderLineWarehouseAllocationはorders.pyで定義されている
     warehouse_allocations: Mapped[list["OrderLineWarehouseAllocation"]] = relationship(
         "OrderLineWarehouseAllocation",
         back_populates="warehouse",
@@ -61,12 +68,6 @@ class Warehouse(AuditMixin, Base):
     )
 
 
-# 型チェッカ専用の前方参照（実行時には評価されない）
-if TYPE_CHECKING:
-    from .inventory import Lot
-    from .orders import OrderLineWarehouseAllocation
-
-
 class Supplier(AuditMixin, Base):
     """仕入先マスタ"""
 
@@ -74,30 +75,12 @@ class Supplier(AuditMixin, Base):
 
     supplier_code = Column(Text, primary_key=True)
     supplier_name = Column(Text, nullable=False)
-    address = Column(Text)
+    address = Column(Text, nullable=True)
 
     # リレーション
     lots = relationship("Lot", back_populates="supplier")
-    purchase_requests = relationship("PurchaseRequest", back_populates="supplier")
     products = relationship("Product", back_populates="supplier")
-
-
-class DeliveryPlace(AuditMixin, Base):
-    """納入先マスタ（SAP納入先のローカルコピー）"""
-
-    __tablename__ = "delivery_places"
-
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
-    delivery_place_code = Column(String, nullable=False, unique=True, index=True)
-    delivery_place_name = Column(String, nullable=False)
-    address = Column(String, nullable=True)
-    postal_code = Column(String, nullable=True)
-    is_active = Column(Boolean, nullable=False, server_default="true")
-
-    # リレーション
-    products = relationship("Product", back_populates="delivery_place")
-    order_lines = relationship("OrderLine", back_populates="destination")
-    allocations = relationship("Allocation", back_populates="destination")
+    expiry_rules = relationship("ExpiryRule", back_populates="supplier")
 
 
 class Customer(AuditMixin, Base):
@@ -107,10 +90,25 @@ class Customer(AuditMixin, Base):
 
     customer_code = Column(Text, primary_key=True)
     customer_name = Column(Text, nullable=False)
-    address = Column(Text)
+    address = Column(Text, nullable=True)
 
     # リレーション
     orders = relationship("Order", back_populates="customer")
+
+
+class DeliveryPlace(AuditMixin, Base):
+    """納入場所マスタ"""
+
+    __tablename__ = "delivery_places"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    place_code = Column(String(64), unique=True, nullable=False, index=True)
+    place_name = Column(String(256), nullable=False)
+    address = Column(Text, nullable=True)
+    is_active = Column(Integer, nullable=False, default=1)
+
+    # リレーション
+    allocations = relationship("Allocation", back_populates="destination")
 
 
 class Product(AuditMixin, Base):
@@ -120,50 +118,41 @@ class Product(AuditMixin, Base):
 
     product_code = Column(Text, primary_key=True)
     product_name = Column(Text, nullable=False)
-    customer_part_no = Column(Text)
-    maker_item_code = Column(String, nullable=True)
-    supplier_item_code = Column(String, nullable=True)
     supplier_code = Column(Text, ForeignKey("suppliers.supplier_code"), nullable=True)
-    packaging_qty = Column(Numeric(10, 2), nullable=False, default=1)  # 包装数量
-    packaging_unit = Column(String(20), nullable=False, default="EA")  # 包装単位
-    internal_unit = Column(Text, nullable=False, default="EA")  # 内部管理単位
-    base_unit = Column(String(10), nullable=False, default="EA")  # 基準単位
-    assemble_div = Column(Text)
-    next_div = Column(Text)
-    shelf_life_days = Column(Integer)
-    requires_lot_number = Column(Integer, default=1)
+
+    # 包装関連
+    packaging_qty = Column(Numeric(15, 4), nullable=False, default=1.0)
+    packaging_unit = Column(Text, nullable=False, default="EA")
+    internal_unit = Column(Text, nullable=False, default="EA")
+    base_unit = Column(Text, nullable=False, default="EA")
+
+    # 製品情報
+    customer_part_no = Column(Text, nullable=True)
+    maker_item_code = Column(Text, nullable=True)
+    supplier_item_code = Column(Text, nullable=True)
+    packaging = Column(Text, nullable=True)
+    assemble_div = Column(Text, nullable=True)
+    next_div = Column(Text, nullable=True)
+    ji_ku_text = Column(Text, nullable=True)
+    kumitsuke_ku_text = Column(Text, nullable=True)
+    shelf_life_days = Column(Integer, nullable=True)
+    requires_lot_number = Column(Integer, nullable=False, default=1)
+
+    # 納入場所情報
     delivery_place_id = Column(BigInteger, ForeignKey("delivery_places.id"), nullable=True)
-    ji_ku_text = Column(String, nullable=True)
-    kumitsuke_ku_text = Column(String, nullable=True)
-    delivery_place_name = Column(String, nullable=True)
-    shipping_warehouse_name = Column(String, nullable=True)
+    delivery_place_name = Column(Text, nullable=True)
+    shipping_warehouse_name = Column(Text, nullable=True)
 
     # リレーション
-    lots = relationship("Lot", back_populates="product")
-    conversions = relationship(
-        "ProductUomConversion", back_populates="product", cascade="all, delete-orphan"
-    )
-    unit_conversions = relationship(
-        "UnitConversion", back_populates="product", cascade="all, delete-orphan"
-    )
-    order_lines = relationship("OrderLine", back_populates="product")
     supplier = relationship("Supplier", back_populates="products")
-    delivery_place = relationship("DeliveryPlace", back_populates="products")
-
-    maker_part_no = synonym("maker_item_code")
-
-    __table_args__ = (
-        UniqueConstraint(
-            "supplier_code", "maker_item_code", name="uq_products_supplier_maker_item"
-        ),
-        UniqueConstraint(
-            "supplier_code", "supplier_item_code", name="uq_products_supplier_supplier_item"
-        ),
-    )
+    lots = relationship("Lot", back_populates="product")
+    uom_conversions = relationship("ProductUomConversion", back_populates="product")
+    expiry_rules = relationship("ExpiryRule", back_populates="product")
+    order_lines = relationship("OrderLine", back_populates="product")
 
 
 class ProductUomConversion(AuditMixin, Base):
-    """製品単位換算テーブル"""
+    """製品単位変換マスタ"""
 
     __tablename__ = "product_uom_conversions"
 
@@ -173,29 +162,26 @@ class ProductUomConversion(AuditMixin, Base):
     source_value = Column(Float, nullable=False, default=1.0)
     internal_unit_value = Column(Float, nullable=False)
 
-    __table_args__ = (UniqueConstraint("product_code", "source_unit", name="uq_product_unit"),)
+    __table_args__ = (
+        UniqueConstraint("product_code", "source_unit", name="uq_product_uom"),
+        {"keep_existing": True},
+    )
 
     # リレーション
-    product = relationship("Product", back_populates="conversions")
+    product = relationship("Product", back_populates="uom_conversions")
 
 
 class UnitConversion(AuditMixin, Base):
-    """
-    単位換算マスタ（新規追加）
-    製品ごとの単位換算係数を管理
-    """
+    """単位変換マスタ（グローバル）"""
 
     __tablename__ = "unit_conversions"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    product_code = Column(Text, ForeignKey("products.product_code"), nullable=False)
-    from_unit = Column(String(10), nullable=False)
-    to_unit = Column(String(10), nullable=False)
-    factor = Column(Float, nullable=False)  # from_unit * factor = to_unit
+    product_id = Column(Text, ForeignKey("products.product_code"), nullable=True)
+    from_unit = Column(Text, nullable=False)
+    to_unit = Column(Text, nullable=False)
+    conversion_factor = Column(Float, nullable=False)
 
     __table_args__ = (
-        UniqueConstraint("product_code", "from_unit", "to_unit", name="uq_unit_conv"),
+        UniqueConstraint("product_id", "from_unit", "to_unit", name="uq_unit_conversion"),
     )
-
-    # リレーション
-    product = relationship("Product", back_populates="unit_conversions")
