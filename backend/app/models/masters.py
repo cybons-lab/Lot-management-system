@@ -18,7 +18,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
-    BigInteger,
+    Integer,
     Boolean,
     Column,
     Float,
@@ -46,7 +46,7 @@ class Warehouse(AuditMixin, Base):
     出荷元となる倉庫を管理。IDを主キーとし、warehouse_codeをユニーク制約とする。
     
     Attributes:
-        id: 内部ID（主キー、BigInteger）
+        id: 内部ID（主キー、Integer）
         warehouse_code: 倉庫コード（業務キー、ユニーク）
         warehouse_name: 倉庫名称
         address: 住所
@@ -55,7 +55,7 @@ class Warehouse(AuditMixin, Base):
 
     __tablename__ = "warehouses"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)  # 内部ID
+    id = Column(Integer, primary_key=True, autoincrement=True)  # 内部ID
     warehouse_code = Column(String(32), unique=True, nullable=False, index=True)  # 倉庫コード
     warehouse_name = Column(String(128), nullable=False)  # 倉庫名称
     address = Column(Text, nullable=True)  # 住所
@@ -165,7 +165,7 @@ class DeliveryPlace(AuditMixin, Base):
 
     __tablename__ = "delivery_places"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)  # 内部ID
+    id = Column(Integer, primary_key=True, autoincrement=True)  # 内部ID
     place_code = Column(String(64), unique=True, nullable=False, index=True)  # 納入場所コード
     place_name = Column(String(256), nullable=False)  # 納入場所名称
     address = Column(Text, nullable=True)  # 住所
@@ -226,7 +226,7 @@ class Product(AuditMixin, Base):
     requires_lot_number = Column(Integer, nullable=False, default=1)  # ロット番号必須フラグ
 
     # 納入場所情報
-    delivery_place_id = Column(BigInteger, ForeignKey("delivery_places.id"), nullable=True)  # デフォルト納入場所ID
+    delivery_place_id = Column(Integer, ForeignKey("delivery_places.id"), nullable=True)  # デフォルト納入場所ID
     delivery_place_name = Column(Text, nullable=True)  # 納入場所名称（非正規化）
     shipping_warehouse_name = Column(Text, nullable=True)  # 出荷倉庫名称（非正規化）
 

@@ -18,7 +18,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
-    BigInteger,
+    
     CheckConstraint,
     Column,
     Date,
@@ -169,7 +169,7 @@ class OrderLineWarehouseAllocation(AuditMixin, Base):
     Attributes:
         id: 内部ID（主キー）
         order_line_id: 受注明細ID（FK）
-        warehouse_id: 倉庫ID（FK、BigInteger）
+        warehouse_id: 倉庫ID（FK、Integer）
         quantity: 配分数量
     """
 
@@ -178,7 +178,7 @@ class OrderLineWarehouseAllocation(AuditMixin, Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)  # 内部ID
     order_line_id: Mapped[int] = mapped_column(ForeignKey("order_lines.id"), nullable=False)  # 受注明細ID
     warehouse_id: Mapped[int] = mapped_column(
-        BigInteger,
+        Integer,
         ForeignKey("warehouses.id"),
         nullable=False,
     )  # 倉庫ID
@@ -228,7 +228,7 @@ class Allocation(AuditMixin, Base):
     )  # 受注明細ID
     lot_id = Column(Integer, ForeignKey("lots.id"), nullable=False)  # ロットID
     allocated_qty = Column(Float, nullable=False)  # 引当数量
-    destination_id = Column(BigInteger, ForeignKey("delivery_places.id"), nullable=True)  # 納入場所ID
+    destination_id = Column(Integer, ForeignKey("delivery_places.id"), nullable=True)  # 納入場所ID
     allocation_date = Column(DateTime, server_default=func.now())  # 引当日時
 
     __table_args__ = (

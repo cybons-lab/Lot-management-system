@@ -19,7 +19,7 @@ from enum import Enum as PyEnum
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
-    BigInteger,
+    Integer,
     Boolean,
     Column,
     Date,
@@ -71,7 +71,7 @@ class Lot(AuditMixin, Base):
         receipt_date: 入庫日
         mfg_date: 製造日
         expiry_date: 有効期限
-        warehouse_id: 倉庫ID（FK、BigInteger、warehouses.id参照）
+        warehouse_id: 倉庫ID（FK、Integer、warehouses.id参照）
         lot_unit: ロット単位（例: CAN、KG）
         is_locked: ロックフラグ（品質保留等）
         lock_reason: ロック理由
@@ -87,10 +87,8 @@ class Lot(AuditMixin, Base):
     mfg_date = Column(Date, nullable=True)  # 製造日
     expiry_date = Column(Date, nullable=True)  # 有効期限
 
-    # 倉庫ID（BigInteger、warehouses.id参照）
-    warehouse_id = Column(
-        BigInteger, ForeignKey("warehouses.id", ondelete="RESTRICT"), nullable=True, index=True
-    )
+    # 倉庫ID（Integer、warehouses.id参照）
+    warehouse_id = Column(Integer, ForeignKey("warehouses.id"), index=True, nullable=False)
 
     lot_unit = Column(String(10), nullable=True)  # ロット単位
     kanban_class = Column(Text, nullable=True)  # かんばん種別
@@ -161,7 +159,7 @@ class StockMovement(AuditMixin, Base):
     Attributes:
         id: 内部ID（主キー）
         lot_id: ロットID（FK）
-        warehouse_id: 倉庫ID（FK、BigInteger）
+        warehouse_id: 倉庫ID（FK、Integer）
         movement_type: 変動種別（in=入庫、out=出庫）
         quantity: 変動数量
         reason: 変動理由（StockMovementReason）
@@ -174,9 +172,7 @@ class StockMovement(AuditMixin, Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)  # 内部ID
     lot_id = Column(Integer, ForeignKey("lots.id"), nullable=False, index=True)  # ロットID
-    warehouse_id = Column(
-        BigInteger, ForeignKey("warehouses.id"), nullable=False, index=True
-    )  # 倉庫ID
+    warehouse_id = Column(Integer, ForeignKey("warehouses.id"), index=True, nullable=False)
     movement_type = Column(Text, nullable=False)  # 変動種別（in/out）
     quantity = Column(Float, nullable=False)  # 変動数量
     reason = Column(Text, nullable=False)  # 変動理由
@@ -234,7 +230,7 @@ class ReceiptHeader(AuditMixin, Base):
     Attributes:
         id: 内部ID（主キー）
         receipt_no: 入荷番号（ユニーク）
-        warehouse_id: 倉庫ID（FK、BigInteger）
+        warehouse_id: 倉庫ID（FK、Integer）
         supplier_code: 仕入先コード（FK）
         receipt_date: 入荷日
         status: ステータス（pending, completed, cancelled）
@@ -246,7 +242,7 @@ class ReceiptHeader(AuditMixin, Base):
     id = Column(Integer, primary_key=True, autoincrement=True)  # 内部ID
     receipt_no = Column(Text, unique=True, nullable=False)  # 入荷番号
     warehouse_id = Column(
-        BigInteger, ForeignKey("warehouses.id"), nullable=False, index=True
+        Integer, ForeignKey("warehouses.id"), nullable=False, index=True
     )  # 倉庫ID
     supplier_code = Column(Text, ForeignKey("suppliers.supplier_code"), nullable=False)  # 仕入先コード
     receipt_date = Column(Date, nullable=False)  # 入荷日
