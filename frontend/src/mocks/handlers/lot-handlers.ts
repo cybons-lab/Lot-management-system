@@ -5,7 +5,7 @@
 
 import { http, HttpResponse } from "msw";
 import { createLot, createLots, createLotWithStock } from "@/factories/lot-factory";
-import type { LotResponse } from "@/types/legacy";
+import type { LotResponse } from "@/types/aliases";
 
 const API_BASE = "/api";
 

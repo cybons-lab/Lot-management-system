@@ -5,7 +5,7 @@
 
 import { http, HttpResponse } from "msw";
 import { createOrders, createOrderWithLines } from "@/factories/order-factory";
-import type { OrderResponse, OrderWithLinesResponse } from "@/types/legacy";
+import type { OrderResponse, OrderWithLinesResponse } from "@/types/aliases";
 
 const API_BASE = "/api";
 

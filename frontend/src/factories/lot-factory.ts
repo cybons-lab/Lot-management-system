@@ -4,7 +4,7 @@
  */
 
 import { faker } from "@faker-js/faker/locale/ja";
-import type { LotResponse } from "@/types/legacy";
+import type { LotResponse } from "@/types/aliases";
 
 /**
  * ランダムなロットデータを生成

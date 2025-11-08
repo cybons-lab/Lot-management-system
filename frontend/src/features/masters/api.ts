@@ -1,6 +1,6 @@
 // Auto-generated from api-client.ts split
 import { fetchApi } from "@/lib/http";
-import type { Product, Supplier, OldWarehouse } from "@/types/legacy";
+import type { Product, Supplier, OldWarehouse } from "@/types/aliases";
 
 export const getProducts = () => fetchApi<Product[]>("/masters/products", { method: "GET" });
 

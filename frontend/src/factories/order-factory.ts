@@ -4,7 +4,7 @@
  */
 
 import { faker } from "@faker-js/faker/locale/ja";
-import type { OrderResponse, OrderLine, OrderWithLinesResponse } from "@/types/legacy";
+import type { OrderResponse, OrderLine, OrderWithLinesResponse } from "@/types/aliases";
 
 /**
  * ランダムな受注データを生成

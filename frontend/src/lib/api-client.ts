@@ -13,7 +13,7 @@ import type {
   OrderResponse,
   OrderWithLinesResponse,
   OrdersListParams,
-} from "@/types/legacy";
+} from "@/types/aliases";
 
 export const api = {
   // ========================================

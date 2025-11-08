@@ -13,7 +13,7 @@ import type {
   SaveAllocationsRequest,
   SaveAllocationsResponse,
   WarehouseAlloc,
-} from "@/types/legacy";
+} from "@/types/aliases";
 
 export const getOrders = (params: OrdersListParams) => {
   const searchParams = new URLSearchParams();

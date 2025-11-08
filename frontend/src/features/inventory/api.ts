@@ -1,6 +1,6 @@
 // Auto-generated from api-client.ts split
 import { fetchApi } from "@/lib/http";
-import type { LotResponse, LotCreate } from "@/types/legacy";
+import type { LotResponse, LotCreate } from "@/types/aliases";
 
 export const getLots = () => fetchApi<LotResponse[]>("/lots", { method: "GET" });
 
