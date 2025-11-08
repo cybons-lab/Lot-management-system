@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "lot-db",
+      "Group": "Servers",
+      "Host": "db-postgres",
+      "Port": 5432,
+      "MaintenanceDB": "postgres",
+      "Username": "admin",
+      "SSLMode": "prefer",
+      "DBRes": true
+    }
+  }
+}
