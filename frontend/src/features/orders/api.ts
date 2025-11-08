@@ -1,49 +1,75 @@
-// Auto-generated from api-client.ts split
 import { fetchApi } from "@/lib/http";
-import type {
-  OrdersListParams,
-  OrderResponse,
-  OrderWithLinesResponse,
-  ReMatchResponse,
-  OrdersWithAllocResponse,
-  WarehouseListResponse,
-  LotCandidateResponse,
-  LotAllocationRequest,
-  LotAllocationResponse,
-  SaveAllocationsRequest,
-  SaveAllocationsResponse,
-  WarehouseAlloc,
-} from "@/types/aliases";
+import type { paths, components } from "@/types/api";
 
-export const getOrders = (params: OrdersListParams) => {
+// api.d.ts から型を抽出
+type OrdersGetParams = paths["/api/orders"]["get"]["parameters"]["query"];
+type OrdersGetResponse =
+  paths["/api/orders"]["get"]["responses"][200]["content"]["application/json"];
+type OrderGetResponse =
+  paths["/api/orders/{order_id}"]["get"]["responses"][200]["content"]["application/json"];
+
+// 互換性のためのエイリアス型（既存コードで使用中）
+export type OrdersListParams = OrdersGetParams;
+export type OrderResponse = components["schemas"]["OrderResponse"];
+export type OrderWithLinesResponse = components["schemas"]["OrderWithLinesResponse"];
+
+/**
+ * 受注一覧取得
+ *
+ * 利用可能なパラメータ:
+ * - skip, limit: ページネーション
+ * - status: ステータスフィルタ
+ * - customer_code: 得意先コードフィルタ
+ * - date_from, date_to: 日付範囲フィルタ
+ */
+export const getOrders = (params?: OrdersListParams) => {
   const searchParams = new URLSearchParams();
-  if (params.skip !== undefined) searchParams.append("skip", params.skip.toString());
-  if (params.limit !== undefined) searchParams.append("limit", params.limit.toString());
-  if (params.status) searchParams.append("status", params.status);
-  if (params.customer_code) searchParams.append("customer_code", params.customer_code);
+  if (params?.skip !== undefined) searchParams.append("skip", params.skip.toString());
+  if (params?.limit !== undefined) searchParams.append("limit", params.limit.toString());
+  if (params?.status) searchParams.append("status", params.status);
+  if (params?.customer_code) searchParams.append("customer_code", params.customer_code);
+  if (params?.date_from) searchParams.append("date_from", params.date_from);
+  if (params?.date_to) searchParams.append("date_to", params.date_to);
 
   const queryString = searchParams.toString();
-  return fetchApi<OrderResponse[]>(`/orders${queryString ? "?" + queryString : ""}`, {
+  return fetchApi<OrdersGetResponse>(`/orders${queryString ? "?" + queryString : ""}`, {
     method: "GET",
   });
 };
 
+/**
+ * 受注詳細取得
+ */
 export const getOrder = (orderId: number) =>
-  fetchApi<OrderWithLinesResponse>(`/orders/${orderId}`, { method: "GET" });
+  fetchApi<OrderGetResponse>(`/orders/${orderId}`, { method: "GET" });
 
+/**
+ * FEFO再マッチング実行
+ */
 export const reMatchOrder = (orderId: number) =>
-  fetchApi<ReMatchResponse>(`/orders/${orderId}/re-match`, { method: "POST" });
+  fetchApi<components["schemas"]["FefoCommitResponse"]>(`/orders/${orderId}/re-match`, {
+    method: "POST",
+  });
 
-export const getOrdersWithAllocations = () =>
-  fetchApi<OrdersWithAllocResponse>("/orders/orders-with-allocations", {
+/**
+ * 引当情報付き受注一覧取得
+ */
+export const getOrdersWithAllocations = (): Promise<unknown> =>
+  fetchApi("/orders/orders-with-allocations", {
     method: "GET",
   });
 
-export const getWarehouseAllocList = () =>
-  fetchApi<WarehouseListResponse>("/warehouse-alloc/warehouses", {
+/**
+ * 倉庫別引当情報取得
+ */
+export const getWarehouseAllocList = (): Promise<components["schemas"]["WarehouseListResponse"]> =>
+  fetchApi("/warehouse-alloc/warehouses", {
     method: "GET",
   });
 
+/**
+ * 引当候補ロット取得
+ */
 export const getCandidateLots = (
   orderLineId: number,
   params?: { product_code?: string; customer_code?: string },
@@ -53,35 +79,66 @@ export const getCandidateLots = (
   if (params?.customer_code) searchParams.append("customer_code", params.customer_code);
 
   const queryString = searchParams.toString();
-  return fetchApi<LotCandidateResponse>(
-    `/orders/${orderLineId}/candidate-lots${queryString ? "?" + queryString : ""}`,
-    {
-      method: "GET",
-    },
-  );
+  return fetchApi<{
+    items: components["schemas"]["FefoLotAllocation"][];
+    warnings?: string[];
+  }>(`/orders/${orderLineId}/candidate-lots${queryString ? "?" + queryString : ""}`, {
+    method: "GET",
+  });
 };
 
-export const createLotAllocations = (orderLineId: number, request: LotAllocationRequest) =>
-  fetchApi<LotAllocationResponse>(`/orders/${orderLineId}/allocations`, {
+/**
+ * ロット引当実行
+ */
+export const createLotAllocations = (
+  orderLineId: number,
+  request: { allocations: { lot_id: number; qty: number }[] },
+) =>
+  fetchApi<{
+    success?: boolean;
+    message?: string;
+    allocated_ids?: number[];
+  }>(`/orders/${orderLineId}/allocations`, {
     method: "POST",
     body: JSON.stringify(request),
   });
 
+/**
+ * ロット引当キャンセル
+ */
 export const cancelLotAllocations = (
   orderLineId: number,
-  request: any /* AllocationCancelRequest 型は現行types未定義のためanyに退避 */,
+  request: { order_line_id?: number; allocation_ids?: number[] },
 ) =>
-  fetchApi<any /* AllocationCancelResponse */>(`/orders/${orderLineId}/allocations/cancel`, {
+  fetchApi<{ success?: boolean; message?: string }>(`/orders/${orderLineId}/allocations/cancel`, {
     method: "POST",
     body: JSON.stringify(request),
   });
 
-export const saveWarehouseAllocations = (orderLineId: number, allocations: WarehouseAlloc[]) =>
-  fetchApi<SaveAllocationsResponse>(`/orders/${orderLineId}/warehouse-allocations`, {
-    method: "POST",
-    body: JSON.stringify({ allocations } as SaveAllocationsRequest),
-  });
+/**
+ * 倉庫別引当保存
+ */
+export const saveWarehouseAllocations = (
+  orderLineId: number,
+  allocations: Array<{
+    warehouse_id: number;
+    warehouse_code: string;
+    warehouse_name?: string;
+    lot_id: number;
+    quantity: number;
+  }>,
+) =>
+  fetchApi<{ success?: boolean; message?: string }>(
+    `/orders/${orderLineId}/warehouse-allocations`,
+    {
+      method: "POST",
+      body: JSON.stringify({ allocations }),
+    },
+  );
 
+/**
+ * 受注明細ステータス更新
+ */
 export const updateOrderLineStatus = (orderLineId: number, newStatus: string) =>
   fetchApi<{
     success: boolean;
