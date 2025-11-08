@@ -5,8 +5,8 @@ import type {
   ForecastListResponse,
   ForecastBulkRequest,
   ForecastBulkResponse,
-} from "@/types/legacy";
-import type { ForecastResponse } from "@/types/legacy/forecast";
+  ForecastResponse,
+} from "@/types/aliases";
 
 export const getForecastList = (params: ForecastListParams) => {
   const searchParams = new URLSearchParams();

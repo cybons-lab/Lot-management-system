@@ -4,7 +4,7 @@
  */
 
 import { http } from "@/services/http";
-import type { OrderResponse, OrderWithLinesResponse } from "@/types/legacy";
+import type { OrderResponse, OrderWithLinesResponse } from "@/types/aliases";
 import type { OrderCreateInput, OrderStatusUpdate, OrderSearchParams } from "@/utils/validators";
 
 const BASE_PATH = "/orders";

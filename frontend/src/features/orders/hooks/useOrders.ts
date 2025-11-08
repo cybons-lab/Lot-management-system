@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import * as ordersApi from "@/features/orders/api";
 import { api } from "@/lib/api-client";
 
-import type { OrdersListParams, OrderWithLinesResponse } from "@/types/legacy";
+import type { OrdersListParams, OrderWithLinesResponse } from "@/types/aliases";
 
 export const queryKeys = {
   orders: (params: OrdersListParams) => ["orders", params] as const,

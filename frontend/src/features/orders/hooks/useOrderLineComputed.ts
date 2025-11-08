@@ -2,7 +2,7 @@
 import React from "react";
 import { isValidDate, diffDays } from "@/lib/utils/date";
 import { formatCodeAndName } from "@/lib/utils";
-import type { OrderLine, OrderLineComputed, AllocatedLot } from "@/types/legacy";
+import type { OrderLine, OrderLineComputed, AllocatedLot } from "@/types/aliases";
 
 /**
  * 受注明細の計算済み情報を取得

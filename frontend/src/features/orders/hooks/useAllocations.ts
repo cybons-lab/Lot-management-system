@@ -10,7 +10,7 @@ import type {
   WarehouseAlloc,
   OrdersListParams,
   AllocationCancelRequest,
-} from "@/types/legacy";
+} from "@/types/aliases";
 
 const keyOrderLine = (orderLineId: number) => ["orders", "line", orderLineId] as const;
 const keyCandidates = (orderLineId: number) =>
