@@ -22,7 +22,6 @@ from app.api.routes import (
     masters_router,
     orders_router,
     products_router,
-    receipts_router,
     warehouse_alloc_router,
     orders_validate_router
 )
@@ -80,7 +79,6 @@ app.add_middleware(
 # ルーター登録
 app.include_router(masters_router, prefix=settings.API_PREFIX)
 app.include_router(lots_router, prefix=settings.API_PREFIX)
-app.include_router(receipts_router, prefix=settings.API_PREFIX)
 app.include_router(orders_router, prefix=settings.API_PREFIX)
 app.include_router(allocations_router, prefix=settings.API_PREFIX)
 app.include_router(integration_router, prefix=settings.API_PREFIX)
