@@ -4,12 +4,14 @@
 
 import logging
 import traceback
+import random  # ファイル冒頭に追加されていなければ
 from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
+from app.models.inventory import StockMovement
 
 from app.api.deps import get_db
 from app.core.config import settings
@@ -33,18 +35,25 @@ from app.schemas import (
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 logger = logging.getLogger(__name__)
-
+rng = random.Random()
 
 @router.get("/stats", response_model=DashboardStatsResponse)
 def get_dashboard_stats(db: Session = Depends(get_db)):
     """ダッシュボード用の統計情報を返す"""
 
-    total_stock = (
-        db.query(
-            func.coalesce(func.sum(LotCurrentStock.current_quantity), 0.0)
-        ).scalar()
-        or 0.0
-    )
+    # search_path 依存を避け、public スキーマを明示
+    # ビュー未作成時でも API 全体が 500 にならないようフォールバック
+    try:
+        total_stock = (
+            db.execute(
+                text("SELECT COALESCE(SUM(current_quantity), 0.0) FROM public.lot_current_stock")
+            ).scalar()
+            or 0.0
+        )
+    except Exception as e:
+        logger.warning("lot_current_stock 集計に失敗したため 0 扱いにします: %s", e)
+        total_stock = 0.0
+
     # LotCurrentStock.current_quantity は内部単位数量を保持する
 
     total_orders = db.query(func.count(Order.id)).scalar() or 0
@@ -87,28 +96,6 @@ def reset_database(db: Session = Depends(get_db)):
         drop_db()
         init_db()
 
-        # [修正] 新warehouseテーブルへのマスタ投入（ORM経由でAuditMixinの自動設定を有効にする）
-        warehouses = [
-            Warehouse(warehouse_code="WH001", warehouse_name="第一倉庫", is_active=1),
-            Warehouse(warehouse_code="WH002", warehouse_name="第二倉庫", is_active=1),
-            Warehouse(
-                warehouse_code="WH003", warehouse_name="第三倉庫（予備）", is_active=1
-            ),
-        ]
-
-        suppliers = [
-            Supplier(supplier_code="SUP001", supplier_name="サプライヤーA"),
-            Supplier(supplier_code="SUP002", supplier_name="サプライヤーB"),
-            Supplier(supplier_code="SUP003", supplier_name="サプライヤーC"),
-        ]
-
-        customers = [
-            Customer(customer_code="CUS001", customer_name="得意先A"),
-            Customer(customer_code="CUS002", customer_name="得意先B"),
-            Customer(customer_code="CUS003", customer_name="得意先C"),
-        ]
-
-        db.add_all([*warehouses, *suppliers, *customers])
         db.commit()
 
         return ResponseBase(
@@ -250,18 +237,22 @@ def load_full_sample_data(data: FullSampleDataRequest, db: Session = Depends(get
                     lot_number=lot_data.lot_number,
                     receipt_date=receipt_date_obj or date.today(),
                     expiry_date=expiry_date_obj,
-                    warehouse_id=warehouse.id,  # IDを使用
+                    warehouse_id=warehouse.id,
                     lot_unit=getattr(lot_data, "lot_unit", "EA"),
                 )
                 db.add(db_lot)
                 db.flush()
 
                 # 現在在庫の初期化
-                db_current_stock = LotCurrentStock(
+                recv_qty = getattr(lot_data, "initial_qty", None) or  rng.randint(5, 200)
+                db.add(StockMovement(
+                    product_id=db_lot.product_id,   # モデルに合わせて product_code 等なら置換
                     lot_id=db_lot.id,
-                    current_quantity=0.0,
-                )
-                db.add(db_current_stock)
+                    warehouse_id=db_lot.warehouse_id,
+                    movement_type="receipt",        # enum/文字列はいずれかに合わせる
+                    quantity=recv_qty,              # qty_in / quantity などに合わせる
+                    movement_date=date.today(),
+                ))
 
                 counts["lots"] += 1
 

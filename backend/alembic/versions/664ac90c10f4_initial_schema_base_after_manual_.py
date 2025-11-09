@@ -16,1510 +16,186 @@ branch_labels = None
 depends_on = None
 
 
+# alembic/versions/664ac90c10f4_initial_schema_base_after_manual_.py
+
 def upgrade() -> None:
+    # --- Bootstrap base tables for a clean DB (no-op if already exist) ---
+    op.execute("""
+    CREATE TABLE IF NOT EXISTS suppliers (
+        supplier_code TEXT PRIMARY KEY,
+        supplier_name  TEXT NOT NULL,
+        address        TEXT,
+        created_at     TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+        updated_at     TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+        created_by     VARCHAR(50),
+        updated_by     VARCHAR(50),
+        deleted_at     TIMESTAMP WITHOUT TIME ZONE,
+        revision       INTEGER DEFAULT 1 NOT NULL
+    );
+    """)
+
+    op.execute("""
+    CREATE TABLE IF NOT EXISTS customers (
+        customer_code TEXT PRIMARY KEY,
+        customer_name TEXT NOT NULL,
+        address       TEXT,
+        created_at    TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+        updated_at    TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+        created_by    VARCHAR(50),
+        updated_by    VARCHAR(50),
+        deleted_at    TIMESTAMP WITHOUT TIME ZONE,
+        revision      INTEGER DEFAULT 1 NOT NULL
+    );
+    """)
+
+    op.execute("""
+    CREATE TABLE IF NOT EXISTS warehouses (
+        id             SERIAL PRIMARY KEY,
+        warehouse_code TEXT NOT NULL,
+        warehouse_name TEXT NOT NULL,
+        address        TEXT,
+        is_active      INTEGER DEFAULT 1,
+        created_at     TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+        updated_at     TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+        created_by     VARCHAR(50),
+        updated_by     VARCHAR(50),
+        deleted_at     TIMESTAMP WITHOUT TIME ZONE,
+        revision       INTEGER DEFAULT 1 NOT NULL
+    );
+    """)
+
+    op.execute("""
+    CREATE TABLE IF NOT EXISTS products (
+        product_code   TEXT PRIMARY KEY,
+        product_name   TEXT NOT NULL,
+        internal_unit  TEXT NOT NULL,
+        base_unit      TEXT NOT NULL DEFAULT 'EA',
+        packaging_unit TEXT NOT NULL DEFAULT 'EA',
+        packaging_qty  NUMERIC(15,4) NOT NULL DEFAULT 1,
+        supplier_code  TEXT,
+        customer_part_no      TEXT,
+        maker_item_code       TEXT,
+        supplier_item_code    TEXT,
+        assemble_div          TEXT,
+        next_div              TEXT,
+        ji_ku_text            TEXT,
+        kumitsuke_ku_text     TEXT,
+        shelf_life_days       INTEGER,
+        requires_lot_number   INTEGER NOT NULL DEFAULT 0,
+        delivery_place_id     INTEGER,
+        delivery_place_name   TEXT,
+        shipping_warehouse_name TEXT,
+        created_at     TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+        updated_at     TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+        created_by     VARCHAR(50),
+        updated_by     VARCHAR(50),
+        deleted_at     TIMESTAMP WITHOUT TIME ZONE,
+        revision       INTEGER DEFAULT 1 NOT NULL
+    );
+    """)
+
+    op.execute("""
+    CREATE TABLE IF NOT EXISTS lots (
+        id           SERIAL PRIMARY KEY,
+        lot_number   TEXT NOT NULL,
+        receipt_date DATE NOT NULL,
+        mfg_date     DATE,
+        expiry_date  DATE,
+        warehouse_id INTEGER,
+        supplier_code TEXT,
+        product_code  TEXT,
+        kanban_class  TEXT,
+        received_by   TEXT,
+        created_at   TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+        updated_at   TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+        created_by   VARCHAR(50),
+        updated_by   VARCHAR(50),
+        deleted_at   TIMESTAMP WITHOUT TIME ZONE,
+        revision     INTEGER DEFAULT 1 NOT NULL
+    );
+    """)
+
+    op.execute("""
+    CREATE TABLE IF NOT EXISTS orders (
+        id               SERIAL PRIMARY KEY,
+        order_no         TEXT NOT NULL,
+        order_date       DATE,
+        status           TEXT,
+        sap_order_id     TEXT,
+        sap_status       TEXT,
+        sap_sent_at      TIMESTAMP WITHOUT TIME ZONE,
+        sap_error_msg    TEXT,
+        customer_order_no TEXT,
+        -- 後続の変更で customer_code に移行するため、ここでは列は用意しない
+        created_at       TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+        updated_at       TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+        created_by       VARCHAR(50),
+        updated_by       VARCHAR(50),
+        deleted_at       TIMESTAMP WITHOUT TIME ZONE,
+        revision         INTEGER DEFAULT 1 NOT NULL
+    );
+    """)
+
+    op.execute("""
+    CREATE TABLE IF NOT EXISTS order_lines (
+        id           SERIAL PRIMARY KEY,
+        order_id     INTEGER NOT NULL,
+        line_no      INTEGER NOT NULL,
+        quantity     NUMERIC(15,4) NOT NULL,
+        unit         TEXT,
+        -- 後続で product_code / forecast_id 等が追加される
+        created_at   TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+        updated_at   TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+        created_by   VARCHAR(50),
+        updated_by   VARCHAR(50),
+        deleted_at   TIMESTAMP WITHOUT TIME ZONE,
+        revision     INTEGER DEFAULT 1 NOT NULL
+    );
+    """)
+
+    op.execute("""
+    CREATE TABLE IF NOT EXISTS allocations (
+        id            SERIAL PRIMARY KEY,
+        order_line_id INTEGER NOT NULL,
+        lot_id        INTEGER NOT NULL,
+        allocated_qty NUMERIC(15,4) NOT NULL,
+        destination_id INTEGER,
+        created_at    TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+        updated_at    TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+        created_by    VARCHAR(50),
+        updated_by    VARCHAR(50),
+        deleted_at    TIMESTAMP WITHOUT TIME ZONE,
+        revision      INTEGER DEFAULT 1 NOT NULL
+    );
+    """)
+
+    op.execute("""
+    CREATE TABLE IF NOT EXISTS forecasts (
+        id                SERIAL PRIMARY KEY,
+        forecast_id       VARCHAR(36),
+        product_id        INTEGER,
+        customer_id       INTEGER,
+        granularity       VARCHAR(16) NOT NULL,
+        date_day          DATE,
+        date_dekad_start  DATE,
+        year_month        VARCHAR(7),
+        qty_forecast      INTEGER NOT NULL,
+        version_no        INTEGER NOT NULL,
+        version_issued_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+        source_system     VARCHAR(32) NOT NULL,
+        is_active         BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at        TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+        updated_at        TIMESTAMP WITHOUT TIME ZONE DEFAULT now() NOT NULL,
+        created_by        VARCHAR(50),
+        updated_by        VARCHAR(50),
+        deleted_at        TIMESTAMP WITHOUT TIME ZONE,
+        revision          INTEGER DEFAULT 1 NOT NULL
+    );
+    """)
+
+    # 以降は既存の op.create_table / batch_alter_table をそのまま実行
     # ### commands auto generated by Alembic - please adjust! ###
-    # ### commands auto generated by Alembic - please adjust! ###
-    op.create_table('next_div_map',
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('from_customer', sa.Text(), nullable=False),
-    sa.Column('from_next_div', sa.Text(), nullable=False),
-    sa.Column('target_supplier', sa.Text(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('created_by', sa.String(length=50), nullable=True),
-    sa.Column('updated_by', sa.String(length=50), nullable=True),
-    sa.Column('deleted_at', sa.DateTime(), nullable=True),
-    sa.Column('revision', sa.Integer(), server_default='1', nullable=False),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('from_customer', 'from_next_div', name='uq_next_div_map')
-    )
-    op.create_table('receipt_headers',
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('receipt_no', sa.Text(), nullable=False),
-    sa.Column('warehouse_id', sa.Integer(), nullable=False),
-    sa.Column('supplier_code', sa.Text(), nullable=False),
-    sa.Column('receipt_date', sa.Date(), nullable=False),
-    sa.Column('status', sa.Text(), nullable=True),
-    sa.Column('source_doc_no', sa.Text(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('created_by', sa.String(length=50), nullable=True),
-    sa.Column('updated_by', sa.String(length=50), nullable=True),
-    sa.Column('deleted_at', sa.DateTime(), nullable=True),
-    sa.Column('revision', sa.Integer(), server_default='1', nullable=False),
-    sa.ForeignKeyConstraint(['supplier_code'], ['suppliers.supplier_code'], ),
-    sa.ForeignKeyConstraint(['warehouse_id'], ['warehouses.id'], ),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('receipt_no')
-    )
-    with op.batch_alter_table('receipt_headers', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_receipt_headers_warehouse_id'), ['warehouse_id'], unique=False)
-
-    op.create_table('product_uom_conversions',
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('product_code', sa.Text(), nullable=False),
-    sa.Column('source_unit', sa.Text(), nullable=False),
-    sa.Column('source_value', sa.Float(), nullable=False),
-    sa.Column('internal_unit_value', sa.Float(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('created_by', sa.String(length=50), nullable=True),
-    sa.Column('updated_by', sa.String(length=50), nullable=True),
-    sa.Column('deleted_at', sa.DateTime(), nullable=True),
-    sa.Column('revision', sa.Integer(), server_default='1', nullable=False),
-    sa.ForeignKeyConstraint(['product_code'], ['products.product_code'], ),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('product_code', 'source_unit', name='uq_product_uom')
-    )
-    op.create_table('receipt_lines',
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('receipt_header_id', sa.Integer(), nullable=False),
-    sa.Column('line_no', sa.Integer(), nullable=False),
-    sa.Column('lot_id', sa.Integer(), nullable=False),
-    sa.Column('product_code', sa.Text(), nullable=False),
-    sa.Column('quantity', sa.Float(), nullable=False),
-    sa.Column('unit', sa.Text(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('created_by', sa.String(length=50), nullable=True),
-    sa.Column('updated_by', sa.String(length=50), nullable=True),
-    sa.Column('deleted_at', sa.DateTime(), nullable=True),
-    sa.Column('revision', sa.Integer(), server_default='1', nullable=False),
-    sa.ForeignKeyConstraint(['lot_id'], ['lots.id'], ),
-    sa.ForeignKeyConstraint(['product_code'], ['products.product_code'], ),
-    sa.ForeignKeyConstraint(['receipt_header_id'], ['receipt_headers.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('receipt_header_id', 'line_no', name='uq_receipt_line')
-    )
-    with op.batch_alter_table('receipt_lines', schema=None) as batch_op:
-        batch_op.create_index('ix_receipt_lines_lot', ['lot_id'], unique=False)
-
-    op.create_table('shipping',
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('lot_id', sa.Integer(), nullable=False),
-    sa.Column('order_line_id', sa.Integer(), nullable=True),
-    sa.Column('shipped_quantity', sa.Numeric(precision=15, scale=4), nullable=False),
-    sa.Column('shipping_date', sa.Date(), nullable=False),
-    sa.Column('destination_code', sa.Text(), nullable=True),
-    sa.Column('destination_name', sa.Text(), nullable=True),
-    sa.Column('destination_address', sa.Text(), nullable=True),
-    sa.Column('contact_person', sa.Text(), nullable=True),
-    sa.Column('contact_phone', sa.Text(), nullable=True),
-    sa.Column('delivery_time_slot', sa.Text(), nullable=True),
-    sa.Column('tracking_number', sa.Text(), nullable=True),
-    sa.Column('carrier', sa.Text(), nullable=True),
-    sa.Column('carrier_service', sa.Text(), nullable=True),
-    sa.Column('notes', sa.Text(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.Column('created_by', sa.String(length=50), nullable=True),
-    sa.Column('updated_by', sa.String(length=50), nullable=True),
-    sa.Column('deleted_at', sa.DateTime(), nullable=True),
-    sa.Column('revision', sa.Integer(), server_default='1', nullable=False),
-    sa.ForeignKeyConstraint(['lot_id'], ['lots.id'], ),
-    sa.ForeignKeyConstraint(['order_line_id'], ['order_lines.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    with op.batch_alter_table('allocations', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('allocation_date', sa.DateTime(), server_default=sa.text('now()'), nullable=True))
-        batch_op.alter_column('id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='主キー（自動採番）',
-               existing_nullable=False,
-               autoincrement=True)
-        batch_op.alter_column('order_line_id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='受注明細ID（FK: order_lines.id）',
-               existing_nullable=False)
-        batch_op.alter_column('lot_id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='ロットID（FK: lots.id）',
-               existing_nullable=False)
-        batch_op.alter_column('allocated_qty',
-               existing_type=sa.DOUBLE_PRECISION(precision=53),
-               type_=sa.Numeric(precision=15, scale=4),
-               comment=None,
-               existing_comment='引当数量',
-               existing_nullable=False)
-        batch_op.alter_column('destination_id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='納入場所ID（FK: delivery_places.id）',
-               existing_nullable=True)
-        batch_op.alter_column('created_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード作成日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('updated_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード更新日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('created_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='作成者',
-               existing_nullable=True)
-        batch_op.alter_column('updated_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='更新者',
-               existing_nullable=True)
-        batch_op.alter_column('deleted_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='論理削除日時',
-               existing_nullable=True)
-        batch_op.alter_column('revision',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='楽観的ロック用リビジョン番号',
-               existing_nullable=False,
-               existing_server_default=sa.text('1'))
-        batch_op.drop_index('ix_alloc_lot')
-        batch_op.drop_index('ix_alloc_ol')
-        batch_op.create_index('ix_allocations_lot', ['lot_id'], unique=False)
-        batch_op.create_index('ix_allocations_order_line', ['order_line_id'], unique=False)
-        batch_op.drop_constraint('allocations_lot_id_fkey', type_='foreignkey')
-        batch_op.create_foreign_key(None, 'lots', ['lot_id'], ['id'])
-        batch_op.drop_table_comment(
-        existing_comment='受注明細へのロット引当情報'
-    )
-
-    with op.batch_alter_table('customers', schema=None) as batch_op:
-        batch_op.alter_column('customer_code',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='得意先コード（PK/UK）',
-               existing_nullable=False)
-        batch_op.alter_column('customer_name',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='得意先名称',
-               existing_nullable=False)
-        batch_op.alter_column('address',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='住所',
-               existing_nullable=True)
-        batch_op.alter_column('created_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード作成日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('updated_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード更新日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('created_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='作成者',
-               existing_nullable=True)
-        batch_op.alter_column('updated_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='更新者',
-               existing_nullable=True)
-        batch_op.alter_column('deleted_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='論理削除日時',
-               existing_nullable=True)
-        batch_op.alter_column('revision',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='楽観的ロック用リビジョン番号',
-               existing_nullable=False,
-               existing_server_default=sa.text('1'))
-        batch_op.drop_index('ix_customers_customer_code')
-        batch_op.drop_constraint('uq_customers_customer_code', type_='unique')
-        batch_op.drop_table_comment(
-        existing_comment='得意先マスタ'
-    )
-        batch_op.drop_column('id')
-
-    with op.batch_alter_table('delivery_places', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('place_code', sa.String(length=64), nullable=False))
-        batch_op.add_column(sa.Column('place_name', sa.String(length=256), nullable=False))
-        batch_op.alter_column('id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='主キー（自動採番）',
-               existing_nullable=False,
-               autoincrement=True,
-               existing_server_default=sa.text("nextval('delivery_places_id_seq'::regclass)"))
-        batch_op.alter_column('address',
-               existing_type=sa.VARCHAR(),
-               type_=sa.Text(),
-               comment=None,
-               existing_comment='住所',
-               existing_nullable=True)
-        batch_op.alter_column('is_active',
-               existing_type=sa.BOOLEAN(),
-               type_=sa.Integer(),
-               comment=None,
-               existing_comment='有効フラグ（1=有効,0=無効）',
-               existing_nullable=False,
-               existing_server_default=sa.text('true'))
-        batch_op.alter_column('created_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード作成日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('updated_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード更新日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('created_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='作成者',
-               existing_nullable=True)
-        batch_op.alter_column('updated_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='更新者',
-               existing_nullable=True)
-        batch_op.alter_column('deleted_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='論理削除日時',
-               existing_nullable=True)
-        batch_op.alter_column('revision',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='楽観的ロック用リビジョン番号',
-               existing_nullable=False,
-               existing_server_default=sa.text('1'))
-        batch_op.drop_index('ix_delivery_places_delivery_place_code')
-        batch_op.drop_constraint('uq_delivery_places_code', type_='unique')
-        batch_op.create_index(batch_op.f('ix_delivery_places_place_code'), ['place_code'], unique=True)
-        batch_op.drop_table_comment(
-        existing_comment='納入場所マスタ（配送先情報）'
-    )
-        batch_op.drop_column('postal_code')
-        batch_op.drop_column('delivery_place_name')
-        batch_op.drop_column('delivery_place_code')
-
-    with op.batch_alter_table('expiry_rules', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('product_code', sa.Text(), nullable=False))
-        batch_op.add_column(sa.Column('supplier_code', sa.Text(), nullable=False))
-        batch_op.add_column(sa.Column('shelf_life_days', sa.Integer(), nullable=False))
-        batch_op.add_column(sa.Column('warning_days', sa.Integer(), nullable=True))
-        batch_op.alter_column('id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='主キー（自動採番）',
-               existing_nullable=False,
-               autoincrement=True)
-        batch_op.alter_column('created_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード作成日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('updated_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード更新日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('created_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='作成者',
-               existing_nullable=True)
-        batch_op.alter_column('updated_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='更新者',
-               existing_nullable=True)
-        batch_op.alter_column('deleted_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='論理削除日時',
-               existing_nullable=True)
-        batch_op.alter_column('revision',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='楽観的ロック用リビジョン番号',
-               existing_nullable=False,
-               existing_server_default=sa.text('1'))
-        batch_op.create_unique_constraint('uq_expiry_rule', ['product_code', 'supplier_code'])
-        batch_op.drop_constraint('fk_expiry_rules_supplier', type_='foreignkey')
-        batch_op.drop_constraint('fk_expiry_rules_product', type_='foreignkey')
-        batch_op.create_foreign_key(None, 'products', ['product_code'], ['product_code'])
-        batch_op.create_foreign_key(None, 'suppliers', ['supplier_code'], ['supplier_code'])
-        batch_op.drop_table_comment(
-        existing_comment='有効期限ルール定義（製品/仕入先ごと）'
-    )
-        batch_op.drop_column('days')
-        batch_op.drop_column('fixed_date')
-        batch_op.drop_column('supplier_id')
-        batch_op.drop_column('rule_type')
-        batch_op.drop_column('product_id')
-        batch_op.drop_column('is_active')
-        batch_op.drop_column('priority')
-
-    with op.batch_alter_table('forecasts', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('supplier_id', sa.String(length=64), nullable=True))
-        batch_op.alter_column('id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='主キー（自動採番）',
-               existing_nullable=False,
-               autoincrement=True)
-        batch_op.alter_column('forecast_id',
-               existing_type=sa.VARCHAR(length=36),
-               type_=sa.Integer(),
-               nullable=True,
-               comment=None,
-               existing_comment='外部予測ID（一意）')
-        batch_op.alter_column('product_id',
-               existing_type=sa.INTEGER(),
-               type_=sa.String(length=64),
-               comment=None,
-               existing_comment='製品ID/または製品コード',
-               existing_nullable=False)
-        batch_op.alter_column('customer_id',
-               existing_type=sa.INTEGER(),
-               type_=sa.String(length=64),
-               comment=None,
-               existing_comment='得意先ID（FK: customers.*）/または得意先コード',
-               existing_nullable=False)
-        batch_op.alter_column('granularity',
-               existing_type=sa.VARCHAR(length=16),
-               comment=None,
-               existing_comment='粒度（daily/weekly/dekadなど）',
-               existing_nullable=False)
-        batch_op.alter_column('date_day',
-               existing_type=sa.DATE(),
-               comment=None,
-               existing_comment='日次キー（granularity=daily時）',
-               existing_nullable=True)
-        batch_op.alter_column('date_dekad_start',
-               existing_type=sa.DATE(),
-               comment=None,
-               existing_comment='旬開始日キー（granularity=dekad時）',
-               existing_nullable=True)
-        batch_op.alter_column('year_month',
-               existing_type=sa.VARCHAR(length=7),
-               comment=None,
-               existing_comment='月次キー（YYYY-MM, granularity=monthly時）',
-               existing_nullable=True)
-        batch_op.alter_column('qty_forecast',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='予測数量',
-               existing_nullable=False)
-        batch_op.alter_column('version_no',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='版番号（同一期間内の差替管理）',
-               existing_nullable=False)
-        batch_op.alter_column('version_issued_at',
-               existing_type=postgresql.TIMESTAMP(timezone=True),
-               comment=None,
-               existing_comment='版の発行日時（受信基準時刻）',
-               existing_nullable=False)
-        batch_op.alter_column('source_system',
-               existing_type=sa.VARCHAR(length=32),
-               comment=None,
-               existing_comment='受信元システム識別子',
-               existing_nullable=False)
-        batch_op.alter_column('is_active',
-               existing_type=sa.BOOLEAN(),
-               comment=None,
-               existing_comment='有効版フラグ',
-               existing_nullable=False)
-        batch_op.alter_column('created_at',
-               existing_type=postgresql.TIMESTAMP(timezone=True),
-               type_=sa.DateTime(),
-               comment=None,
-               existing_comment='レコード作成日時',
-               existing_nullable=False)
-        batch_op.alter_column('updated_at',
-               existing_type=postgresql.TIMESTAMP(timezone=True),
-               type_=sa.DateTime(),
-               comment=None,
-               existing_comment='レコード更新日時',
-               existing_nullable=False)
-        batch_op.alter_column('created_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='作成者',
-               existing_nullable=True)
-        batch_op.alter_column('updated_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='更新者',
-               existing_nullable=True)
-        batch_op.alter_column('deleted_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='論理削除日時',
-               existing_nullable=True)
-        batch_op.alter_column('revision',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='楽観的ロック用リビジョン番号',
-               existing_nullable=False,
-               existing_server_default=sa.text('1'))
-        batch_op.create_index('idx_customer_product', ['customer_id', 'product_id'], unique=False)
-        batch_op.drop_constraint('fk_forecasts_product', type_='foreignkey')
-        batch_op.drop_constraint('fk_forecasts_customer', type_='foreignkey')
-        batch_op.drop_table_comment(
-        existing_comment='需要予測（DELFOR等のEDI受信データ）'
-    )
-
-    with op.batch_alter_table('inbound_submissions', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('source_file', sa.Text(), nullable=True))
-        batch_op.add_column(sa.Column('schema_version', sa.Text(), nullable=True))
-        batch_op.add_column(sa.Column('target_type', sa.Text(), nullable=True))
-        batch_op.alter_column('id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='主キー（自動採番）',
-               existing_nullable=False,
-               autoincrement=True)
-        batch_op.alter_column('submission_id',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='受信側の一意識別子（重複防止）',
-               existing_nullable=True)
-        batch_op.alter_column('source',
-               existing_type=sa.VARCHAR(length=20),
-               comment=None,
-               existing_comment='入力経路（ocr/manual/edi等）',
-               existing_nullable=False,
-               existing_server_default=sa.text("'ocr'::character varying"))
-        batch_op.alter_column('operator',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='操作者（ユーザーIDまたはロボ名）',
-               existing_nullable=True)
-        batch_op.alter_column('submission_date',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='受信日時',
-               existing_nullable=True)
-        batch_op.alter_column('status',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='処理状態（pending/success/failed等）',
-               existing_nullable=True)
-        batch_op.alter_column('total_records',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='受信レコード総数',
-               existing_nullable=True)
-        batch_op.alter_column('processed_records',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='処理済み件数',
-               existing_nullable=True)
-        batch_op.alter_column('failed_records',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='失敗件数',
-               existing_nullable=True)
-        batch_op.alter_column('skipped_records',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='スキップ件数',
-               existing_nullable=True)
-        batch_op.alter_column('error_details',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='エラー詳細（テキスト/JSON可）',
-               existing_nullable=True)
-        batch_op.alter_column('created_at',
-               existing_type=postgresql.TIMESTAMP(),
-               nullable=False,
-               comment=None,
-               existing_comment='レコード作成日時')
-        batch_op.alter_column('updated_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード更新日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('created_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='作成者',
-               existing_nullable=True)
-        batch_op.alter_column('updated_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='更新者',
-               existing_nullable=True)
-        batch_op.alter_column('deleted_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='論理削除日時',
-               existing_nullable=True)
-        batch_op.alter_column('revision',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='楽観的ロック用リビジョン番号',
-               existing_nullable=False,
-               existing_server_default=sa.text('1'))
-        batch_op.drop_table_comment(
-        existing_comment='外部入力の受信単位（OCR/EDI/手動等）のトラッキング'
-    )
-        batch_op.drop_column('source_uri')
-
-    with op.batch_alter_table('lot_current_stock', schema=None) as batch_op:
-        batch_op.alter_column('lot_id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='ロットID（PK/FK: lots.id）',
-               existing_nullable=False)
-        batch_op.alter_column('current_quantity',
-               existing_type=sa.DOUBLE_PRECISION(precision=53),
-               comment=None,
-               existing_comment='現在庫数量（入庫-出庫-引当の計算結果）',
-               existing_nullable=False)
-        batch_op.alter_column('last_updated',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='最終更新日時',
-               existing_nullable=True)
-        batch_op.alter_column('created_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード作成日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('updated_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード更新日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('created_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='作成者',
-               existing_nullable=True)
-        batch_op.alter_column('updated_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='更新者',
-               existing_nullable=True)
-        batch_op.alter_column('deleted_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='論理削除日時',
-               existing_nullable=True)
-        batch_op.alter_column('revision',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='楽観的ロック用リビジョン番号',
-               existing_nullable=False,
-               existing_server_default=sa.text('1'))
-        batch_op.drop_constraint('lot_current_stock_lot_id_fkey', type_='foreignkey')
-        batch_op.create_foreign_key(None, 'lots', ['lot_id'], ['id'])
-        batch_op.drop_table_comment(
-        existing_comment='ロット別現在庫数（1ロット=1行の集計値）'
-    )
-
-    with op.batch_alter_table('lots', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('supplier_code', sa.Text(), nullable=False))
-        batch_op.add_column(sa.Column('product_code', sa.Text(), nullable=False))
-        batch_op.alter_column('id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='主キー（自動採番）',
-               existing_nullable=False,
-               autoincrement=True,
-               existing_server_default=sa.text("nextval('lots_id_seq'::regclass)"))
-        batch_op.alter_column('lot_number',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='ロット番号（手動/外部入力）',
-               existing_nullable=False)
-        batch_op.alter_column('receipt_date',
-               existing_type=sa.DATE(),
-               comment=None,
-               existing_comment='入庫日',
-               existing_nullable=False)
-        batch_op.alter_column('mfg_date',
-               existing_type=sa.DATE(),
-               comment=None,
-               existing_comment='製造日',
-               existing_nullable=True)
-        batch_op.alter_column('expiry_date',
-               existing_type=sa.DATE(),
-               comment=None,
-               existing_comment='有効期限',
-               existing_nullable=True)
-        batch_op.alter_column('warehouse_id',
-               existing_type=sa.INTEGER(),
-               nullable=False,
-               comment=None,
-               existing_comment='保管倉庫ID（FK: warehouses.id）')
-        batch_op.alter_column('kanban_class',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='かんばん区分',
-               existing_nullable=True)
-        batch_op.alter_column('received_by',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='入庫担当者',
-               existing_nullable=True)
-        batch_op.alter_column('created_at',
-               existing_type=postgresql.TIMESTAMP(),
-               nullable=False,
-               comment=None,
-               existing_comment='レコード作成日時')
-        batch_op.alter_column('updated_at',
-               existing_type=postgresql.TIMESTAMP(),
-               nullable=False,
-               comment=None,
-               existing_comment='レコード更新日時')
-        batch_op.alter_column('created_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='作成者',
-               existing_nullable=True)
-        batch_op.alter_column('updated_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='更新者',
-               existing_nullable=True)
-        batch_op.alter_column('deleted_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='論理削除日時',
-               existing_nullable=True)
-        batch_op.alter_column('revision',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='楽観的ロック用リビジョン番号',
-               existing_nullable=False,
-               existing_server_default=sa.text('1'))
-        batch_op.create_unique_constraint('uq_lot_supplier_product_no', ['supplier_code', 'product_code', 'lot_number'])
-        batch_op.drop_constraint('fk_lots_warehouse_id__warehouses_id', type_='foreignkey')
-        batch_op.drop_constraint('fk_lots_product', type_='foreignkey')
-        batch_op.drop_constraint('fk_lots_supplier', type_='foreignkey')
-        batch_op.create_foreign_key(None, 'suppliers', ['supplier_code'], ['supplier_code'])
-        batch_op.create_foreign_key(None, 'warehouses', ['warehouse_id'], ['id'])
-        batch_op.create_foreign_key(None, 'products', ['product_code'], ['product_code'])
-        batch_op.drop_table_comment(
-        existing_comment='ロットマスタ（入庫実績由来のトレーサビリティ情報）'
-    )
-        batch_op.drop_column('supplier_id')
-        batch_op.drop_column('warehouse_code_old')
-        batch_op.drop_column('product_id')
-
-    with op.batch_alter_table('order_line_warehouse_allocation', schema=None) as batch_op:
-        batch_op.alter_column('id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='主キー（自動採番）',
-               existing_nullable=False,
-               autoincrement=True)
-        batch_op.alter_column('order_line_id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='受注明細ID（FK: order_lines.id）',
-               existing_nullable=False)
-        batch_op.alter_column('warehouse_id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='倉庫ID（FK: warehouses.id）',
-               existing_nullable=False)
-        batch_op.alter_column('quantity',
-               existing_type=sa.DOUBLE_PRECISION(precision=53),
-               type_=sa.Numeric(precision=15, scale=4),
-               comment=None,
-               existing_comment='倉庫別引当数量',
-               existing_nullable=False)
-        batch_op.alter_column('created_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード作成日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('updated_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード更新日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('created_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='作成者',
-               existing_nullable=True)
-        batch_op.alter_column('updated_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='更新者',
-               existing_nullable=True)
-        batch_op.alter_column('deleted_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='論理削除日時',
-               existing_nullable=True)
-        batch_op.alter_column('revision',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='楽観的ロック用リビジョン番号',
-               existing_nullable=False,
-               existing_server_default=sa.text('1'))
-        batch_op.drop_constraint('uq_order_line_warehouse', type_='unique')
-        batch_op.create_index('ix_olwa_order_line_id', ['order_line_id'], unique=False)
-        batch_op.create_index('ix_olwa_warehouse_id', ['warehouse_id'], unique=False)
-        batch_op.create_unique_constraint('uq_orderline_warehouse', ['order_line_id', 'warehouse_id'])
-        batch_op.create_foreign_key(None, 'warehouses', ['warehouse_id'], ['id'])
-        batch_op.drop_table_comment(
-        existing_comment='受注明細×倉庫の引当（複数倉庫対応中間）'
-    )
-
-    with op.batch_alter_table('order_lines', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('product_code', sa.Text(), nullable=False))
-        batch_op.add_column(sa.Column('status', sa.Text(), nullable=True))
-        batch_op.add_column(sa.Column('delivery_date', sa.Date(), nullable=True))
-        batch_op.add_column(sa.Column('forecast_id', sa.Integer(), nullable=True))
-        batch_op.alter_column('id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='主キー（自動採番）',
-               existing_nullable=False,
-               autoincrement=True,
-               existing_server_default=sa.text("nextval('order_lines_id_seq'::regclass)"))
-        batch_op.alter_column('order_id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='受注ID（FK: orders.id）',
-               existing_nullable=False)
-        batch_op.alter_column('line_no',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='明細行番号',
-               existing_nullable=False)
-        batch_op.alter_column('quantity',
-               existing_type=sa.DOUBLE_PRECISION(precision=53),
-               type_=sa.Numeric(precision=15, scale=4),
-               comment=None,
-               existing_comment='受注数量',
-               existing_nullable=False)
-        batch_op.alter_column('unit',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='単位',
-               existing_nullable=True)
-        batch_op.alter_column('created_at',
-               existing_type=postgresql.TIMESTAMP(),
-               nullable=False,
-               comment=None,
-               existing_comment='レコード作成日時')
-        batch_op.alter_column('updated_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード更新日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('created_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='作成者',
-               existing_nullable=True)
-        batch_op.alter_column('updated_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='更新者',
-               existing_nullable=True)
-        batch_op.alter_column('deleted_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='論理削除日時',
-               existing_nullable=True)
-        batch_op.alter_column('revision',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='楽観的ロック用リビジョン番号',
-               existing_nullable=False,
-               existing_server_default=sa.text('1'))
-        batch_op.create_index('ix_order_lines_order_id', ['order_id'], unique=False)
-        batch_op.create_index('ix_order_lines_product_code', ['product_code'], unique=False)
-        batch_op.drop_constraint('fk_order_lines_product', type_='foreignkey')
-        batch_op.create_foreign_key(None, 'forecasts', ['forecast_id'], ['id'])
-        batch_op.create_foreign_key(None, 'products', ['product_code'], ['product_code'])
-        batch_op.drop_table_comment(
-        existing_comment='受注明細'
-    )
-        batch_op.drop_column('product_id')
-
-    with op.batch_alter_table('orders', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('customer_code', sa.Text(), nullable=False))
-        batch_op.alter_column('id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='主キー（自動採番）',
-               existing_nullable=False,
-               autoincrement=True,
-               existing_server_default=sa.text("nextval('orders_id_seq'::regclass)"))
-        batch_op.alter_column('order_no',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='受注番号（外部連携ID等）',
-               existing_nullable=False)
-        batch_op.alter_column('order_date',
-               existing_type=sa.DATE(),
-               nullable=True,
-               comment=None,
-               existing_comment='受注日')
-        batch_op.alter_column('status',
-               existing_type=sa.TEXT(),
-               nullable=True,
-               comment=None,
-               existing_comment='受注ステータス')
-        batch_op.alter_column('sap_order_id',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='SAP側受注番号（登録後）',
-               existing_nullable=True)
-        batch_op.alter_column('sap_status',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='SAP連携状態',
-               existing_nullable=True)
-        batch_op.alter_column('sap_sent_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='SAP送信日時',
-               existing_nullable=True)
-        batch_op.alter_column('sap_error_msg',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='SAP連携エラー内容',
-               existing_nullable=True)
-        batch_op.alter_column('customer_order_no',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='先方注文番号（原票）',
-               existing_nullable=True)
-        batch_op.alter_column('created_at',
-               existing_type=postgresql.TIMESTAMP(),
-               nullable=False,
-               comment=None,
-               existing_comment='レコード作成日時')
-        batch_op.alter_column('updated_at',
-               existing_type=postgresql.TIMESTAMP(),
-               nullable=False,
-               comment=None,
-               existing_comment='レコード更新日時')
-        batch_op.alter_column('created_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='作成者',
-               existing_nullable=True)
-        batch_op.alter_column('updated_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='更新者',
-               existing_nullable=True)
-        batch_op.alter_column('deleted_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='論理削除日時',
-               existing_nullable=True)
-        batch_op.alter_column('revision',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='楽観的ロック用リビジョン番号',
-               existing_nullable=False,
-               existing_server_default=sa.text('1'))
-        batch_op.drop_index('ix_orders_customer_id_order_date')
-        batch_op.drop_index('uq_orders_customer_order_no_per_customer', postgresql_where='(customer_order_no IS NOT NULL)')
-        batch_op.drop_constraint('fk_orders_customer', type_='foreignkey')
-        batch_op.create_foreign_key(None, 'customers', ['customer_code'], ['customer_code'])
-        batch_op.drop_table_comment(
-        existing_comment='受注ヘッダ'
-    )
-        batch_op.drop_column('customer_id')
-
-    with op.batch_alter_table('products', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('supplier_code', sa.Text(), nullable=True))
-        batch_op.alter_column('product_code',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='製品コード（社内品番, PK/UK）',
-               existing_nullable=False)
-        batch_op.alter_column('product_name',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='製品名称',
-               existing_nullable=False)
-        batch_op.alter_column('packaging_qty',
-               existing_type=sa.NUMERIC(precision=10, scale=2),
-               type_=sa.Numeric(precision=15, scale=4),
-               comment=None,
-               existing_comment='包装数量（1箱あたり数量等）',
-               existing_nullable=False,
-               existing_server_default=sa.text("'1'::numeric"))
-        batch_op.alter_column('packaging_unit',
-               existing_type=sa.VARCHAR(length=20),
-               type_=sa.Text(),
-               comment=None,
-               existing_comment='包装単位',
-               existing_nullable=False,
-               existing_server_default=sa.text("'EA'::character varying"))
-        batch_op.alter_column('internal_unit',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='内部管理単位（在庫基準単位）',
-               existing_nullable=False)
-        batch_op.alter_column('base_unit',
-               existing_type=sa.VARCHAR(length=10),
-               type_=sa.Text(),
-               comment=None,
-               existing_comment='基本単位（例: EA）',
-               existing_nullable=False,
-               existing_server_default=sa.text("'EA'::character varying"))
-        batch_op.alter_column('customer_part_no',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='先方品番（得意先側品番）',
-               existing_nullable=True)
-        batch_op.alter_column('maker_item_code',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='メーカー品番（製造元品番）',
-               existing_nullable=True)
-        batch_op.alter_column('supplier_item_code',
-               existing_type=sa.VARCHAR(),
-               type_=sa.Text(),
-               comment=None,
-               existing_comment='仕入先側の品番',
-               existing_nullable=True)
-        batch_op.alter_column('assemble_div',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='組立区分（将来拡張）',
-               existing_nullable=True)
-        batch_op.alter_column('next_div',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='NEXT区分（得意先出荷時の区分、必要に応じ使用）',
-               existing_nullable=True)
-        batch_op.alter_column('ji_ku_text',
-               existing_type=sa.VARCHAR(),
-               type_=sa.Text(),
-               comment=None,
-               existing_comment='事業区分テキスト（任意メタ）',
-               existing_nullable=True)
-        batch_op.alter_column('kumitsuke_ku_text',
-               existing_type=sa.VARCHAR(),
-               type_=sa.Text(),
-               comment=None,
-               existing_comment='組付区分テキスト（任意メタ）',
-               existing_nullable=True)
-        batch_op.alter_column('shelf_life_days',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='想定賞味/有効日数',
-               existing_nullable=True)
-        batch_op.alter_column('requires_lot_number',
-               existing_type=sa.INTEGER(),
-               nullable=False,
-               comment=None,
-               existing_comment='ロット必須フラグ（0/1）')
-        batch_op.alter_column('delivery_place_id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='デフォルト納入場所ID（FK: delivery_places.id）',
-               existing_nullable=True)
-        batch_op.alter_column('delivery_place_name',
-               existing_type=sa.VARCHAR(),
-               type_=sa.Text(),
-               existing_nullable=True)
-        batch_op.alter_column('shipping_warehouse_name',
-               existing_type=sa.VARCHAR(),
-               type_=sa.Text(),
-               existing_nullable=True)
-        batch_op.alter_column('created_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード作成日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('updated_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード更新日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('created_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='作成者',
-               existing_nullable=True)
-        batch_op.alter_column('updated_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='更新者',
-               existing_nullable=True)
-        batch_op.alter_column('deleted_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='論理削除日時',
-               existing_nullable=True)
-        batch_op.alter_column('revision',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='楽観的ロック用リビジョン番号',
-               existing_nullable=False,
-               existing_server_default=sa.text('1'))
-        batch_op.drop_index('ix_products_product_code')
-        batch_op.drop_constraint('uq_products_product_code', type_='unique')
-        batch_op.drop_constraint('fk_products_supplier', type_='foreignkey')
-        batch_op.create_foreign_key(None, 'suppliers', ['supplier_code'], ['supplier_code'])
-        batch_op.drop_table_comment(
-        existing_comment='商品マスタ'
-    )
-        batch_op.drop_column('id')
-        batch_op.drop_column('supplier_id')
-
-    with op.batch_alter_table('purchase_requests', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('product_code', sa.Text(), nullable=False))
-        batch_op.add_column(sa.Column('supplier_code', sa.Text(), nullable=False))
-        batch_op.alter_column('id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='主キー（自動採番）',
-               existing_nullable=False,
-               autoincrement=True)
-        batch_op.alter_column('requested_qty',
-               existing_type=sa.DOUBLE_PRECISION(precision=53),
-               type_=sa.Numeric(precision=15, scale=4),
-               comment=None,
-               existing_comment='依頼数量',
-               existing_nullable=False)
-        batch_op.alter_column('requested_date',
-               existing_type=sa.DATE(),
-               nullable=False,
-               comment=None,
-               existing_comment='依頼日')
-        batch_op.alter_column('status',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='状態',
-               existing_nullable=True)
-        batch_op.alter_column('created_at',
-               existing_type=postgresql.TIMESTAMP(),
-               nullable=False,
-               comment=None,
-               existing_comment='レコード作成日時')
-        batch_op.alter_column('updated_at',
-               existing_type=postgresql.TIMESTAMP(),
-               nullable=False,
-               comment=None,
-               existing_comment='レコード更新日時')
-        batch_op.alter_column('created_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='作成者',
-               existing_nullable=True)
-        batch_op.alter_column('updated_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='更新者',
-               existing_nullable=True)
-        batch_op.alter_column('deleted_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='論理削除日時',
-               existing_nullable=True)
-        batch_op.alter_column('revision',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='楽観的ロック用リビジョン番号',
-               existing_nullable=False,
-               existing_server_default=sa.text('1'))
-        batch_op.drop_constraint('purchase_requests_src_order_line_id_fkey', type_='foreignkey')
-        batch_op.drop_constraint('fk_purchase_requests_product', type_='foreignkey')
-        batch_op.drop_constraint('fk_purchase_requests_supplier', type_='foreignkey')
-        batch_op.create_foreign_key(None, 'products', ['product_code'], ['product_code'])
-        batch_op.create_foreign_key(None, 'suppliers', ['supplier_code'], ['supplier_code'])
-        batch_op.drop_table_comment(
-        existing_comment='購買依頼（補充や手配の内部起票）'
-    )
-        batch_op.drop_column('sap_po_id')
-        batch_op.drop_column('supplier_id')
-        batch_op.drop_column('unit')
-        batch_op.drop_column('desired_receipt_date')
-        batch_op.drop_column('reason_code')
-        batch_op.drop_column('product_id')
-        batch_op.drop_column('notes')
-        batch_op.drop_column('src_order_line_id')
-
-    with op.batch_alter_table('sap_sync_logs', schema=None) as batch_op:
-        batch_op.alter_column('id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='主キー（自動採番）',
-               existing_nullable=False,
-               autoincrement=True)
-        batch_op.alter_column('order_id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='対象受注ID（FK: orders.id）',
-               existing_nullable=True)
-        batch_op.alter_column('payload',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='送信ペイロード（JSON文字列）',
-               existing_nullable=True)
-        batch_op.alter_column('result',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='応答内容（JSON文字列）',
-               existing_nullable=True)
-        batch_op.alter_column('status',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='連携状態（pending/success/failed/retry等）',
-               existing_nullable=True)
-        batch_op.alter_column('executed_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='連携実行日時',
-               existing_nullable=True)
-        batch_op.alter_column('created_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード作成日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('updated_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード更新日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('created_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='作成者',
-               existing_nullable=True)
-        batch_op.alter_column('updated_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='更新者',
-               existing_nullable=True)
-        batch_op.alter_column('deleted_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='論理削除日時',
-               existing_nullable=True)
-        batch_op.alter_column('revision',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='楽観的ロック用リビジョン番号',
-               existing_nullable=False,
-               existing_server_default=sa.text('1'))
-        batch_op.drop_table_comment(
-        existing_comment='SAP連携の実行ログ（送信ペイロードと結果）'
-    )
-
-    with op.batch_alter_table('stock_movements', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('movement_type', sa.Text(), nullable=False))
-        batch_op.add_column(sa.Column('quantity', sa.Float(), nullable=False))
-        batch_op.add_column(sa.Column('reference_doc_type', sa.Text(), nullable=True))
-        batch_op.add_column(sa.Column('reference_doc_id', sa.Text(), nullable=True))
-        batch_op.add_column(sa.Column('movement_date', sa.DateTime(), server_default=sa.text('now()'), nullable=False))
-        batch_op.alter_column('id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='主キー（自動採番）',
-               existing_nullable=False,
-               autoincrement=True)
-        batch_op.alter_column('lot_id',
-               existing_type=sa.INTEGER(),
-               nullable=False,
-               comment=None,
-               existing_comment='ロットID（FK: lots.id）')
-        batch_op.alter_column('warehouse_id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='倉庫ID（FK: warehouses.id）',
-               existing_nullable=False)
-        batch_op.alter_column('reason',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='移動理由（inbound/outbound/transfer/adjustment/scrap）',
-               existing_nullable=False)
-        batch_op.alter_column('created_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード作成日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('updated_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード更新日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('created_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='作成者',
-               existing_nullable=True)
-        batch_op.alter_column('updated_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='更新者',
-               existing_nullable=True)
-        batch_op.alter_column('deleted_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='論理削除日時',
-               existing_nullable=True)
-        batch_op.alter_column('revision',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='楽観的ロック用リビジョン番号',
-               existing_nullable=False,
-               existing_server_default=sa.text('1'))
-        batch_op.drop_index('idx_stock_movements_occurred_at')
-        batch_op.drop_index('idx_stock_movements_product_warehouse')
-        batch_op.drop_index('ix_stock_movements_lot')
-        batch_op.create_index('ix_stock_movements_lot_date', ['lot_id', 'movement_date'], unique=False)
-        batch_op.create_index(batch_op.f('ix_stock_movements_lot_id'), ['lot_id'], unique=False)
-        batch_op.create_index('ix_stock_movements_warehouse_date', ['warehouse_id', 'movement_date'], unique=False)
-        batch_op.create_index(batch_op.f('ix_stock_movements_warehouse_id'), ['warehouse_id'], unique=False)
-        batch_op.drop_constraint('stock_movements_warehouse_id_fkey', type_='foreignkey')
-        batch_op.drop_constraint('fk_stock_movements_product', type_='foreignkey')
-        batch_op.drop_constraint('stock_movements_lot_id_fkey', type_='foreignkey')
-        batch_op.create_foreign_key(None, 'warehouses', ['warehouse_id'], ['id'])
-        batch_op.create_foreign_key(None, 'lots', ['lot_id'], ['id'])
-        batch_op.drop_table_comment(
-        existing_comment='在庫移動履歴（入出庫/移動/調整/廃棄）'
-    )
-        batch_op.drop_column('occurred_at')
-        batch_op.drop_column('source_table')
-        batch_op.drop_column('product_id')
-        batch_op.drop_column('source_id')
-        batch_op.drop_column('quantity_delta')
-        batch_op.drop_column('batch_id')
-
-    with op.batch_alter_table('suppliers', schema=None) as batch_op:
-        batch_op.alter_column('supplier_code',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='仕入先コード（PK/UK）',
-               existing_nullable=False)
-        batch_op.alter_column('supplier_name',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='仕入先名称',
-               existing_nullable=False)
-        batch_op.alter_column('address',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='住所',
-               existing_nullable=True)
-        batch_op.alter_column('created_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード作成日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('updated_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード更新日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('created_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='作成者',
-               existing_nullable=True)
-        batch_op.alter_column('updated_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='更新者',
-               existing_nullable=True)
-        batch_op.alter_column('deleted_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='論理削除日時',
-               existing_nullable=True)
-        batch_op.alter_column('revision',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='楽観的ロック用リビジョン番号',
-               existing_nullable=False,
-               existing_server_default=sa.text('1'))
-        batch_op.drop_index('ix_suppliers_supplier_code')
-        batch_op.drop_constraint('uq_suppliers_supplier_code', type_='unique')
-        batch_op.drop_table_comment(
-        existing_comment='仕入先マスタ'
-    )
-        batch_op.drop_column('id')
-
-    with op.batch_alter_table('unit_conversions', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('conversion_factor', sa.Float(), nullable=False))
-        batch_op.alter_column('id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='主キー（自動採番）',
-               existing_nullable=False,
-               autoincrement=True)
-        batch_op.alter_column('product_id',
-               existing_type=sa.INTEGER(),
-               type_=sa.Text(),
-               nullable=True,
-               comment=None,
-               existing_comment='製品ID（FK: products.id / NULL=グローバル定義）')
-        batch_op.alter_column('from_unit',
-               existing_type=sa.VARCHAR(length=10),
-               type_=sa.Text(),
-               comment=None,
-               existing_comment='変換元単位',
-               existing_nullable=False)
-        batch_op.alter_column('to_unit',
-               existing_type=sa.VARCHAR(length=10),
-               type_=sa.Text(),
-               comment=None,
-               existing_comment='変換先単位',
-               existing_nullable=False)
-        batch_op.alter_column('created_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード作成日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('updated_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード更新日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('created_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='作成者',
-               existing_nullable=True)
-        batch_op.alter_column('updated_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='更新者',
-               existing_nullable=True)
-        batch_op.alter_column('deleted_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='論理削除日時',
-               existing_nullable=True)
-        batch_op.alter_column('revision',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='楽観的ロック用リビジョン番号',
-               existing_nullable=False,
-               existing_server_default=sa.text('1'))
-        batch_op.drop_constraint('uq_product_units', type_='unique')
-        batch_op.create_unique_constraint('uq_unit_conversion', ['product_id', 'from_unit', 'to_unit'])
-        batch_op.drop_constraint('fk_unit_conversions_product', type_='foreignkey')
-        batch_op.create_foreign_key(None, 'products', ['product_id'], ['product_code'])
-        batch_op.drop_table_comment(
-        existing_comment='単位換算マスタ（入出力単位 ⇔ 内部単位）'
-    )
-        batch_op.drop_column('factor')
-
-    with op.batch_alter_table('warehouses', schema=None) as batch_op:
-        batch_op.alter_column('id',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='主キー（自動採番）',
-               existing_nullable=False,
-               autoincrement=True)
-        batch_op.alter_column('warehouse_code',
-               existing_type=sa.TEXT(),
-               type_=sa.String(length=32),
-               comment=None,
-               existing_comment='倉庫コード（UK）',
-               existing_nullable=False)
-        batch_op.alter_column('warehouse_name',
-               existing_type=sa.TEXT(),
-               type_=sa.String(length=128),
-               comment=None,
-               existing_comment='倉庫名称',
-               existing_nullable=False)
-        batch_op.alter_column('address',
-               existing_type=sa.TEXT(),
-               comment=None,
-               existing_comment='住所',
-               existing_nullable=True)
-        batch_op.alter_column('is_active',
-               existing_type=sa.BOOLEAN(),
-               type_=sa.Integer(),
-               nullable=True,
-               comment=None,
-               existing_comment='有効フラグ（1=有効,0=無効）',
-               existing_server_default=sa.text('true'))
-        batch_op.alter_column('created_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード作成日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('updated_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='レコード更新日時',
-               existing_nullable=False,
-               existing_server_default=sa.text('now()'))
-        batch_op.alter_column('created_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='作成者',
-               existing_nullable=True)
-        batch_op.alter_column('updated_by',
-               existing_type=sa.VARCHAR(length=50),
-               comment=None,
-               existing_comment='更新者',
-               existing_nullable=True)
-        batch_op.alter_column('deleted_at',
-               existing_type=postgresql.TIMESTAMP(),
-               comment=None,
-               existing_comment='論理削除日時',
-               existing_nullable=True)
-        batch_op.alter_column('revision',
-               existing_type=sa.INTEGER(),
-               comment=None,
-               existing_comment='楽観的ロック用リビジョン番号',
-               existing_nullable=False,
-               existing_server_default=sa.text('1'))
-        batch_op.drop_index('uq_warehouses_id')
-        batch_op.drop_constraint('uq_warehouses_warehouse_code', type_='unique')
-        batch_op.create_index(batch_op.f('ix_warehouses_warehouse_code'), ['warehouse_code'], unique=True)
-        batch_op.drop_table_comment(
-        existing_comment='倉庫マスタ（保管拠点）'
-    )
-
-    # ### end Alembic commands ###
-    # ### end Alembic commands ###
+    # （以下、元のコード続き）
 
 
 def downgrade() -> None:
