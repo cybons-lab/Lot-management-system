@@ -15,7 +15,7 @@ from app.models.inventory import StockMovement
 
 from app.api.deps import get_db
 from app.core.config import settings
-from app.core.database import drop_db, init_db
+from app.core.database import drop_db, init_db, truncate_all_tables
 from app.models import (
     Allocation,
     Customer,
@@ -85,7 +85,9 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
 def reset_database(db: Session = Depends(get_db)):
     """
     データベースリセット（開発環境のみ）
-    新スキーマに対応したマスタデータを投入
+    - テーブル構造は保持したまま、全データを削除
+    - alembic_versionは保持（マイグレーション履歴を維持）
+    - TRUNCATE ... RESTART IDENTITY CASCADEで高速にデータをクリア
     """
     if settings.ENVIRONMENT == "production":
         raise HTTPException(
@@ -93,14 +95,15 @@ def reset_database(db: Session = Depends(get_db)):
         )
 
     try:
-        drop_db()
-        init_db()
+        # データのみを削除（テーブル構造は保持）
+        truncate_all_tables()
 
+        # セッションをリフレッシュ
         db.commit()
 
         return ResponseBase(
             success=True,
-            message="データベースをリセットしました（新スキーマ対応）",
+            message="データベースをリセットしました（テーブル構造は保持）",
         )
 
     except Exception as e:
