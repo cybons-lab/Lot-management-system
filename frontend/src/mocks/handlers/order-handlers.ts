@@ -33,7 +33,7 @@ export const orderHandlers = [
     }
 
     // 明細を除いた形式で返す
-    const orderList: OrderResponse[] = filteredOrders.map(({ lines, ...order }) => order);
+    const orderList: OrderResponse[] = filteredOrders.map(({ lines: _lines, ...order }) => order);
 
     return HttpResponse.json(orderList);
   }),

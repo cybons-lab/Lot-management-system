@@ -5,6 +5,14 @@ import * as React from "react";
 import { formatCodeAndName } from "@/lib/utils";
 import type { LotCandidate, AllocatedLot } from "@/types/legacy";
 
+// lotが `lot_id` / `id` のどちらでも来るケースに対応するためのキー型とヘルパ
+type LotKey = { lot_id?: number; id?: number };
+const getLotId = (lot: LotKey): number | null => {
+  if (typeof lot.lot_id === "number") return lot.lot_id;
+  if (typeof lot.id === "number") return lot.id;
+  return null;
+};
+
 type Props = {
   /** 引当候補ロット */
   candidates: LotCandidate[];
@@ -60,21 +68,14 @@ export function LotListWithAllocation({
 
       <div className="divide-y">
         {candidates.map((lot) => {
-          type LotKey = { lot_id?: number; id?: number };
-          const key = (lot as LotKey).lot_id ?? (lot as LotKey).id;
-          if (typeof key !== "number") return null; // 早期リターンで型安全
-          const allocation = getAllocationInfo(key);
+          const id = getLotId(lot as unknown as LotKey);
+          if (id == null) return null;
+          const allocation = getAllocationInfo(id);
           const isAllocated = !!allocation;
-          const key2 =
-            (lot as { lot_id?: number; id?: number }).lot_id ?? (lot as { id?: number }).id;
-          if (typeof key2 !== "number") return null;
-          const inputQty = allocQty[key2] ?? 0;
+          const inputQty = allocQty[id] ?? 0;
 
           return (
-            <div
-              key={lot.lot_id ?? lot.id}
-              className={`p-3 ${isAllocated ? "bg-green-50" : "hover:bg-gray-50"}`}
-            >
+            <div key={id} className={`p-3 ${isAllocated ? "bg-green-50" : "hover:bg-gray-50"}`}>
               <div className="flex items-start justify-between gap-3">
                 {/* 左側: ロット情報 */}
                 <div className="flex-1 min-w-0">
@@ -133,12 +134,10 @@ export function LotListWithAllocation({
                       min={0}
                       max={Number(lot.available_qty ?? 0)}
                       value={inputQty}
-                      onChange={(e) =>
-                        setAllocQty((prev) => ({
-                          ...prev,
-                          [(lot as any).lot_id ?? (lot as any).id]: Number(e.target.value),
-                        }))
-                      }
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const next = Number(e.target.value || 0);
+                        setAllocQty((prev) => ({ ...prev, [id]: next }));
+                      }}
                       placeholder="数量"
                       className="w-24 border rounded px-2 py-1 text-sm"
                     />
@@ -146,11 +145,8 @@ export function LotListWithAllocation({
                       className="px-3 py-1 rounded bg-sky-600 text-white text-sm hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       disabled={inputQty <= 0}
                       onClick={() => {
-                        onAllocate((lot as any).lot_id ?? (lot as any).id, inputQty);
-                        setAllocQty((prev) => ({
-                          ...prev,
-                          [(lot as any).lot_id ?? (lot as any).id]: 0,
-                        }));
+                        onAllocate(id, inputQty);
+                        setAllocQty((prev) => ({ ...prev, [id]: 0 }));
                       }}
                     >
                       引当

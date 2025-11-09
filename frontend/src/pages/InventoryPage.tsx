@@ -23,7 +23,6 @@ import { LotStatusBadge } from "@/components/shared/data/StatusBadge";
 import { TablePagination } from "@/components/shared/data/TablePagination";
 import { FormDialog } from "@/components/shared/form";
 import { PageHeader, PageContainer, Section } from "@/components/shared/layout";
-
 // 既存の型とコンポーネント
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -208,10 +207,7 @@ export function InventoryPage() {
 
       {/* フィルター */}
       <Section className="mb-6">
-        <FilterPanel
-          title="検索・フィルター"
-          onReset={filters.reset}
-        >
+        <FilterPanel title="検索・フィルター" onReset={filters.reset}>
           <SearchBar
             value={filters.values.search}
             onChange={(value: string) => filters.set("search", value)}
@@ -274,18 +270,26 @@ export function InventoryPage() {
         <DataTable
           data={paginatedLots}
           columns={columns}
-          sort={table.sort as any}
+          sort={
+            table.sort && table.sort.column && table.sort.direction
+              ? { column: table.sort.column, direction: table.sort.direction }
+              : undefined
+          }
           isLoading={isLoading}
           emptyMessage="ロットがありません"
         />
 
-        {!isLoading && !error && sortedLots.length > 0 && (
-          <TablePagination
-            {...pagination as any}
-            onPageChange={table.setPage}
-            onPageSizeChange={table.setPageSize}
-          />
-        )}
+        {!isLoading &&
+          !error &&
+          sortedLots.length > 0 &&
+          (() => {
+            const paginationProps = {
+              ...pagination,
+              onPageChange: table.setPage,
+              onPageSizeChange: table.setPageSize,
+            } as unknown as React.ComponentProps<typeof TablePagination>;
+            return <TablePagination {...paginationProps} />;
+          })()}
       </Section>
 
       {/* 新規登録ダイアログ */}
@@ -298,7 +302,9 @@ export function InventoryPage() {
       >
         <LotCreateForm
           onSubmit={async (data) => {
-            await createLotMutation.mutateAsync(data as Parameters<typeof createLotMutation.mutateAsync>[0]);
+            await createLotMutation.mutateAsync(
+              data as Parameters<typeof createLotMutation.mutateAsync>[0],
+            );
           }}
           onCancel={createDialog.close}
           isSubmitting={createLotMutation.isPending}

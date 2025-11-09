@@ -23,7 +23,6 @@ import { OrderStatusBadge } from "@/components/shared/data/StatusBadge";
 import { TablePagination } from "@/components/shared/data/TablePagination";
 import { FormDialog } from "@/components/shared/form";
 import { PageHeader, PageContainer, Section } from "@/components/shared/layout";
-
 // 既存の型とコンポーネント
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,19 +108,23 @@ export function OrdersListPage() {
       {
         id: "order_date",
         header: "受注日",
-        cell: (order: OrderResponse) => (order.order_date ? format(new Date(order.order_date), "yyyy/MM/dd") : "-"),
+        cell: (order: OrderResponse) =>
+          order.order_date ? format(new Date(order.order_date), "yyyy/MM/dd") : "-",
         sortable: true,
       },
       {
         id: "due_date",
         header: "納期",
-        cell: (order: OrderResponse) => (order.due_date ? format(new Date(order.due_date), "yyyy/MM/dd") : "-"),
+        cell: (order: OrderResponse) =>
+          order.due_date ? format(new Date(order.due_date), "yyyy/MM/dd") : "-",
         sortable: true,
       },
       {
         id: "lines_count",
         header: "明細数",
-        cell: (order: OrderResponse) => <span className="text-center">{order.lines?.length || 0}</span>,
+        cell: (order: OrderResponse) => (
+          <span className="text-center">{order.lines?.length || 0}</span>
+        ),
         align: "center",
       },
       {
@@ -132,7 +135,10 @@ export function OrdersListPage() {
           const totalQty = lines.reduce((sum: number, line: OrderLine) => sum + line.quantity, 0);
           const allocatedQty = lines.reduce((sum: number, line: OrderLine) => {
             const allocated =
-              line.allocated_lots?.reduce((a: number, alloc: AllocatedLot) => a + (alloc.allocated_qty || 0), 0) || 0;
+              line.allocated_lots?.reduce(
+                (a: number, alloc: AllocatedLot) => a + (alloc.allocated_qty || 0),
+                0,
+              ) || 0;
             return sum + allocated;
           }, 0);
 
@@ -188,12 +194,18 @@ export function OrdersListPage() {
 
   // 統計情報
   // TODO: calculateOrderStats を実装
-  const stats = useMemo(() => ({
-    totalOrders: allOrders.length,
-    openOrders: allOrders.filter(o => o.status === 'open').length,
-    allocatedOrders: allOrders.filter(o => o.status === 'allocated').length,
-    allocationRate: allOrders.length > 0 ? (allOrders.filter(o => o.status === 'allocated').length / allOrders.length) * 100 : 0
-  }), [allOrders]);
+  const stats = useMemo(
+    () => ({
+      totalOrders: allOrders.length,
+      openOrders: allOrders.filter((o) => o.status === "open").length,
+      allocatedOrders: allOrders.filter((o) => o.status === "allocated").length,
+      allocationRate:
+        allOrders.length > 0
+          ? (allOrders.filter((o) => o.status === "allocated").length / allOrders.length) * 100
+          : 0,
+    }),
+    [allOrders],
+  );
 
   return (
     <PageContainer>
@@ -238,10 +250,7 @@ export function OrdersListPage() {
 
       {/* フィルター */}
       <Section className="mb-6">
-        <FilterPanel
-          title="検索・フィルター"
-          onReset={filters.reset}
-        >
+        <FilterPanel title="検索・フィルター" onReset={filters.reset}>
           <SearchBar
             value={filters.values.search}
             onChange={(value: string) => filters.set("search", value)}
@@ -296,18 +305,25 @@ export function OrdersListPage() {
         <DataTable
           data={paginatedOrders}
           columns={columns}
-          sort={table.sort as any}
+          sort={
+            table.sort && table.sort.column && table.sort.direction
+              ? { column: table.sort.column, direction: table.sort.direction }
+              : undefined
+          }
           isLoading={isLoading}
           emptyMessage="受注がありません"
         />
-
-        {!isLoading && !error && sortedOrders.length > 0 && (
-          <TablePagination
-            {...pagination as any}
-            onPageChange={table.setPage}
-            onPageSizeChange={table.setPageSize}
-          />
-        )}
+        {!isLoading &&
+          !error &&
+          sortedOrders.length > 0 &&
+          (() => {
+            const paginationProps = {
+              ...pagination,
+              onPageChange: table.setPage,
+              onPageSizeChange: table.setPageSize,
+            } as unknown as React.ComponentProps<typeof TablePagination>;
+            return <TablePagination {...paginationProps} />;
+          })()}
       </Section>
 
       {/* 新規登録ダイアログ */}
@@ -413,4 +429,3 @@ function OrderCreateForm({ onSubmit, onCancel, isSubmitting }: OrderCreateFormPr
     </form>
   );
 }
-

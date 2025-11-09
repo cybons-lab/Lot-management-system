@@ -92,7 +92,7 @@ export function useProductQuery(
     queryKey: QUERY_KEYS.masters.product(productCode!),
     queryFn: async (): Promise<Product | undefined> => {
       const products = await listProducts();
-      return products.find((p: Product) => (p as any).product_code === productCode);
+      return products.find((p: Product) => p.product_code === productCode);
     },
     enabled: !!productCode,
     staleTime: 300000,
@@ -112,7 +112,7 @@ export function useCustomerQuery(
     queryKey: QUERY_KEYS.masters.customer(customerCode!),
     queryFn: async (): Promise<Customer | undefined> => {
       const customers = await listCustomers();
-      return customers.find((c: Customer) => (c as any).customer_code === customerCode);
+      return customers.find((c: Customer) => c.customer_code === customerCode);
     },
     enabled: !!customerCode,
     staleTime: 300000,
@@ -132,7 +132,7 @@ export function useWarehouseQuery(
     queryKey: QUERY_KEYS.masters.warehouse(warehouseCode!),
     queryFn: async (): Promise<Warehouse | undefined> => {
       const warehouses = await listWarehouses();
-      return warehouses.find((w: Warehouse) => (w as any).warehouse_code === warehouseCode);
+      return warehouses.find((w: Warehouse) => w.warehouse_code === warehouseCode);
     },
     enabled: !!warehouseCode,
     staleTime: 300000,
@@ -193,7 +193,10 @@ export function useProductOptions() {
   const { data: products } = useProductsQuery();
 
   return createSelectOptions(
-    products?.map((p: Product) => ({ code: (p as any).product_code, name: (p as any).product_name })),
+    products?.map((p) => ({
+      code: p.product_code,
+      name: p.product_name,
+    })),
     (p: { code: string; name: string }) => p.code,
     (p: { code: string; name: string }) => p.name,
   );

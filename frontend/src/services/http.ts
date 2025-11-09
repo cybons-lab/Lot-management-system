@@ -3,19 +3,19 @@
  * エラーハンドリングを統合したHTTP通信クライアント
  */
 
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 
-import { createApiError, NetworkError } from '@/utils/errors/custom-errors';
+import { createApiError, NetworkError } from "@/utils/errors/custom-errors";
 
 /**
  * Axiosインスタンスの作成
  */
 const createHttpClient = (): AxiosInstance => {
   const client = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+    baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
     timeout: 30000,
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
   });
 
@@ -31,7 +31,7 @@ const createHttpClient = (): AxiosInstance => {
     },
     (error) => {
       return Promise.reject(error);
-    }
+    },
   );
 
   // レスポンスインターセプター
@@ -40,14 +40,14 @@ const createHttpClient = (): AxiosInstance => {
     (error) => {
       // ネットワークエラー
       if (!error.response) {
-        throw new NetworkError('ネットワークエラーが発生しました');
+        throw new NetworkError("ネットワークエラーが発生しました");
       }
 
       // APIエラー
       const { status, data } = error.response;
-      const message = data?.detail || data?.message || 'エラーが発生しました';
+      const message = data?.detail || data?.message || "エラーが発生しました";
       throw createApiError(status, message, data);
-    }
+    },
   );
 
   return client;
@@ -71,7 +71,7 @@ export async function get<T>(url: string, config?: AxiosRequestConfig): Promise<
 export async function post<T>(
   url: string,
   data?: unknown,
-  config?: AxiosRequestConfig
+  config?: AxiosRequestConfig,
 ): Promise<AxiosResponse<T>> {
   return http.post<T>(url, data, config);
 }
@@ -82,7 +82,7 @@ export async function post<T>(
 export async function put<T>(
   url: string,
   data?: unknown,
-  config?: AxiosRequestConfig
+  config?: AxiosRequestConfig,
 ): Promise<AxiosResponse<T>> {
   return http.put<T>(url, data, config);
 }
@@ -93,7 +93,7 @@ export async function put<T>(
 export async function patch<T>(
   url: string,
   data?: unknown,
-  config?: AxiosRequestConfig
+  config?: AxiosRequestConfig,
 ): Promise<AxiosResponse<T>> {
   return http.patch<T>(url, data, config);
 }
@@ -106,7 +106,7 @@ export async function del(url: string, config?: AxiosRequestConfig): Promise<Axi
 }
 
 // http.delete は予約語なので別名でエクスポート
-(http.delete as any) = del;
+// 型安全性のため、オブジェクトプロパティとして再代入
+Object.assign(http, { delete: del });
 
 export default http;
-

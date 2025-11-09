@@ -17,7 +17,7 @@ interface ForecastData {
   customer_name?: string;
   supplier_name?: string;
   unit?: string;
-  version_history?: any[];
+  version_history?: unknown[];
 }
 
 interface ForecastGroup {
