@@ -97,11 +97,56 @@ def _drop_dependent_views() -> None:
                 logger.warning(f"⚠️ VIEW削除に失敗しました ({view_name}): {e}")
 
 
+def truncate_all_tables() -> None:
+    """
+    全テーブルのデータを削除（開発/検証用途）
+    - テーブル構造は保持
+    - alembic_versionは除外してマイグレーション履歴を保持
+    - TRUNCATE ... RESTART IDENTITY CASCADEで外部キー制約を無視
+    """
+    if settings.ENVIRONMENT == "production":
+        raise ValueError("本番環境ではデータの削除はできません")
+
+    # SQLite: 従来のdrop_db()を使用
+    if "sqlite" in settings.DATABASE_URL:
+        logger.warning("⚠️ SQLite環境ではTRUNCATEが利用できないため、drop_db()を使用します")
+        drop_db()
+        return
+
+    # PostgreSQL: 全テーブルをTRUNCATE
+    logger.info("🗑️ Truncating all tables in schema 'public'...")
+    with engine.begin() as conn:
+        # public配下の全テーブル名を取得（alembic_versionを除く）
+        result = conn.execute(text("""
+            SELECT tablename
+            FROM pg_tables
+            WHERE schemaname = 'public'
+            AND tablename != 'alembic_version'
+            ORDER BY tablename
+        """))
+        tables = [row[0] for row in result]
+
+        if not tables:
+            logger.info("ℹ️ Truncate対象のテーブルがありません")
+            return
+
+        # TRUNCATE実行（RESTART IDENTITYでシーケンスもリセット、CASCADEで外部キー制約を無視）
+        for table in tables:
+            conn.execute(text(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE'))
+            logger.debug(f"  - Truncated: {table}")
+
+        logger.info(f"✅ {len(tables)} テーブルのデータを削除しました")
+
+    logger.info("ℹ️ alembic_versionは保持されました（マイグレーション履歴を維持）")
+
+
 def drop_db() -> None:
     """
     データベースの削除（開発/検証用途）
     - SQLite: 物理ファイル削除
     - PostgreSQL: スキーマ public を CASCADE で落として再作成
+
+    ⚠️ 推奨: データのみをリセットする場合は truncate_all_tables() を使用してください
     """
     if settings.ENVIRONMENT == "production":
         raise ValueError("本番環境ではデータベースの削除はできません")
