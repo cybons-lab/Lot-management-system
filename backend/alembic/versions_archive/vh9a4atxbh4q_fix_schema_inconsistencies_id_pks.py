@@ -41,6 +41,48 @@ def _column_exists(table: str, column: str) -> bool:
     ).first()
     return result is not None
 
+# --- 追加: ユーティリティ ---
+def _object_kind(schema: str, name: str) -> str | None:
+    bind = op.get_bind()
+    row = bind.execute(sa.text("""
+        SELECT c.relkind
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = :schema AND c.relname = :name
+        LIMIT 1
+    """), {"schema": "public", "name": name}).first()
+    # relkind: 'r'=table, 'v'=view, 'm'=materialized view, etc.
+    return row[0] if row else None
+
+def _drop_lot_current_stock_if_exists():
+    kind = _object_kind("public", "lot_current_stock")
+    if kind == 'v':  # VIEW
+        op.execute("DROP VIEW IF EXISTS lot_current_stock CASCADE;")
+    elif kind == 'r':  # TABLE
+        # 旧環境のテーブルをVIEWへ統一するため一度落とす
+        op.execute("DROP TABLE IF EXISTS lot_current_stock CASCADE;")
+
+def _create_lot_current_stock_view():
+    # 監査系カラムを持つ旧テーブル互換の形でビューを作る
+    op.execute("""
+        CREATE VIEW lot_current_stock AS
+        SELECT
+            l.id AS lot_id,
+            COALESCE(SUM(sm.quantity_delta), 0)::double precision AS current_quantity,
+            MAX(sm.occurred_at) AS last_updated,
+            now() AS created_at,
+            now() AS updated_at,
+            NULL::varchar(50) AS created_by,
+            NULL::varchar(50) AS updated_by,
+            NULL::timestamp without time zone AS deleted_at,
+            1::integer AS revision
+        FROM lots l
+        LEFT JOIN stock_movements sm ON sm.lot_id = l.id
+        GROUP BY l.id;
+    """)
+    # 旧テーブル互換のPK/外部キーはVIEWには付けられないため不要
+
+
 
 def _constraint_exists(table: str, constraint: str) -> bool:
     """Check if a constraint exists."""
@@ -211,6 +253,9 @@ def upgrade() -> None:
 
     print("\n=== Fixing Foreign Key References ===")
 
+    # ★ ここを追加：依存を解消するため、先にVIEW/TABLEを除去
+    _drop_lot_current_stock_if_exists()
+
     # Now fix stock_movements.product_id if it's TEXT
     if _column_exists('stock_movements', 'product_id'):
         # Check current type
@@ -347,6 +392,9 @@ def upgrade() -> None:
                 """)
                 print("✓ order_lines.product_id: Added FK constraint")
 
+    # ★ ここを追加：最後にVIEWを再作成
+    _create_lot_current_stock_view()
+    
     print("\n=== Schema Migration Complete ===\n")
 
 
