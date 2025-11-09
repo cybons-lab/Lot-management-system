@@ -2,18 +2,20 @@
 from __future__ import annotations
 from datetime import datetime, timedelta
 from random import Random
-from typing import Tuple, List
+from typing import List
 
 from faker import Faker
 from sqlalchemy.orm import Session
 
 from app.schemas.admin_seeds import SeedRequest, SeedResponse, SeedSummary
-from app.models.masters import Customer, Product, Warehouse  # 例: 実際のモデル名に合わせて
-from app.models.inventory import Lot                         # 例
-from app.models.orders import Order, OrderLine, Allocation   # 例
+from app.models.masters import Customer, Product, Warehouse  # 実際のモデル名に合わせる
+from app.models.inventory import Lot
+from app.models.orders import Order, OrderLine, Allocation  # Allocationはサマリ整合のため残置
+
 
 def _choose(rng: Random, seq):
     return seq[rng.randrange(0, len(seq))]
+
 
 def create_seed_data(db: Session, req: SeedRequest) -> SeedResponse:
     seed = req.seed if req.seed is not None else 42
@@ -32,8 +34,8 @@ def create_seed_data(db: Session, req: SeedRequest) -> SeedResponse:
     # 1) masters
     for _ in range(req.customers):
         c = Customer(
-            code=f"C{faker.unique.numerify('####')}",
-            name=faker.company(),
+            customer_code=f"C{faker.unique.numerify('####')}",
+            customer_name=faker.company(),
             created_at=datetime.utcnow(),
         )
         created_customers.append(c)
@@ -42,9 +44,9 @@ def create_seed_data(db: Session, req: SeedRequest) -> SeedResponse:
 
     for _ in range(req.products):
         p = Product(
-            code=f"P{faker.unique.numerify('#####')}",
-            name=faker.bs().title(),
-            unit="PCS",
+            product_code=f"P{faker.unique.numerify('#####')}",
+            product_name=faker.bs().title(),
+            internal_unit="PCS",
             created_at=datetime.utcnow(),
         )
         created_products.append(p)
@@ -53,8 +55,8 @@ def create_seed_data(db: Session, req: SeedRequest) -> SeedResponse:
 
     for _ in range(req.warehouses):
         w = Warehouse(
-            code=f"W{faker.unique.numerify('##')}",
-            name=f"{faker.city()}倉庫",
+            warehouse_code=f"W{faker.unique.numerify('##')}",
+            warehouse_name=f"{faker.city()}倉庫",
             created_at=datetime.utcnow(),
         )
         created_warehouses.append(w)
@@ -68,13 +70,12 @@ def create_seed_data(db: Session, req: SeedRequest) -> SeedResponse:
     for _ in range(req.lots):
         prod = _choose(rng, created_products) if created_products else None
         wh = _choose(rng, created_warehouses) if created_warehouses else None
-        qty = rng.randint(5, 200)
         days = rng.randint(0, 360)
         l = Lot(
             product_id=prod.id if prod else None,
             warehouse_id=wh.id if wh else None,
-            lot_no=faker.unique.bothify(text="LOT-########"),
-            qty=qty,
+            lot_number=faker.unique.bothify(text="LOT-########"),
+            receipt_date=datetime.utcnow().date() - timedelta(days=rng.randint(0, 30)),
             expiry_date=datetime.utcnow().date() + timedelta(days=360 - days),
             created_at=datetime.utcnow(),
         )
@@ -88,28 +89,28 @@ def create_seed_data(db: Session, req: SeedRequest) -> SeedResponse:
     # 3) orders & lines
     for _ in range(req.orders):
         cust = _choose(rng, created_customers) if created_customers else None
-        wh = _choose(rng, created_warehouses) if created_warehouses else None
         o = Order(
             customer_id=cust.id if cust else None,
-            warehouse_id=wh.id if wh else None,
             order_no=faker.unique.bothify(text="SO-########"),
             order_date=datetime.utcnow().date() - timedelta(days=rng.randint(0, 14)),
+            status="draft",
             created_at=datetime.utcnow(),
         )
         created_orders.append(o)
         if not req.dry_run:
             db.add(o)
-        if not req.dry_run:
             db.flush()
 
         # ライン数 1-3
-        for _line in range(rng.randint(1, 3)):
+        num_lines = rng.randint(1, 3)
+        for line_idx in range(num_lines):
             prod = _choose(rng, created_products) if created_products else None
             req_qty = rng.randint(1, 50)
             line = OrderLine(
                 order_id=o.id if not req.dry_run else None,
                 product_id=prod.id if prod else None,
-                requested_qty=req_qty,
+                line_no=line_idx + 1,
+                quantity=req_qty,
                 created_at=datetime.utcnow(),
             )
             created_lines.append(line)
@@ -118,28 +119,9 @@ def create_seed_data(db: Session, req: SeedRequest) -> SeedResponse:
         if not req.dry_run:
             db.flush()
 
-    # 4) allocations（ざっくり割当: ラインごとに在庫から割当）
-    if not req.dry_run and created_lines and created_lots:
-        lot_idx = 0
-        for line in created_lines:
-            remain = line.requested_qty
-            while remain > 0 and lot_idx < len(created_lots):
-                stock = created_lots[lot_idx]
-                if stock.qty <= 0:
-                    lot_idx += 1
-                    continue
-                use = min(remain, stock.qty)
-                alloc = Allocation(
-                    order_line_id=line.id,
-                    lot_id=stock.id,
-                    qty=use,
-                    created_at=datetime.utcnow(),
-                )
-                created_allocs.append(alloc)
-                db.add(alloc)
-                stock.qty -= use
-                remain -= use
-            db.flush()
+    # 4) allocations
+    # TODO: Lot在庫数量管理はStockMovementで行うべきため、
+    # 単純な割当ロジックは後で実装する
 
     if req.dry_run:
         # 何も書き込まない（プレビュー用）
