@@ -108,33 +108,22 @@ class Lot(Base):
     )
 
 class LotCurrentStock(Base):
-    """Current stock aggregated per lot."""
+    """Current stock aggregated per lot (VIEW)."""
 
     __tablename__ = "lot_current_stock"
+    __table_args__ = {"info": {"is_view": True}}
 
-    lot_id: Mapped[int] = mapped_column(
-        ForeignKey("lots.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
+    # VIEWをSELECT可能にするため複合主キー相当で指定
+    lot_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    product_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    warehouse_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    current_quantity: Mapped[Decimal] = mapped_column(Numeric(15, 4), nullable=False)
+    last_updated: Mapped[datetime | None] = mapped_column(DateTime)
 
     current_quantity: Mapped[float] = mapped_column(Float, nullable=False)
     last_updated: Mapped[datetime | None] = mapped_column(DateTime)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.now()
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.now()
-    )
-    created_by: Mapped[str | None] = mapped_column(String(50))
-    updated_by: Mapped[str | None] = mapped_column(String(50))
-    deleted_at: Mapped[datetime | None] = mapped_column(DateTime)
-    revision: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("1"))
-
-    lot: Mapped["Lot"] = relationship(
-        "Lot",
-        back_populates="current_stock",
-    )
-
+    
+    # VIEWなので書き込み用カラム/監査系カラム/relationshipは不要
 
 class StockMovement(Base):
     """Stock movement history."""
