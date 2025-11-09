@@ -2,7 +2,6 @@
 import { useMutation } from "@tanstack/react-query";
 import * as React from "react";
 
-
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -14,7 +13,7 @@ export default function SeedDataPage() {
   const toast = useToast();
   const [form, setForm] = React.useState<SeedRequest>({
     seed: 42,
-    dry_run: false,
+    dry_run: true,
     customers: 10,
     products: 20,
     warehouses: 3,
@@ -22,21 +21,29 @@ export default function SeedDataPage() {
     orders: 25,
   });
 
+  // エラー詳細を拾う
   const mut = useMutation({
     mutationFn: (payload: SeedRequest) => postSeeds(payload),
     onSuccess: (res: SeedResponse) => {
-      const summary = `customers:${res.summary.customers}, products:${res.summary.products}, warehouses:${res.summary.warehouses}, lots:${res.summary.lots}, orders:${res.summary.orders}, lines:${res.summary.order_lines}, alloc:${res.summary.allocations}`;
-      toast.success(
-        res.dry_run ? `Dry Run 完了 - ${summary}` : `投入完了 - ${summary}`
-      );
+      const s = res.summary;
+      const summary = `customers:${s.customers}, products:${s.products}, warehouses:${s.warehouses}, lots:${s.lots}, orders:${s.orders}, lines:${s.order_lines}, alloc:${s.allocations}`;
+      toast.success(res.dry_run ? `Dry Run 完了 - ${summary}` : `投入完了 - ${summary}`);
     },
-    onError: (err: Error) => {
-      toast.error(`失敗: ${err.message}`);
+    onError: async (err: unknown) => {
+      // fetch/axios どちらでもだいたい拾える汎用ハンドリング
+      const msg =
+        (err as any)?.response?.data?.detail ??
+        (err as any)?.cause?.message ??
+        (err as Error)?.message ??
+        "Unknown error";
+      toast.error(`失敗: ${msg}`);
     },
   });
 
-  const onChangeNum = (key: keyof SeedRequest) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm((s: SeedRequest) => ({ ...s, [key]: Number(e.target.value || 0) }));
+  const onChangeNum = (key: keyof SeedRequest) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = Number(e.target.value ?? 0);
+    setForm((s) => ({ ...s, [key]: isNaN(v) || v < 0 ? 0 : v }));
+  };
 
   return (
     <div className="p-6 grid gap-4 max-w-3xl">
@@ -55,7 +62,9 @@ export default function SeedDataPage() {
             <div className="flex items-end gap-2 pb-2">
               <Checkbox
                 checked={!!form.dry_run}
-                onCheckedChange={(v: boolean) => setForm((s: SeedRequest) => ({ ...s, dry_run: v }))}
+                onCheckedChange={(v: boolean) =>
+                  setForm((s: SeedRequest) => ({ ...s, dry_run: v }))
+                }
                 id="dryrun"
               />
               <Label htmlFor="dryrun">Dry Run</Label>
