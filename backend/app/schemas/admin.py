@@ -1,6 +1,5 @@
 """管理機能関連のPydanticスキーマ."""
 
-
 from pydantic import BaseModel
 
 from .integration import OcrOrderRecord

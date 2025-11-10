@@ -122,9 +122,7 @@ class OrderLine(Base):
 
     order: Mapped[Order] = relationship("Order", back_populates="order_lines")
     product: Mapped[Product | None] = relationship("Product", back_populates="order_lines")
-    allocations: Mapped[list[Allocation]] = relationship(
-        "Allocation", back_populates="order_line"
-    )
+    allocations: Mapped[list[Allocation]] = relationship("Allocation", back_populates="order_line")
     warehouse_allocations: Mapped[list[OrderLineWarehouseAllocation]] = relationship(
         "OrderLineWarehouseAllocation", back_populates="order_line"
     )
@@ -165,9 +163,7 @@ class OrderLineWarehouseAllocation(Base):
     order_line: Mapped[OrderLine] = relationship(
         "OrderLine", back_populates="warehouse_allocations"
     )
-    warehouse: Mapped[Warehouse] = relationship(
-        "Warehouse", back_populates="warehouse_allocations"
-    )
+    warehouse: Mapped[Warehouse] = relationship("Warehouse", back_populates="warehouse_allocations")
 
 
 class Allocation(Base):

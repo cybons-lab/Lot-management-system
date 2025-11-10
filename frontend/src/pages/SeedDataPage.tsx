@@ -34,7 +34,11 @@ export default function SeedDataPage() {
       let msg = "Unknown error";
       if (err && typeof err === "object") {
         if ("response" in err && err.response && typeof err.response === "object") {
-          if ("data" in err.response && err.response.data && typeof err.response.data === "object") {
+          if (
+            "data" in err.response &&
+            err.response.data &&
+            typeof err.response.data === "object"
+          ) {
             if ("detail" in err.response.data && typeof err.response.data.detail === "string") {
               msg = err.response.data.detail;
             }

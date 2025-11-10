@@ -1,7 +1,6 @@
 # backend/app/api/routes/forecast.py
 """フォーキャスト管理のAPIエンドポイント."""
 
-
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -238,7 +237,6 @@ def bulk_import_forecasts(request: ForecastBulkImportRequest, db: Session = Depe
     if skipped_count == 0 and imported_count == 0 and request.deactivate_old_version:
         # deactivateのみ実行された場合は、前段のupdateを反映させる
         db.commit()
-
 
     return ForecastBulkImportResponse(
         success=(error_count == 0),
