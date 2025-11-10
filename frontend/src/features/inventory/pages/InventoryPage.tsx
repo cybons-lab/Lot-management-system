@@ -160,7 +160,9 @@ export function InventoryPage() {
   // データの加工
   const sortedLots = table.sortData(allLots);
   const paginatedLots = table.paginateData(sortedLots);
-  const pagination = table.calculatePagination(sortedLots.length);
+  // 安全なtotal計算
+  const safeTotalCount = sortedLots?.length ?? allLots?.length ?? 0;
+  const pagination = table.calculatePagination(safeTotalCount);
 
   // 統計情報
   const stats = useMemo(() => {
@@ -306,9 +308,9 @@ export function InventoryPage() {
 
         {!isLoading && !error && sortedLots.length > 0 && (
           <TablePagination
-            currentPage={pagination.page}
-            pageSize={pagination.pageSize}
-            totalCount={pagination.totalItems}
+            currentPage={pagination.page ?? 1}
+            pageSize={pagination.pageSize ?? 25}
+            totalCount={pagination.totalItems ?? safeTotalCount ?? 0}
             onPageChange={table.setPage}
             onPageSizeChange={table.setPageSize}
           />

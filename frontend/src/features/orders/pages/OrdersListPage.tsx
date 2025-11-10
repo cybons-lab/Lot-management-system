@@ -189,7 +189,9 @@ export function OrdersListPage() {
   // データの加工
   const sortedOrders = table.sortData(allOrders);
   const paginatedOrders = table.paginateData(sortedOrders);
-  const pagination = table.calculatePagination(sortedOrders.length);
+  // 安全なtotal計算
+  const safeTotalCount = sortedOrders?.length ?? allOrders?.length ?? 0;
+  const pagination = table.calculatePagination(safeTotalCount);
 
   // 統計情報
   // TODO: calculateOrderStats を実装
@@ -314,9 +316,9 @@ export function OrdersListPage() {
         />
         {!isLoading && !error && sortedOrders.length > 0 && (
           <TablePagination
-            currentPage={pagination.page}
-            pageSize={pagination.pageSize}
-            totalCount={pagination.totalItems}
+            currentPage={pagination.page ?? 1}
+            pageSize={pagination.pageSize ?? 25}
+            totalCount={pagination.totalItems ?? safeTotalCount ?? 0}
             onPageChange={table.setPage}
             onPageSizeChange={table.setPageSize}
           />
