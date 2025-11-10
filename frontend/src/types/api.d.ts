@@ -1597,9 +1597,9 @@ export interface components {
       /** Updated At */
       updated_at?: string | null;
       /** Supplier Code */
-      supplier_code: string;
+      supplier_code?: string | null;
       /** Product Code */
-      product_code: string;
+      product_code?: string | null;
       /** Lot Number */
       lot_number: string;
       /**
@@ -2024,9 +2024,6 @@ export interface components {
       product_code: string;
       /** Product Name */
       product_name: string;
-      /** Supplier Code */
-      supplier_code?: string | null;
-      /** Customer Part No */
       customer_part_no?: string | null;
       /** Maker Item Code */
       maker_item_code?: string | null;
@@ -2043,11 +2040,8 @@ export interface components {
        * @default EA
        */
       base_unit: string;
-      /** Packaging */
-      packaging?: string | null;
-      /** Assemble Div */
-      assemble_div?: string | null;
       /** Next Div */
+      assemble_div?: string | null;
       next_div?: string | null;
       /** Ji Ku Text */
       ji_ku_text?: string | null;
@@ -2059,7 +2053,7 @@ export interface components {
        * Requires Lot Number
        * @default true
        */
-      requires_lot_number: boolean;
+      requires_lot_number?: number | null;
       /** Delivery Place Id */
       delivery_place_id?: number | null;
       /** Delivery Place Name */

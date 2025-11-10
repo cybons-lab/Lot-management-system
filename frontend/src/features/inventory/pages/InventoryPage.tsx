@@ -90,14 +90,14 @@ export function InventoryPage() {
         id: "lot_number",
         header: "ロット番号",
         cell: (lot: LotResponse) => (
-          <span className="font-medium">{lot.lot_number || lot.lot_no || "-"}</span>
+          <span className="font-medium">{lot.lot_number || "-"}</span>
         ),
         sortable: true,
       },
       {
         id: "product_code",
         header: "製品コード",
-        cell: (lot: LotResponse) => lot.product_code,
+        cell: (lot: LotResponse) => lot.product_code || "-",
         sortable: true,
       },
       {
@@ -125,7 +125,7 @@ export function InventoryPage() {
       {
         id: "unit",
         header: "単位",
-        cell: (lot: LotResponse) => lot.lot_unit || lot.unit || "EA",
+        cell: (lot: LotResponse) => lot.lot_unit || "EA",
         align: "center",
       },
       {
