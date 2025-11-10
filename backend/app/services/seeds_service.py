@@ -242,7 +242,7 @@ def create_seed_data(db: Session, req: SeedRequest) -> SeedResponse:
             customer_id=(cust.id if (cust and not req.dry_run) else None),
             order_no=faker.unique.bothify(text="SO-########"),
             order_date=datetime.utcnow().date() - timedelta(days=rng.randint(0, 14)),
-            status="draft",
+            status="open",
             created_at=datetime.utcnow(),
         )
         created_orders.append(o)

@@ -30,11 +30,6 @@ import { normalizeOrder } from "@/shared/libs/normalize";
 import type { OrderResponse } from "@/shared/types/aliases";
 import type { Order } from "../types";
 
-// queryKeyの安定化のため、オブジェクトリテラルを定数化
-const QUERY_FILTERS = {
-  ORDERS_OPEN: { status: "open" } as const,
-} as const;
-
 export function LotAllocationPage() {
   const orderListRef = useRef<HTMLDivElement | null>(null);
   const [_orderListScrollTop, _setOrderListScrollTop] = useState(0);
@@ -46,10 +41,10 @@ export function LotAllocationPage() {
   // Snackbar管理
   const { snackbar, showSuccess, showError } = useSnackbar();
 
-  // 受注一覧を取得
+  // 受注一覧を取得（openと引当済みの両方を表示）
   const ordersQuery = useQuery<OrderResponse[], Error, Order[]>({
-    queryKey: ["orders", QUERY_FILTERS.ORDERS_OPEN],
-    queryFn: () => getOrders(QUERY_FILTERS.ORDERS_OPEN),
+    queryKey: ["orders", "all-for-allocation"],
+    queryFn: () => getOrders(),  // ステータスフィルタなしで全受注を取得
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     staleTime: 30_000,
