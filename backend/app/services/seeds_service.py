@@ -10,9 +10,9 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.schemas.admin_seeds import SeedRequest, SeedResponse, SeedSummary, ActualCounts
-from app.models.masters import Customer, Product, Warehouse  # 実際のモデル名に合わせる
+from app.models.masters import Customer, Product, Warehouse, Supplier
 from app.models.inventory import Lot, StockMovement
-from app.models.orders import Order, OrderLine, Allocation  # Allocationはサマリ整合のため残置
+from app.models.orders import Order, OrderLine, Allocation
 
 
 def _choose(rng: Random, seq: Sequence):
@@ -41,6 +41,7 @@ def create_seed_data(db: Session, req: SeedRequest) -> SeedResponse:
     rng = Random(seed)
 
     created_customers: List[Customer] = []
+    created_suppliers: List[Supplier] = []
     created_products: List[Product] = []
     created_warehouses: List[Warehouse] = []
     created_lots: List[Lot] = []
@@ -70,6 +71,24 @@ def create_seed_data(db: Session, req: SeedRequest) -> SeedResponse:
             db.execute(stmt)
             db.flush()
         created_customers = [Customer(**row) for row in customer_rows]
+
+    # --- Supplier ---
+    if req.suppliers > 0:
+        existing_supplier_codes = {c for (c,) in db.execute(select(Supplier.supplier_code)).all()} if not req.dry_run else set()
+        supplier_rows = [
+            {
+                "supplier_code": _next_code("S", 4, rng, existing_supplier_codes),
+                "supplier_name": f"{faker.company()}商事",
+                "created_at": datetime.utcnow(),
+            }
+            for _ in range(req.suppliers)
+        ]
+        if not req.dry_run:
+            stmt = pg_insert(Supplier).values(supplier_rows)
+            stmt = stmt.on_conflict_do_nothing(index_elements=[Supplier.supplier_code])
+            db.execute(stmt)
+            db.flush()
+        created_suppliers = [Supplier(**row) for row in supplier_rows]
 
     # --- Product ---
     if req.products > 0:
@@ -111,11 +130,13 @@ def create_seed_data(db: Session, req: SeedRequest) -> SeedResponse:
     # DBに実データが必要な後続処理用に、利用可能な一覧を取得
     if not req.dry_run:
         all_customers: List[Customer] = db.execute(select(Customer)).scalars().all()
+        all_suppliers: List[Supplier] = db.execute(select(Supplier)).scalars().all()
         all_products: List[Product] = db.execute(select(Product)).scalars().all()
         all_warehouses: List[Warehouse] = db.execute(select(Warehouse)).scalars().all()
     else:
         # dry_run時は作成予定のデータを使って疑似的に進める（idはNone）
         all_customers = created_customers
+        all_suppliers = created_suppliers
         all_products = created_products
         all_warehouses = created_warehouses
 
@@ -125,10 +146,12 @@ def create_seed_data(db: Session, req: SeedRequest) -> SeedResponse:
     for _ in range(req.lots):
         prod = _choose(rng, all_products) if all_products else None
         wh = _choose(rng, all_warehouses) if all_warehouses else None
+        supplier = _choose(rng, all_suppliers) if all_suppliers else None
         days = rng.randint(0, 360)
         l = Lot(
             product_id=(prod.id if (prod and not req.dry_run) else None),
             warehouse_id=(wh.id if (wh and not req.dry_run) else None),
+            supplier_id=(supplier.id if (supplier and not req.dry_run) else None),
             lot_number=faker.unique.bothify(text="LOT-########"),
             receipt_date=datetime.utcnow().date() - timedelta(days=rng.randint(0, 30)),
             expiry_date=datetime.utcnow().date() + timedelta(days=360 - days),
@@ -189,10 +212,56 @@ def create_seed_data(db: Session, req: SeedRequest) -> SeedResponse:
         if not req.dry_run:
             db.flush()
 
-    # 4) allocations は後続で実装予定（在庫数量は StockMovement を正と負で管理予定）
-    if req.dry_run:
-        pass
-    else:
+    # ==========================================================
+    # 4) allocations（簡易版：受注明細の30%程度にロットを引当）
+    # ==========================================================
+    if not req.dry_run and created_lots:
+        all_lots: List[Lot] = db.execute(select(Lot)).scalars().all()
+        all_lines: List[OrderLine] = db.execute(select(OrderLine)).scalars().all()
+
+        # 明細の30%程度にランダムに引当
+        sample_size = max(1, int(len(all_lines) * 0.3))
+        lines_to_allocate = rng.sample(all_lines, min(sample_size, len(all_lines)))
+
+        for line in lines_to_allocate:
+            # 同じ製品のロットを検索
+            matching_lots = [lot for lot in all_lots if lot.product_id == line.product_id]
+            if not matching_lots:
+                continue
+
+            # ランダムにロットを選択
+            selected_lot = _choose(rng, matching_lots)
+
+            # 引当数量（明細数量の50-100%）
+            alloc_qty = rng.randint(int(line.quantity * 0.5), int(line.quantity))
+            alloc_qty = max(1, min(alloc_qty, line.quantity))
+
+            # Allocation作成
+            allocation = Allocation(
+                order_line_id=line.id,
+                lot_id=selected_lot.id,
+                allocated_qty=alloc_qty,
+                allocation_date=datetime.utcnow().date(),
+                created_at=datetime.utcnow(),
+            )
+            created_allocs.append(allocation)
+            db.add(allocation)
+
+            # StockMovement（出庫：負の数量）
+            outbound_movement = StockMovement(
+                product_id=selected_lot.product_id,
+                warehouse_id=selected_lot.warehouse_id,
+                lot_id=selected_lot.id,
+                reason="outbound",
+                quantity_delta=-alloc_qty,  # 負の数量
+                occurred_at=datetime.utcnow(),
+                created_at=datetime.utcnow(),
+            )
+            db.add(outbound_movement)
+
+        db.flush()
+
+    if not req.dry_run:
         db.commit()
 
     # 実際のDB件数を取得（dry_run=falseの場合のみ）
@@ -218,6 +287,7 @@ def create_seed_data(db: Session, req: SeedRequest) -> SeedResponse:
         seed=seed,
         summary=SeedSummary(
             customers=len(created_customers),
+            suppliers=len(created_suppliers),
             products=len(created_products),
             warehouses=len(created_warehouses),
             lots=len(created_lots),
