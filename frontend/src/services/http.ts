@@ -12,7 +12,7 @@ import { createApiError, NetworkError } from "@/utils/errors/custom-errors";
  */
 const createHttpClient = (): AxiosInstance => {
   const client = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
+    baseURL: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_BASE || "/api",
     timeout: 30000,
     headers: {
       "Content-Type": "application/json",
