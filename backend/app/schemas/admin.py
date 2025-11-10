@@ -1,8 +1,4 @@
-"""
-管理機能関連のPydanticスキーマ
-"""
-
-from typing import List, Optional
+"""管理機能関連のPydanticスキーマ."""
 
 from pydantic import BaseModel
 
@@ -13,20 +9,18 @@ from .masters import MasterBulkLoadResponse, ProductCreate
 
 class FullSampleDataRequest(BaseModel):
     """
-    一括サンプルデータ投入リクエスト
+    一括サンプルデータ投入リクエスト.
 
     注意: 投入順序が重要 (マスタ -> ロット -> 受注)
     """
 
-    products: Optional[List[ProductCreate]] = None
-    lots: Optional[List[LotCreate]] = None
-    orders: Optional[List[OcrOrderRecord]] = None
+    products: list[ProductCreate] | None = None
+    lots: list[LotCreate] | None = None
+    orders: list[OcrOrderRecord] | None = None
 
 
 class DashboardStatsResponse(BaseModel):
-    """
-    ダッシュボード統計レスポンス
-    """
+    """ダッシュボード統計レスポンス."""
 
     total_stock: float
     total_orders: int
@@ -34,13 +28,13 @@ class DashboardStatsResponse(BaseModel):
 
 
 class AdminPresetListResponse(BaseModel):
-    """プリセット名の一覧レスポンス。"""
+    """プリセット名の一覧レスポンス。."""
 
-    presets: List[str]
+    presets: list[str]
 
 
 class AdminPresetLoadResponse(BaseModel):
-    """プリセット投入結果。"""
+    """プリセット投入結果。."""
 
     preset: str
     result: MasterBulkLoadResponse

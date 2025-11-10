@@ -25,6 +25,9 @@ export default [
 
   {
     files: ["src/**/*.{ts,tsx,js,jsx}"],
+    ignores: [
+      "src/types/api.d.ts", // OpenAPI generated file
+    ],
     plugins: {
       "@typescript-eslint": tseslint.plugin,
       react,
@@ -41,19 +44,87 @@ export default [
       react: { version: "detect" },
     },
     rules: {
+      // TypeScript strict rules
       "@typescript-eslint/no-unused-vars": [
-        "warn",
+        "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/consistent-type-imports": [
+        "error",
+        { prefer: "type-imports", fixStyle: "inline-type-imports" },
+      ],
+
+      // React rules
       "react/react-in-jsx-scope": "off",
+
+      // File size limits
+      "max-lines": [
+        "error",
+        {
+          max: 300,
+          skipBlankLines: true,
+          skipComments: true,
+        },
+      ],
+
+      // Import organization
       "import/order": [
-        "warn",
+        "error",
         {
           groups: ["builtin", "external", "internal", "parent", "sibling", "index"],
           "newlines-between": "always",
           alphabetize: { order: "asc", caseInsensitive: true },
         },
       ],
+
+      // Feature boundary enforcement
+      "import/no-restricted-paths": [
+        "error",
+        {
+          zones: [
+            // features/* cannot import from other features' internal modules
+            {
+              target: "./src/features/*/!(index).{ts,tsx}",
+              from: "./src/features/*/!(index).{ts,tsx}",
+              except: ["./index.ts"],
+              message:
+                "Features must not directly import from other features' internals. Use the public API (index.ts) instead.",
+            },
+          ],
+        },
+      ],
+
+      // Enforce API layer usage (no direct fetch/axios in features)
+      // Allowed in: lib/, services/, hooks/ (infrastructure layer)
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "axios",
+              importNames: ["default"],
+              message:
+                "Direct axios usage in features is forbidden. Use the API layer (features/*/api.ts) instead.",
+            },
+          ],
+          patterns: [
+            {
+              group: ["node-fetch"],
+              message:
+                "Direct fetch usage in features is forbidden. Use the API layer (features/*/api.ts) instead.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // Allow axios in infrastructure layer
+  {
+    files: ["src/lib/**/*.{ts,tsx}", "src/services/**/*.{ts,tsx}", "src/hooks/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": "off",
     },
   },
 
