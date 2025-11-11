@@ -200,6 +200,7 @@ def run_seed_simulation(
         tracker.add_log(task_id, f"Created {num_delivery_places} delivery places")
 
         # Products (YAMLまたはデフォルト)
+        tracker.add_log(task_id, "→ Creating Products...")
         num_products = params.get("products", params["warehouses"] * 20)
         existing_dps = db.execute(select(DeliveryPlace)).scalars().all()
         existing_product_codes: set[str] = set()
@@ -220,9 +221,10 @@ def run_seed_simulation(
             stmt = stmt.on_conflict_do_nothing(index_elements=[Product.product_code])
             db.execute(stmt)
             db.flush()
-        tracker.add_log(task_id, f"Created {num_products} products")
+        tracker.add_log(task_id, f"✓ Created {num_products} products")
 
         # Warehouses (params["warehouses"]: 5-10)
+        tracker.add_log(task_id, "→ Creating Warehouses...")
         num_warehouses = params["warehouses"]
         existing_wh_codes: set[str] = set()
         warehouse_rows = [
@@ -238,9 +240,10 @@ def run_seed_simulation(
             stmt = stmt.on_conflict_do_nothing(index_elements=[Warehouse.warehouse_code])
             db.execute(stmt)
             db.flush()
-        tracker.add_log(task_id, f"Created {num_warehouses} warehouses")
+        tracker.add_log(task_id, f"✓ Created {num_warehouses} warehouses")
 
         db.commit()
+        tracker.add_log(task_id, "✓ Master data committed to DB")
 
         # Fetch all masters
         all_customers: list[Customer] = db.execute(select(Customer)).scalars().all()
@@ -356,9 +359,12 @@ def run_seed_simulation(
                 db.flush()
                 forecast_count = len(forecast_rows)
 
-            tracker.add_log(task_id, f"Created {forecast_count} forecasts (daily/dekad/monthly)")
+            tracker.add_log(task_id, f"✓ Created {forecast_count} forecasts (daily/dekad/monthly)")
+        else:
+            tracker.add_log(task_id, "→ Forecast generation skipped (forecasts=0 or no masters)")
 
         db.commit()
+        tracker.add_log(task_id, "✓ Forecast data committed to DB")
 
         # Phase 3: Stock (Lots + Inbound)
         tracker.add_log(task_id, "Phase 3: Creating lots and inbound stock movements")
