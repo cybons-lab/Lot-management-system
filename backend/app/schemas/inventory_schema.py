@@ -9,13 +9,14 @@ from .base import BaseSchema, TimestampMixin
 # --- Lot ---
 class LotBase(BaseSchema):
     supplier_code: str | None = None
-    product_code: str | None = None
     lot_number: str
     receipt_date: date
     mfg_date: date | None = None
     expiry_date: date | None = None
     warehouse_code: str | None = None
     warehouse_id: int | None = None
+    product_id: int | None = None
+    supplier_id: int | None = None
     lot_unit: str | None = None
     kanban_class: str | None = None
     sales_unit: str | None = None
@@ -24,11 +25,12 @@ class LotBase(BaseSchema):
     source_doc: str | None = None
     qc_certificate_status: str | None = None
     qc_certificate_file: str | None = None
+    lot_status: str | None = "available"
 
 
 class LotCreate(LotBase):
     supplier_code: str  # 作成時は必須
-    product_code: str  # 作成時は必須
+    product_id: int  # 作成時は必須（product_id基準に変更）
 
 
 class LotUpdate(BaseSchema):
@@ -46,6 +48,8 @@ class LotResponse(LotBase, TimestampMixin):
     current_quantity: float = 0.0
     last_updated: datetime | None = None
     product_name: str | None = None
+    product_code: str | None = None  # 後方互換性のため（非推奨: product_idを使用推奨）
+    lot_status: str = "available"
 
 
 # --- StockMovement ---

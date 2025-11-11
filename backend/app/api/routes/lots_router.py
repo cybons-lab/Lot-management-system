@@ -60,7 +60,10 @@ def list_lots(
 
     # フィルタ適用
     if product_code:
-        query = query.filter(Lot.product_code == product_code)
+        # product_code から product_id を取得してフィルタ
+        product = db.query(Product).filter(Product.product_code == product_code).first()
+        if product:
+            query = query.filter(Lot.product_id == product.id)
     if supplier_code:
         query = query.filter(Lot.supplier_code == supplier_code)
     if warehouse_code:
@@ -111,29 +114,14 @@ def create_lot(lot: LotCreate, db: Session = Depends(get_db)):
     - ロットマスタ登録
     - 現在在庫テーブル初期化
     """
-    # 重複チェック
-    existing = (
-        db.query(Lot)
-        .filter(
-            and_(
-                Lot.supplier_code == lot.supplier_code,
-                Lot.product_code == lot.product_code,
-                Lot.lot_number == lot.lot_number,
-            )
-        )
-        .first()
-    )
-    if existing:
-        raise HTTPException(
-            status_code=400,
-            detail="同じ仕入先・製品・ロット番号の組み合わせが既に存在します",
-        )
-
     # マスタ存在チェック
-    product = db.query(Product).filter(Product.product_code == lot.product_code).first()
+    if not lot.product_id:
+        raise HTTPException(status_code=400, detail="product_id は必須です")
+
+    product = db.query(Product).filter(Product.id == lot.product_id).first()
     if not product:
         raise HTTPException(
-            status_code=404, detail=f"製品コード '{lot.product_code}' が見つかりません"
+            status_code=404, detail=f"製品ID '{lot.product_id}' が見つかりません"
         )
 
     supplier = db.query(Supplier).filter(Supplier.supplier_code == lot.supplier_code).first()
@@ -311,7 +299,7 @@ def create_stock_movement(movement: StockMovementCreate, db: Session = Depends(g
         if not lot:
             raise HTTPException(status_code=404, detail="ロットが見つかりません")
 
-    product_id = movement.product_id or (lot.product_code if lot else None)
+    product_id = movement.product_id or (lot.product_id if lot else None)
     warehouse_id = movement.warehouse_id or (lot.warehouse_id if lot else None)
     if not product_id or not warehouse_id:
         raise HTTPException(

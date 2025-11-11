@@ -34,11 +34,18 @@ class LotRepository:
         min_quantity: float = 0.0,
     ) -> Sequence[tuple[Lot, LotCurrentStock]]:
         """Fetch lots that have stock remaining for a product."""
+        # product_codeからproduct_idに変換
+        from app.models import Product
+
+        product = self.db.query(Product).filter(Product.product_code == product_code).first()
+        if not product:
+            return []
+
         stmt: Select[tuple[Lot, LotCurrentStock]] = (
             select(Lot, LotCurrentStock)
             .join(LotCurrentStock, LotCurrentStock.lot_id == Lot.id)
             .where(
-                Lot.product_code == product_code,
+                Lot.product_id == product.id,
                 Lot.is_locked.is_(False),
                 LotCurrentStock.current_quantity > min_quantity,
             )
@@ -114,7 +121,7 @@ class LotService:
                 lot_id=lot.id,
                 lot_code=lot.lot_number,
                 lot_number=lot.lot_number,
-                product_code=lot.product_code or product_code,
+                product_code=lot.product.product_code if lot.product else product_code,
                 warehouse_code=lot.warehouse_code
                 or (lot.warehouse.warehouse_code if lot.warehouse else ""),
                 available_qty=float(stock.current_quantity or 0.0),
