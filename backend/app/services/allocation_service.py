@@ -80,7 +80,7 @@ class AllocationService:
             # 2. 在庫変動記録
             lot_ref = current_stock.lot if hasattr(current_stock, "lot") else None
             movement = StockMovement(
-                product_id=lot_ref.product_code if lot_ref else None,
+                product_id=lot_ref.product_id if lot_ref else None,
                 warehouse_id=self._resolve_warehouse_id(lot_ref),
                 lot_id=lot_id,
                 quantity_delta=-allocate_qty,
@@ -124,7 +124,7 @@ class AllocationService:
             # 1. 在庫変動記録（引当数量を戻す）
             lot_ref = allocation.lot
             movement = StockMovement(
-                product_id=lot_ref.product_code if lot_ref else None,
+                product_id=lot_ref.product_id if lot_ref else None,
                 warehouse_id=self._resolve_warehouse_id(lot_ref),
                 lot_id=allocation.lot_id,
                 quantity_delta=allocation.allocated_qty,

@@ -113,15 +113,15 @@ class OrderLine(Base):
     product_id: Mapped[int | None] = mapped_column(
         ForeignKey("products.id", ondelete="RESTRICT"), nullable=True
     )
-    product_code: Mapped[str | None] = mapped_column(Text)
-
-    __table_args__ = (
-        UniqueConstraint("order_id", "line_no", name="uq_order_line"),
-        Index("ix_order_lines_product_code", "product_code"),
+    warehouse_id: Mapped[int | None] = mapped_column(
+        ForeignKey("warehouses.id", ondelete="RESTRICT"), nullable=True
     )
+
+    __table_args__ = (UniqueConstraint("order_id", "line_no", name="uq_order_line"),)
 
     order: Mapped[Order] = relationship("Order", back_populates="order_lines")
     product: Mapped[Product | None] = relationship("Product", back_populates="order_lines")
+    warehouse: Mapped[Warehouse | None] = relationship("Warehouse", back_populates="order_lines")
     allocations: Mapped[list[Allocation]] = relationship("Allocation", back_populates="order_line")
     warehouse_allocations: Mapped[list[OrderLineWarehouseAllocation]] = relationship(
         "OrderLineWarehouseAllocation", back_populates="order_line"
@@ -190,8 +190,13 @@ class Allocation(Base):
     destination_id: Mapped[int | None] = mapped_column(
         ForeignKey("delivery_places.id"), nullable=True
     )
+    status: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'reserved'"))
 
     __table_args__ = (
+        CheckConstraint(
+            "status IN ('reserved','picked','committed','shipped')",
+            name="ck_allocations_status",
+        ),
         Index("ix_alloc_ol", "order_line_id"),
         Index("ix_alloc_lot", "lot_id"),
     )

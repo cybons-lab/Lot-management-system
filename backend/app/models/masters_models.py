@@ -66,6 +66,7 @@ class Warehouse(Base):
     stock_movements: Mapped[list[StockMovement]] = relationship(
         "StockMovement", back_populates="warehouse"
     )
+    order_lines: Mapped[list[OrderLine]] = relationship("OrderLine", back_populates="warehouse")
     warehouse_allocations: Mapped[list[OrderLineWarehouseAllocation]] = relationship(
         "OrderLineWarehouseAllocation", back_populates="warehouse"
     )

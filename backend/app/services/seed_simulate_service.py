@@ -6,7 +6,7 @@ from __future__ import annotations
 import logging
 import traceback
 from collections.abc import Sequence
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from random import Random
 from typing import Any
 
@@ -16,6 +16,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.core.database import truncate_all_tables
+from app.models.forecast_models import Forecast
 from app.models.inventory_models import Lot, StockMovement
 from app.models.masters_models import Customer, DeliveryPlace, Product, Supplier, Warehouse
 from app.models.orders_models import Allocation, Order, OrderLine
@@ -90,6 +91,13 @@ def _expand_params(req: SimulateSeedRequest) -> dict[str, Any]:
     # ケースミックス（API指定があれば上書き）
     if req.case_mix is not None:
         params["case_mix"] = req.case_mix
+
+    # ★ forecasts（API指定があれば上書き。0=無効, 1=有効）
+    if req.forecasts is not None:
+        params["forecasts"] = int(req.forecasts)
+        logger.info(f"Forecasts param set from API: {req.forecasts} -> {params['forecasts']}")
+    else:
+        logger.info(f"Forecasts param from profile: {params.get('forecasts', 'not set')}")
 
     return params
 
@@ -195,6 +203,7 @@ def run_seed_simulation(
         tracker.add_log(task_id, f"Created {num_delivery_places} delivery places")
 
         # Products (YAMLまたはデフォルト)
+        tracker.add_log(task_id, "→ Creating Products...")
         num_products = params.get("products", params["warehouses"] * 20)
         existing_dps = db.execute(select(DeliveryPlace)).scalars().all()
         existing_product_codes: set[str] = set()
@@ -215,9 +224,10 @@ def run_seed_simulation(
             stmt = stmt.on_conflict_do_nothing(index_elements=[Product.product_code])
             db.execute(stmt)
             db.flush()
-        tracker.add_log(task_id, f"Created {num_products} products")
+        tracker.add_log(task_id, f"✓ Created {num_products} products")
 
         # Warehouses (params["warehouses"]: 5-10)
+        tracker.add_log(task_id, "→ Creating Warehouses...")
         num_warehouses = params["warehouses"]
         existing_wh_codes: set[str] = set()
         warehouse_rows = [
@@ -233,9 +243,10 @@ def run_seed_simulation(
             stmt = stmt.on_conflict_do_nothing(index_elements=[Warehouse.warehouse_code])
             db.execute(stmt)
             db.flush()
-        tracker.add_log(task_id, f"Created {num_warehouses} warehouses")
+        tracker.add_log(task_id, f"✓ Created {num_warehouses} warehouses")
 
         db.commit()
+        tracker.add_log(task_id, "✓ Master data committed to DB")
 
         # Fetch all masters
         all_customers: list[Customer] = db.execute(select(Customer)).scalars().all()
@@ -243,6 +254,137 @@ def run_seed_simulation(
         all_delivery_places: list[DeliveryPlace] = db.execute(select(DeliveryPlace)).scalars().all()
         all_products: list[Product] = db.execute(select(Product)).scalars().all()
         all_warehouses: list[Warehouse] = db.execute(select(Warehouse)).scalars().all()
+
+        # Phase 2.5: Forecasts (需要予測データ生成)
+        tracker.add_log(task_id, "Phase 2.5: Creating forecast data")
+        tracker.update_progress(task_id, JobPhase.MASTERS, 25)
+
+        # forecasts: YAMLまたはデフォルト（0=無効）
+        generate_forecasts = params.get("forecasts", 0) > 0
+        forecast_count = 0
+
+        # デバッグログ: 条件チェック
+        tracker.add_log(
+            task_id,
+            f"→ Forecast check: params.forecasts={params.get('forecasts', 0)}, "
+            f"generate={generate_forecasts}, customers={len(all_customers)}, products={len(all_products)}",
+        )
+
+        if generate_forecasts and all_customers and all_products:
+            # 既存のforecast_idを取得（重複防止）
+            existing_forecast_ids = {
+                fid for (fid,) in db.execute(select(Forecast.forecast_id)).all()
+            }
+
+            forecast_rows = []
+            now = datetime.now(UTC)
+            today = now.date()
+
+            # 各customer × product ペアに対して forecasts を生成
+            for cust in all_customers:
+                for prod in all_products:
+                    # daily: 今日±7日
+                    for day_offset in range(-7, 8):
+                        target_date = today + timedelta(days=day_offset)
+                        forecast_id = f"seed-{cust.id}-{prod.id}-daily-{target_date}"
+                        if forecast_id in existing_forecast_ids:
+                            continue
+                        forecast_rows.append(
+                            {
+                                "forecast_id": forecast_id,
+                                "granularity": "daily",
+                                "date_day": target_date,
+                                "date_dekad_start": None,
+                                "year_month": None,
+                                "qty_forecast": rng.randint(10, 1000),
+                                "version_no": 1,
+                                "version_issued_at": now,
+                                "source_system": "seed",
+                                "is_active": True,
+                                "product_id": prod.id,
+                                "customer_id": cust.id,
+                                "created_at": now,
+                                "updated_at": now,
+                            }
+                        )
+                        existing_forecast_ids.add(forecast_id)
+
+                    # dekad: 当月の3区間（1日, 11日, 21日）
+                    for dekad_start_day in [1, 11, 21]:
+                        dekad_start = today.replace(day=dekad_start_day)
+                        forecast_id = f"seed-{cust.id}-{prod.id}-dekad-{dekad_start}"
+                        if forecast_id in existing_forecast_ids:
+                            continue
+                        forecast_rows.append(
+                            {
+                                "forecast_id": forecast_id,
+                                "granularity": "dekad",
+                                "date_day": None,
+                                "date_dekad_start": dekad_start,
+                                "year_month": None,
+                                "qty_forecast": rng.randint(10, 1000),
+                                "version_no": 1,
+                                "version_issued_at": now,
+                                "source_system": "seed",
+                                "is_active": True,
+                                "product_id": prod.id,
+                                "customer_id": cust.id,
+                                "created_at": now,
+                                "updated_at": now,
+                            }
+                        )
+                        existing_forecast_ids.add(forecast_id)
+
+                    # monthly: 当月〜+2ヶ月
+                    for month_offset in range(0, 3):
+                        target_month_date = today.replace(day=1) + timedelta(days=31 * month_offset)
+                        year_month = target_month_date.strftime("%Y-%m")
+                        forecast_id = f"seed-{cust.id}-{prod.id}-monthly-{year_month}"
+                        if forecast_id in existing_forecast_ids:
+                            continue
+                        forecast_rows.append(
+                            {
+                                "forecast_id": forecast_id,
+                                "granularity": "monthly",
+                                "date_day": None,
+                                "date_dekad_start": None,
+                                "year_month": year_month,
+                                "qty_forecast": rng.randint(10, 1000),
+                                "version_no": 1,
+                                "version_issued_at": now,
+                                "source_system": "seed",
+                                "is_active": True,
+                                "product_id": prod.id,
+                                "customer_id": cust.id,
+                                "created_at": now,
+                                "updated_at": now,
+                            }
+                        )
+                        existing_forecast_ids.add(forecast_id)
+
+            # bulk insert
+            if forecast_rows:
+                tracker.add_log(task_id, f"→ Inserting {len(forecast_rows)} forecast rows...")
+                db.bulk_insert_mappings(Forecast, forecast_rows)
+                db.flush()
+                forecast_count = len(forecast_rows)
+                tracker.add_log(
+                    task_id, f"✓ Created {forecast_count} forecasts (daily/dekad/monthly)"
+                )
+            else:
+                tracker.add_log(task_id, "→ No forecast rows to insert (all duplicates or empty)")
+        else:
+            reasons = []
+            if not generate_forecasts:
+                reasons.append(f"forecasts={params.get('forecasts', 0)}")
+            if not all_customers:
+                reasons.append("no customers")
+            if not all_products:
+                reasons.append("no products")
+            tracker.add_log(task_id, f"→ Forecast generation skipped: {', '.join(reasons)}")
+
+        db.commit()
+        tracker.add_log(task_id, f"✓ Forecast data committed to DB (total={forecast_count})")
 
         # Phase 3: Stock (Lots + Inbound)
         tracker.add_log(task_id, "Phase 3: Creating lots and inbound stock movements")
@@ -486,6 +628,7 @@ def run_seed_simulation(
 
         # 集計
         total_warehouses = db.scalar(select(func.count()).select_from(Warehouse)) or 0
+        total_forecasts = db.scalar(select(func.count()).select_from(Forecast)) or 0
         total_orders = db.scalar(select(func.count()).select_from(Order)) or 0
         total_order_lines = db.scalar(select(func.count()).select_from(OrderLine)) or 0
         total_lots = db.scalar(select(func.count()).select_from(Lot)) or 0
@@ -506,6 +649,7 @@ def run_seed_simulation(
             params_snapshot["profile"] = req.profile  # 元のプロファイル名も保存
             summary_json = {
                 "warehouses": total_warehouses,
+                "forecasts": total_forecasts,
                 "orders": total_orders,
                 "order_lines": total_order_lines,
                 "lots": total_lots,
@@ -537,6 +681,7 @@ def run_seed_simulation(
             "success": True,
             "summary": SimulateResultSummary(
                 warehouses=total_warehouses,
+                forecasts=total_forecasts,
                 orders=total_orders,
                 order_lines=total_order_lines,
                 lots=total_lots,

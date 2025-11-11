@@ -64,7 +64,9 @@ class OrderWithLinesResponse(OrderResponse):
 # --- OrderLine ---
 class OrderLineBase(BaseSchema):
     line_no: int
-    product_code: str | None = None
+    product_code: str | None = None  # 後方互換性のため（非推奨: product_idを使用推奨）
+    product_id: int | None = None
+    warehouse_id: int | None = None
     quantity: float
     unit: str | None = None
     due_date: date | None = None
@@ -73,7 +75,8 @@ class OrderLineBase(BaseSchema):
 
 
 class OrderLineCreate(OrderLineBase):
-    product_code: str  # 作成時は必須
+    product_id: int | None = None  # product_id または product_code のいずれかが必須
+    product_code: str | None = None  # 後方互換性のため
     external_unit: str | None = None  # 外部単位（変換用）
 
 
@@ -81,6 +84,7 @@ class OrderLineResponse(OrderLineBase, TimestampMixin):
     id: int
     order_id: int
     product_id: int | None = None  # 追加: product_id基準の引当に必要
+    warehouse_id: int | None = None
     allocated_qty: float | None = None
 
 

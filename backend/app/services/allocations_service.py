@@ -111,12 +111,12 @@ def _resolve_next_div(db: Session, order: Order, line: OrderLine) -> tuple[str |
     return None, warning
 
 
-def _lot_candidates(db: Session, product_code: str) -> list[tuple[Lot, float]]:
+def _lot_candidates(db: Session, product_id: int) -> list[tuple[Lot, float]]:
     stmt: Select[tuple[Lot, float]] = (
         select(Lot, LotCurrentStock.current_quantity)
         .join(LotCurrentStock, LotCurrentStock.lot_id == Lot.id)
         .where(
-            Lot.product_code == product_code,
+            Lot.product_id == product_id,
             LotCurrentStock.current_quantity > 0,
             Lot.is_locked.is_(False),
         )
@@ -147,12 +147,15 @@ def preview_fefo_allocation(db: Session, order_id: int) -> FefoPreviewResult:
         if remaining <= 0:
             continue
 
-        product_code = getattr(line, "product_code", None)
-        if not product_code and getattr(line, "product", None):
-            product_code = line.product.product_code
-            line.product_code = product_code
-        if not product_code:
-            warning = f"製品コード未設定: order_line={line.id}"
+        product_id = getattr(line, "product_id", None)
+        product_code = None
+        if product_id:
+            product = db.query(Product).filter(Product.id == product_id).first()
+            if product:
+                product_code = product.product_code
+
+        if not product_id:
+            warning = f"製品ID未設定: order_line={line.id}"
             warnings.append(warning)
             preview_lines.append(
                 FefoLinePlan(
@@ -168,7 +171,7 @@ def preview_fefo_allocation(db: Session, order_id: int) -> FefoPreviewResult:
         next_div_value, next_div_warning = _resolve_next_div(db, order, line)
         line_plan = FefoLinePlan(
             order_line_id=line.id,
-            product_code=product_code,
+            product_code=product_code or "",
             required_qty=required_qty,
             already_allocated_qty=already_allocated,
             next_div=next_div_value,
@@ -177,7 +180,7 @@ def preview_fefo_allocation(db: Session, order_id: int) -> FefoPreviewResult:
             line_plan.warnings.append(next_div_warning)
             warnings.append(next_div_warning)
 
-        for lot, current_qty in _lot_candidates(db, product_code):
+        for lot, current_qty in _lot_candidates(db, product_id):
             available = available_per_lot.get(lot.id, float(current_qty or 0.0))
             if available <= 0:
                 continue

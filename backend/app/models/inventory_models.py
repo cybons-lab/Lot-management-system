@@ -76,13 +76,14 @@ class Lot(Base):
     supplier_id: Mapped[int | None] = mapped_column(
         ForeignKey("suppliers.id", ondelete="RESTRICT"), nullable=True
     )
-    product_code: Mapped[str | None] = mapped_column(Text)
     supplier_code: Mapped[str | None] = mapped_column(Text)
     warehouse_code: Mapped[str | None] = mapped_column(Text)
+    lot_status: Mapped[str] = mapped_column(
+        String(32), nullable=False, server_default=text("'available'")
+    )
 
     __table_args__ = (
         Index("ix_lots_warehouse_id", "warehouse_id"),
-        Index("ix_lots_product_code", "product_code"),
         Index("ix_lots_supplier_code", "supplier_code"),
         Index("ix_lots_warehouse_code", "warehouse_code"),
     )
