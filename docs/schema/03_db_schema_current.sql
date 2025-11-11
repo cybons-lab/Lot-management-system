@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict eYFFYdeATO9iVYGLErlDeKwwYOwfrAYxKi8TAPel87h4ZAYjVKdCMbQkl5B1rfa
+\restrict SDWP2yewA4j17ZNLug3y4aGmsp9Y4A44y3JbxPahWxhbn2Iv3pQiS7O1HhuBgPy
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.14
@@ -2144,6 +2144,82 @@ ALTER SEQUENCE public.unit_conversions_id_seq OWNED BY public.unit_conversions.i
 
 
 --
+-- Name: v_customer_daily_products; Type: VIEW; Schema: public; Owner: admin
+--
+
+CREATE VIEW public.v_customer_daily_products AS
+ SELECT DISTINCT f.customer_id,
+    f.product_id
+   FROM public.forecasts f
+  WHERE ((f.is_active = true) AND ((f.granularity)::text = 'daily'::text));
+
+
+ALTER TABLE public.v_customer_daily_products OWNER TO admin;
+
+--
+-- Name: v_lot_available_qty; Type: VIEW; Schema: public; Owner: admin
+--
+
+CREATE VIEW public.v_lot_available_qty AS
+ WITH mv AS (
+         SELECT sm.lot_id,
+            sum(sm.quantity_delta) AS current_qty
+           FROM public.stock_movements sm
+          WHERE (sm.deleted_at IS NULL)
+          GROUP BY sm.lot_id
+        )
+ SELECT l.id AS lot_id,
+    l.product_id,
+    l.warehouse_id,
+    COALESCE(mv.current_qty, (0)::numeric) AS available_qty,
+    l.receipt_date,
+    l.expiry_date,
+    l.lot_status,
+    l.is_locked
+   FROM (public.lots l
+     LEFT JOIN mv ON ((mv.lot_id = l.id)))
+  WHERE (((l.lot_status)::text = 'available'::text) AND (l.is_locked = false) AND ((l.expiry_date IS NULL) OR (l.expiry_date >= CURRENT_DATE)));
+
+
+ALTER TABLE public.v_lot_available_qty OWNER TO admin;
+
+--
+-- Name: v_order_line_context; Type: VIEW; Schema: public; Owner: admin
+--
+
+CREATE VIEW public.v_order_line_context AS
+ SELECT ol.id AS order_line_id,
+    o.customer_id,
+    ol.product_id,
+    ol.warehouse_id,
+    ol.quantity
+   FROM (public.order_lines ol
+     JOIN public.orders o ON ((o.id = ol.order_id)));
+
+
+ALTER TABLE public.v_order_line_context OWNER TO admin;
+
+--
+-- Name: v_candidate_lots_by_order_line; Type: VIEW; Schema: public; Owner: admin
+--
+
+CREATE VIEW public.v_candidate_lots_by_order_line AS
+ SELECT c.order_line_id,
+    l.lot_id,
+    l.product_id,
+    l.warehouse_id,
+    l.available_qty,
+    l.receipt_date,
+    l.expiry_date
+   FROM ((public.v_order_line_context c
+     JOIN public.v_customer_daily_products f ON (((f.customer_id = c.customer_id) AND (f.product_id = c.product_id))))
+     JOIN public.v_lot_available_qty l ON (((l.product_id = c.product_id) AND (l.available_qty > (0)::numeric))))
+  ORDER BY c.order_line_id, l.receipt_date;
+
+
+ALTER TABLE public.v_candidate_lots_by_order_line OWNER TO admin;
+
+--
 -- Name: warehouse; Type: TABLE; Schema: public; Owner: admin
 --
 
@@ -3269,10 +3345,24 @@ CREATE INDEX idx_allocations_status ON public.allocations USING btree (status);
 
 
 --
+-- Name: idx_forecasts_daily; Type: INDEX; Schema: public; Owner: admin
+--
+
+CREATE INDEX idx_forecasts_daily ON public.forecasts USING btree (customer_id, product_id) WHERE ((is_active = true) AND ((granularity)::text = 'daily'::text));
+
+
+--
 -- Name: idx_lots_lot_status; Type: INDEX; Schema: public; Owner: admin
 --
 
 CREATE INDEX idx_lots_lot_status ON public.lots USING btree (lot_status);
+
+
+--
+-- Name: idx_lots_product_fifo; Type: INDEX; Schema: public; Owner: admin
+--
+
+CREATE INDEX idx_lots_product_fifo ON public.lots USING btree (product_id, expiry_date, receipt_date) WHERE (((lot_status)::text = 'available'::text) AND (is_locked = false));
 
 
 --
@@ -3294,6 +3384,13 @@ CREATE INDEX idx_movements_related_order_id ON public.stock_movements USING btre
 --
 
 CREATE INDEX idx_order_lines_warehouse_id ON public.order_lines USING btree (warehouse_id);
+
+
+--
+-- Name: idx_stock_movements_lot; Type: INDEX; Schema: public; Owner: admin
+--
+
+CREATE INDEX idx_stock_movements_lot ON public.stock_movements USING btree (lot_id) WHERE (deleted_at IS NULL);
 
 
 --
@@ -4413,6 +4510,14 @@ ALTER TABLE ONLY public.order_lines
 
 
 --
+-- Name: order_lines order_lines_warehouse_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: admin
+--
+
+ALTER TABLE ONLY public.order_lines
+    ADD CONSTRAINT order_lines_warehouse_id_fkey FOREIGN KEY (warehouse_id) REFERENCES public.warehouses(id);
+
+
+--
 -- Name: purchase_requests purchase_requests_src_order_line_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: admin
 --
 
@@ -4503,5 +4608,5 @@ REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict eYFFYdeATO9iVYGLErlDeKwwYOwfrAYxKi8TAPel87h4ZAYjVKdCMbQkl5B1rfa
+\unrestrict SDWP2yewA4j17ZNLug3y4aGmsp9Y4A44y3JbxPahWxhbn2Iv3pQiS7O1HhuBgPy
 
