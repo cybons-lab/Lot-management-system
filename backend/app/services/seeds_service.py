@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
+from app.models.forecast_models import Forecast
 from app.models.inventory_models import Lot, StockMovement
 from app.models.masters_models import Customer, DeliveryPlace, Product, Supplier, Warehouse
 from app.models.orders_models import Allocation, Order, OrderLine
@@ -45,6 +46,7 @@ def create_seed_data(db: Session, req: SeedRequest) -> SeedResponse:
     created_suppliers: list[Supplier] = []
     created_delivery_places: list[DeliveryPlace] = []
     created_products: list[Product] = []
+    created_forecasts: list[Forecast] = []
     created_warehouses: list[Warehouse] = []
     created_lots: list[Lot] = []
     created_orders: list[Order] = []
@@ -158,6 +160,123 @@ def create_seed_data(db: Session, req: SeedRequest) -> SeedResponse:
             db.execute(stmt)
             db.flush()
         created_products = [Product(**row) for row in product_rows]
+
+    # --- Forecast ---
+    if req.forecasts > 0:
+        # 既存のcustomers と products を取得
+        existing_customers = []
+        existing_products = []
+        if not req.dry_run:
+            existing_customers = db.execute(select(Customer)).scalars().all()
+            existing_products = db.execute(select(Product)).scalars().all()
+        elif created_customers and created_products:
+            existing_customers = created_customers
+            existing_products = created_products
+
+        if existing_customers and existing_products:
+            from datetime import timezone
+            from uuid import uuid4
+
+            # 既存のforecast_idを取得（重複防止）
+            existing_forecast_ids = (
+                {fid for (fid,) in db.execute(select(Forecast.forecast_id)).all()}
+                if not req.dry_run
+                else set()
+            )
+
+            forecast_rows = []
+            now = datetime.now(timezone.utc)
+            today = now.date()
+
+            # 各customer × product ペアに対して forecasts を生成
+            # req.forecasts は「顧客・製品ペアあたりの生成数」として扱う
+            for cust in existing_customers:
+                for prod in existing_products:
+                    # daily: 今日±7日
+                    for day_offset in range(-7, 8):
+                        target_date = today + timedelta(days=day_offset)
+                        forecast_id = f"seed-{cust.id if not req.dry_run else 'C'}-{prod.id if not req.dry_run else 'P'}-daily-{target_date}"
+                        if forecast_id in existing_forecast_ids:
+                            continue
+                        forecast_rows.append(
+                            {
+                                "forecast_id": forecast_id,
+                                "granularity": "daily",
+                                "date_day": target_date,
+                                "date_dekad_start": None,
+                                "year_month": None,
+                                "qty_forecast": rng.randint(10, 1000),
+                                "version_no": 1,
+                                "version_issued_at": now,
+                                "source_system": "seed",
+                                "is_active": True,
+                                "product_id": prod.id if not req.dry_run else None,
+                                "customer_id": cust.id if not req.dry_run else None,
+                                "created_at": now,
+                                "updated_at": now,
+                            }
+                        )
+                        existing_forecast_ids.add(forecast_id)
+
+                    # dekad: 当月の3区間（1日, 11日, 21日）
+                    for dekad_start_day in [1, 11, 21]:
+                        dekad_start = today.replace(day=dekad_start_day)
+                        forecast_id = f"seed-{cust.id if not req.dry_run else 'C'}-{prod.id if not req.dry_run else 'P'}-dekad-{dekad_start}"
+                        if forecast_id in existing_forecast_ids:
+                            continue
+                        forecast_rows.append(
+                            {
+                                "forecast_id": forecast_id,
+                                "granularity": "dekad",
+                                "date_day": None,
+                                "date_dekad_start": dekad_start,
+                                "year_month": None,
+                                "qty_forecast": rng.randint(10, 1000),
+                                "version_no": 1,
+                                "version_issued_at": now,
+                                "source_system": "seed",
+                                "is_active": True,
+                                "product_id": prod.id if not req.dry_run else None,
+                                "customer_id": cust.id if not req.dry_run else None,
+                                "created_at": now,
+                                "updated_at": now,
+                            }
+                        )
+                        existing_forecast_ids.add(forecast_id)
+
+                    # monthly: 当月〜+2ヶ月
+                    for month_offset in range(0, 3):
+                        target_month_date = today.replace(day=1) + timedelta(days=31 * month_offset)
+                        year_month = target_month_date.strftime("%Y-%m")
+                        forecast_id = f"seed-{cust.id if not req.dry_run else 'C'}-{prod.id if not req.dry_run else 'P'}-monthly-{year_month}"
+                        if forecast_id in existing_forecast_ids:
+                            continue
+                        forecast_rows.append(
+                            {
+                                "forecast_id": forecast_id,
+                                "granularity": "monthly",
+                                "date_day": None,
+                                "date_dekad_start": None,
+                                "year_month": year_month,
+                                "qty_forecast": rng.randint(10, 1000),
+                                "version_no": 1,
+                                "version_issued_at": now,
+                                "source_system": "seed",
+                                "is_active": True,
+                                "product_id": prod.id if not req.dry_run else None,
+                                "customer_id": cust.id if not req.dry_run else None,
+                                "created_at": now,
+                                "updated_at": now,
+                            }
+                        )
+                        existing_forecast_ids.add(forecast_id)
+
+            # bulk insert
+            if forecast_rows and not req.dry_run:
+                db.bulk_insert_mappings(Forecast, forecast_rows)
+                db.flush()
+
+            created_forecasts = [Forecast(**row) for row in forecast_rows]
 
     # --- Warehouse ---
     if req.warehouses > 0:
@@ -335,6 +454,7 @@ def create_seed_data(db: Session, req: SeedRequest) -> SeedResponse:
             suppliers=db.scalar(select(func.count()).select_from(Supplier)) or 0,
             delivery_places=db.scalar(select(func.count()).select_from(DeliveryPlace)) or 0,
             products=db.scalar(select(func.count()).select_from(Product)) or 0,
+            forecasts=db.scalar(select(func.count()).select_from(Forecast)) or 0,
             warehouses=db.scalar(select(func.count()).select_from(Warehouse)) or 0,
             lots=db.scalar(select(func.count()).select_from(Lot)) or 0,
             stock_movements=db.scalar(select(func.count()).select_from(StockMovement)) or 0,
@@ -351,6 +471,7 @@ def create_seed_data(db: Session, req: SeedRequest) -> SeedResponse:
             suppliers=len(created_suppliers),
             delivery_places=len(created_delivery_places),
             products=len(created_products),
+            forecasts=len(created_forecasts),
             warehouses=len(created_warehouses),
             lots=len(created_lots),
             orders=len(created_orders),

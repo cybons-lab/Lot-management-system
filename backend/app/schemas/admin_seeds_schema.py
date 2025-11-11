@@ -11,6 +11,7 @@ class SeedRequest(BaseModel):
     suppliers: conint(ge=0) = 5
     delivery_places: conint(ge=0) = 5
     products: conint(ge=0) = 20
+    forecasts: conint(ge=0) = 0  # 0=無効化、>0で有効
     warehouses: conint(ge=0) = 3
     lots: conint(ge=0) = 80
     orders: conint(ge=0) = 25
@@ -23,6 +24,7 @@ class SeedSummary(BaseModel):
     suppliers: int
     delivery_places: int
     products: int
+    forecasts: int
     warehouses: int
     lots: int
     orders: int
@@ -37,6 +39,7 @@ class ActualCounts(BaseModel):
     suppliers: int
     delivery_places: int
     products: int
+    forecasts: int
     warehouses: int
     lots: int
     stock_movements: int
