@@ -264,7 +264,10 @@ export function SeedSimulateDialog({ open, onOpenChange }: Props) {
             {progress && (
               <div className="space-y-4 border-t pt-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold">進捗状況</h3>
+                  <div>
+                    <h3 className="text-sm font-semibold">進捗状況</h3>
+                    {taskId && <div className="text-xs opacity-70">Task: {taskId}</div>}
+                  </div>
                   <Badge variant={progress.status === "completed" ? "default" : "secondary"}>
                     {progress.status === "running" && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
                     {progress.phase} - {progress.progress_pct}%
