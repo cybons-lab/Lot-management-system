@@ -44,6 +44,7 @@ export type CapCheckResult = {
 
 export type SimulateResultSummary = {
   warehouses: number;
+  forecasts: number;
   orders: number;
   order_lines: number;
   lots: number;

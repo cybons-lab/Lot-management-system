@@ -105,6 +105,24 @@ def _expand_params(req: SimulateSeedRequest) -> dict[str, Any]:
     else:
         logger.info(f"Forecasts param from profile: {params.get('forecasts', 'not set')}")
 
+    case_mix = params.get("case_mix")
+    if isinstance(case_mix, dict):
+        numeric_values: list[float] = []
+        for key, value in case_mix.items():
+            if isinstance(value, (int, float)):
+                numeric_values.append(float(value))
+            else:
+                raise ValueError(
+                    f"case_mix values must be numeric for all entries ({key}={value!r})"
+                )
+
+        total_ratio = sum(numeric_values)
+        if total_ratio > 1.0:
+            raise ValueError(
+                f"case_mix total ({total_ratio}) must not exceed 1.0. "
+                "Adjust the ratios so the sum is <= 1.0."
+            )
+
     return params
 
 
