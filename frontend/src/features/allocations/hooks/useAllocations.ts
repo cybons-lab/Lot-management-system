@@ -20,7 +20,8 @@ export function useCandidateLots(
   productId?: number,
   warehouseId?: number,
 ) {
-  const enabled = typeof orderLineId === "number" && orderLineId > 0 && typeof productId === "number";
+  const enabled =
+    typeof orderLineId === "number" && orderLineId > 0 && typeof productId === "number";
 
   return useQuery<LotCandidateResponse>({
     queryKey: enabled
