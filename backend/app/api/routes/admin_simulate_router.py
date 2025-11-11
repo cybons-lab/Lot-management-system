@@ -29,13 +29,26 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
-def _run_simulation_task(db: Session, req: SimulateSeedRequest, task_id: str):
-    """バックグラウンドでシミュレーションを実行."""
+def _run_simulation_task(req: SimulateSeedRequest, task_id: str):
+    """
+    バックグラウンドでシミュレーションを実行.
+
+    重要: バックグラウンドタスクでは新しいDBセッションを作成する必要があります。
+    リクエストのセッションはレスポンス返却後にクローズされるため、
+    既存セッションを使用するとcommitが正しく機能しません。
+    """
+    from app.core.database import SessionLocal
+
+    db = SessionLocal()
     try:
         run_seed_simulation(db, req, task_id)
+        db.commit()  # 最終コミット
     except Exception as e:
         logger.error(f"Simulation task failed: {e}")
+        db.rollback()
         # エラーは service 内で tracker に記録済み
+    finally:
+        db.close()
 
 
 @router.post("/simulate-seed-data", response_model=SimulateSeedResponse)
@@ -70,8 +83,8 @@ def simulate_seed_data(
         f"Parameters: warehouses={req.warehouses}, lot_split_max={req.lot_split_max_per_line}",
     )
 
-    # バックグラウンドタスクで実行
-    background_tasks.add_task(_run_simulation_task, db, req, task_id)
+    # バックグラウンドタスクで実行（新しいセッションを作成）
+    background_tasks.add_task(_run_simulation_task, req, task_id)
 
     return SimulateSeedResponse(
         task_id=task_id,
@@ -218,8 +231,8 @@ def restore_seed_snapshot(
     task_id = tracker.create_job()
     tracker.add_log(task_id, f"Restoring from snapshot: {snapshot.name}")
 
-    # バックグラウンドタスクで実行
-    background_tasks.add_task(_run_simulation_task, db, req, task_id)
+    # バックグラウンドタスクで実行（新しいセッションを作成）
+    background_tasks.add_task(_run_simulation_task, req, task_id)
 
     return SeedSnapshotRestoreResponse(
         task_id=task_id,
