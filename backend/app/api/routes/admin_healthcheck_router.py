@@ -1,4 +1,4 @@
-# backend/app/api/routes/admin_healthcheck.py
+# backend/app/api/routes/admin_healthcheck_router.py
 """ヘルスチェックAPI - 各テーブルのデータ件数を確認."""
 
 from fastapi import APIRouter, Depends
@@ -23,7 +23,7 @@ def get_db_counts(db: Session = Depends(get_db)):
     Returns:
         dict: テーブル名をキー、件数を値とする辞書
     """
-    counts = {}
+    counts: dict[str, int] = {}
 
     # マスタテーブル
     counts["customers"] = db.scalar(select(func.count()).select_from(Customer)) or 0
@@ -46,9 +46,23 @@ def get_db_counts(db: Session = Depends(get_db)):
     # VIEWは件数取得が難しい場合があるのでスキップ
     # counts["lot_current_stock"] = ...
 
+    masters_total = (
+        counts["customers"] + counts["products"] + counts["warehouses"] + counts["suppliers"]
+    )
+    inventory_total = counts["lots"] + counts["stock_movements"]
+    orders_total = counts["orders"] + counts["order_lines"] + counts["allocations"]
+    forecasts_total = counts["forecasts"]
+
     return {
         "status": "ok",
         "counts": counts,
+        "totals": {
+            "masters": masters_total,
+            "inventory": inventory_total,
+            "orders": orders_total,
+            "forecasts": forecasts_total,
+            "overall": masters_total + inventory_total + orders_total + forecasts_total,
+        },
         "total": sum(counts.values()),
     }
 
