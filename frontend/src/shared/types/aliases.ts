@@ -33,11 +33,13 @@ export type OldWarehouse = Warehouse; // 旧名の受け皿
 export type LotResponse = {
   id: number;
   lot_number: string;
+  product_id?: number | null;
   product_code: string;
   product_name?: string | null;
+  supplier_id?: number | null;
   supplier_code: string;
-  warehouse_code?: string | null;
   warehouse_id?: number | null;
+  warehouse_code?: string | null;
   lot_unit?: string | null;
   receipt_date: string;
   mfg_date?: string | null;
@@ -88,7 +90,9 @@ export type CandidateLotItem = {
   free_qty: number;
   current_quantity: number;
   allocated_qty: number;
+  product_id?: number | null;
   product_code?: string | null;
+  warehouse_id?: number | null;
   warehouse_code?: string | null;
   expiry_date?: string | null;
   last_updated?: string | null;
@@ -156,7 +160,11 @@ export type OrderLine = {
   product_id?: number | null; // product_id基準の引当に必要
   product_code?: string | null; // Optional化（表示用のみ）
   product_name?: string;
+  warehouse_id?: number | null;
+  warehouse_code?: string | null;
+  customer_id?: number | null;
   customer_code?: string;
+  supplier_id?: number | null;
   supplier_code?: string;
   quantity: number;
   unit: string;
@@ -173,6 +181,7 @@ export type OrderLine = {
 export type OrderResponse = {
   id: number;
   order_no: string;
+  customer_id?: number | null;
   customer_code?: string | null;
   customer_name?: string | null;
   order_date: string;
