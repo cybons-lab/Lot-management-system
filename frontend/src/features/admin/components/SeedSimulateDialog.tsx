@@ -5,6 +5,7 @@ import * as React from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +16,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -23,7 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import {
   getSimulateProgress,
   getSimulateResult,
@@ -148,7 +147,7 @@ export function SeedSimulateDialog({ open, onOpenChange }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[calc(90vh-200px)]">
+        <div className="max-h-[calc(90vh-200px)] overflow-auto">
           <div className="space-y-6 p-1">
             {/* プロファイル選択 */}
             <div className="space-y-2">
@@ -234,10 +233,10 @@ export function SeedSimulateDialog({ open, onOpenChange }: Props) {
             {/* スナップショット設定 */}
             <div className="space-y-4 border-t pt-4">
               <div className="flex items-center space-x-2">
-                <Switch
+                <Checkbox
                   id="save-snapshot"
                   checked={form.save_snapshot || false}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked: boolean) =>
                     setForm((prev) => ({ ...prev, save_snapshot: checked }))
                   }
                 />
@@ -272,7 +271,7 @@ export function SeedSimulateDialog({ open, onOpenChange }: Props) {
                   </Badge>
                 </div>
 
-                <ScrollArea className="h-[200px] rounded border bg-muted p-3">
+                <div className="h-[200px] overflow-auto rounded border bg-muted p-3">
                   <div className="space-y-1 text-xs font-mono">
                     {progress.logs.map((log, i) => (
                       <div key={i} className="text-muted-foreground">
@@ -280,7 +279,7 @@ export function SeedSimulateDialog({ open, onOpenChange }: Props) {
                       </div>
                     ))}
                   </div>
-                </ScrollArea>
+                </div>
               </div>
             )}
 
@@ -369,7 +368,7 @@ export function SeedSimulateDialog({ open, onOpenChange }: Props) {
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={handleClose}>

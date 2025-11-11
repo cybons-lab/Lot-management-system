@@ -191,7 +191,7 @@ def delete_seed_snapshot(
 @router.post("/seed-snapshots/{snapshot_id}/restore", response_model=SeedSnapshotRestoreResponse)
 def restore_seed_snapshot(
     snapshot_id: int = Path(..., description="スナップショットID"),
-    background_tasks: BackgroundTasks = None,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ) -> SeedSnapshotRestoreResponse:
     """
