@@ -85,7 +85,9 @@ def _load_order(db: Session, order_id: int | None = None, order_no: str | None =
         raise ValueError("Either order_id or order_no must be provided")
 
     stmt: Select[Order] = select(Order).options(
-        selectinload(Order.order_lines).joinedload(OrderLine.allocations).joinedload(Allocation.lot),
+        selectinload(Order.order_lines)
+        .joinedload(OrderLine.allocations)
+        .joinedload(Allocation.lot),
         selectinload(Order.order_lines).joinedload(OrderLine.product),
     )
 
@@ -268,8 +270,7 @@ def commit_fefo_allocation(db: Session, order_id: int) -> FefoCommitResult:
     order = _load_order(db, order_id)
     if order.status not in {"open", "part_allocated"}:
         raise ValueError(
-            f"Order status '{order.status}' does not allow commit. "
-            f"Allowed: open, part_allocated"
+            f"Order status '{order.status}' does not allow commit. Allowed: open, part_allocated"
         )
 
     preview = preview_fefo_allocation(db, order_id)

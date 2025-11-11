@@ -74,7 +74,11 @@ class OrderStateMachine:
 
     TRANSITIONS: dict[OrderStatus, set[OrderStatus]] = {
         OrderStatus.DRAFT: {OrderStatus.OPEN, OrderStatus.CANCELLED},
-        OrderStatus.OPEN: {OrderStatus.PART_ALLOCATED, OrderStatus.ALLOCATED, OrderStatus.CANCELLED},
+        OrderStatus.OPEN: {
+            OrderStatus.PART_ALLOCATED,
+            OrderStatus.ALLOCATED,
+            OrderStatus.CANCELLED,
+        },
         OrderStatus.PART_ALLOCATED: {
             OrderStatus.OPEN,
             OrderStatus.ALLOCATED,
@@ -127,8 +131,14 @@ class OrderStateMachine:
             InvalidOrderStatusError: 遷移が不正な場合
         """
         # Enum に変換
-        from_enum = from_status if isinstance(from_status, OrderStatus) else OrderStatus.from_str(from_status)
-        to_enum = to_status if isinstance(to_status, OrderStatus) else OrderStatus.from_str(to_status)
+        from_enum = (
+            from_status
+            if isinstance(from_status, OrderStatus)
+            else OrderStatus.from_str(from_status)
+        )
+        to_enum = (
+            to_status if isinstance(to_status, OrderStatus) else OrderStatus.from_str(to_status)
+        )
 
         logger.debug(
             f"CALL validate_transition: from={from_enum.value} to={to_enum.value} operation={operation}"
