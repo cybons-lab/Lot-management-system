@@ -33,11 +33,13 @@ export type OldWarehouse = Warehouse; // 旧名の受け皿
 export type LotResponse = {
   id: number;
   lot_number: string;
+  product_id?: number | null;
   product_code: string;
   product_name?: string | null;
+  supplier_id?: number | null;
   supplier_code: string;
-  warehouse_code?: string | null;
   warehouse_id?: number | null;
+  warehouse_code?: string | null;
   lot_unit?: string | null;
   receipt_date: string;
   mfg_date?: string | null;
@@ -88,7 +90,9 @@ export type CandidateLotItem = {
   free_qty: number;
   current_quantity: number;
   allocated_qty: number;
+  product_id?: number | null;
   product_code?: string | null;
+  warehouse_id?: number | null;
   warehouse_code?: string | null;
   expiry_date?: string | null;
   last_updated?: string | null;
@@ -116,6 +120,36 @@ export type AllocationCancelRequest = {
 };
 
 // ---- Orders ----
+/**
+ * 注文ステータスEnum
+ * バックエンドの OrderStatus Enum に対応
+ */
+export enum OrderStatus {
+  DRAFT = "draft",
+  OPEN = "open",
+  PART_ALLOCATED = "part_allocated",
+  ALLOCATED = "allocated",
+  SHIPPED = "shipped",
+  CLOSED = "closed",
+  CANCELLED = "cancelled",
+}
+
+/**
+ * ステータス表示用のラベルと色
+ */
+export const ORDER_STATUS_DISPLAY: Record<OrderStatus, { label: string; variant: string }> = {
+  [OrderStatus.DRAFT]: { label: "下書き", variant: "bg-gray-100 text-gray-800" },
+  [OrderStatus.OPEN]: { label: "未処理", variant: "bg-yellow-100 text-yellow-800" },
+  [OrderStatus.PART_ALLOCATED]: {
+    label: "部分引当",
+    variant: "bg-orange-100 text-orange-800",
+  },
+  [OrderStatus.ALLOCATED]: { label: "引当済", variant: "bg-blue-100 text-blue-800" },
+  [OrderStatus.SHIPPED]: { label: "出荷済", variant: "bg-green-100 text-green-800" },
+  [OrderStatus.CLOSED]: { label: "完了", variant: "bg-gray-100 text-gray-800" },
+  [OrderStatus.CANCELLED]: { label: "キャンセル", variant: "bg-red-100 text-red-800" },
+};
+
 export type OrderLine = {
   id: number;
   order_id?: number;
@@ -123,7 +157,11 @@ export type OrderLine = {
   product_id?: number | null; // product_id基準の引当に必要
   product_code?: string | null; // Optional化（表示用のみ）
   product_name?: string;
+  warehouse_id?: number | null;
+  warehouse_code?: string | null;
+  customer_id?: number | null;
   customer_code?: string;
+  supplier_id?: number | null;
   supplier_code?: string;
   quantity: number;
   unit: string;
@@ -140,6 +178,7 @@ export type OrderLine = {
 export type OrderResponse = {
   id: number;
   order_no: string;
+  customer_id?: number | null;
   customer_code?: string | null;
   customer_name?: string | null;
   order_date: string;
