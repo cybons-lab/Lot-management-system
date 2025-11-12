@@ -446,7 +446,12 @@ function LotCreateForm({ onSubmit, onCancel, isSubmitting }: LotCreateFormProps)
 
         <div>
           <Label htmlFor="delivery_place_code">納品場所コード *</Label>
-          <Input id="delivery_place_code" name="delivery_place_code" required placeholder="例: DP01" />
+          <Input
+            id="delivery_place_code"
+            name="delivery_place_code"
+            required
+            placeholder="例: DP01"
+          />
         </div>
 
         <div>

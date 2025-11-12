@@ -80,7 +80,9 @@ export function WarehouseAllocationModal({
     0,
   );
   const isValid = Math.abs(allocatedTotal - totalQuantity) < 0.01; // 浮動小数点誤差を考慮
-  const usedWarehouses = new Set(allocations.map((a: WarehouseAllocation) => a.delivery_place_code));
+  const usedWarehouses = new Set(
+    allocations.map((a: WarehouseAllocation) => a.delivery_place_code),
+  );
 
   const handleSave = () => {
     if (isValid) {
@@ -140,7 +142,8 @@ export function WarehouseAllocationModal({
                             key={wh.code}
                             value={wh.code}
                             disabled={
-                              usedWarehouses.has(wh.code) && allocation.delivery_place_code !== wh.code
+                              usedWarehouses.has(wh.code) &&
+                              allocation.delivery_place_code !== wh.code
                             }
                           >
                             {wh.code} - {wh.name}
