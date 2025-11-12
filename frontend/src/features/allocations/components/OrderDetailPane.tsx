@@ -44,7 +44,7 @@ export function OrderDetailPane({
         </h2>
         {orderDetailQuery.data && (
           <div className="mt-2 flex gap-4 text-sm text-gray-600">
-            <span>得意先: {orderDetailQuery.data.customer_code}</span>
+            <span>得意先: {orderDetailQuery.data.customer_code || "—"}</span>
             <span>
               受注日:{" "}
               {format(new Date(orderDetailQuery.data.order_date), "yyyy/MM/dd", {
