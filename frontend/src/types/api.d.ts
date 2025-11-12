@@ -241,7 +241,7 @@ export interface paths {
     };
     /**
      * List Lots
-     * @description ロット一覧取得
+     * @description ロット一覧取得.
      *
      *     Args:
      *         skip: スキップ件数
@@ -252,12 +252,13 @@ export interface paths {
      *         expiry_from: 有効期限開始日
      *         expiry_to: 有効期限終了日
      *         with_stock: 在庫あり(>0)のみ取得
+     *         db: データベースセッション
      */
     get: operations["list_lots_api_lots_get"];
     put?: never;
     /**
      * Create Lot
-     * @description ロット新規登録
+     * @description ロット新規登録.
      *
      *     - ロットマスタ登録
      *     - 現在在庫テーブル初期化
@@ -278,18 +279,18 @@ export interface paths {
     };
     /**
      * Get Lot
-     * @description ロット詳細取得
+     * @description ロット詳細取得.
      */
     get: operations["get_lot_api_lots__lot_id__get"];
     /**
      * Update Lot
-     * @description ロット更新
+     * @description ロット更新.
      */
     put: operations["update_lot_api_lots__lot_id__put"];
     post?: never;
     /**
      * Delete Lot
-     * @description ロット削除
+     * @description ロット削除.
      */
     delete: operations["delete_lot_api_lots__lot_id__delete"];
     options?: never;
@@ -306,7 +307,7 @@ export interface paths {
     };
     /**
      * List Lot Movements
-     * @description ロットの在庫変動履歴取得
+     * @description ロットの在庫変動履歴取得.
      */
     get: operations["list_lot_movements_api_lots__lot_id__movements_get"];
     put?: never;
@@ -328,7 +329,7 @@ export interface paths {
     put?: never;
     /**
      * Create Stock Movement
-     * @description 在庫変動記録
+     * @description 在庫変動記録.
      *
      *     - 在庫変動履歴追加
      *     - 現在在庫更新
@@ -349,7 +350,7 @@ export interface paths {
     };
     /**
      * List Orders
-     * @description 受注一覧取得（読み取り専用）
+     * @description 受注一覧取得（読み取り専用）.
      *
      *     トランザクション不要のため、通常のSessionを使用
      *
@@ -361,7 +362,7 @@ export interface paths {
     put?: never;
     /**
      * Create Order
-     * @description 受注作成
+     * @description 受注作成.
      *
      *     【修正#5】UnitOfWorkを依存注入で取得（SessionLocal直参照を回避）
      *
@@ -392,7 +393,7 @@ export interface paths {
     };
     /**
      * Get Order
-     * @description 受注詳細取得（読み取り専用、明細含む）
+     * @description 受注詳細取得（読み取り専用、明細含む）.
      *
      *     トランザクション不要のため、通常のSessionを使用
      *
@@ -423,7 +424,7 @@ export interface paths {
     head?: never;
     /**
      * Update Order Status
-     * @description 受注ステータス更新
+     * @description 受注ステータス更新.
      *
      *     【修正#2】dict入力を廃止し、OrderStatusUpdateスキーマを使用
      *     【修正#5】UnitOfWorkを依存注入で取得
@@ -457,7 +458,7 @@ export interface paths {
     post?: never;
     /**
      * Cancel Order
-     * @description 受注キャンセル
+     * @description 受注キャンセル.
      *
      *     【修正#5】UnitOfWorkを依存注入で取得
      *
@@ -491,7 +492,7 @@ export interface paths {
     /**
      * Drag Assign Allocation
      * @description 互換エンドポイント: ドラッグ引当
-     *     ※元々 orders.py に存在したものを再実装（URL・I/O変更なし）
+     *     ※元々 orders.py に存在したものを再実装（URL・I/O変更なし）.
      */
     post: operations["drag_assign_allocation_api_allocations_drag_assign_post"];
     delete?: never;
@@ -512,7 +513,7 @@ export interface paths {
     post?: never;
     /**
      * Delete Allocation
-     * @description 引当取消（DELETE API, ソフトキャンセル対応）
+     * @description 引当取消（DELETE API, ソフトキャンセル対応）.
      */
     delete: operations["delete_allocation_api_allocations__allocation_id__delete"];
     options?: never;
@@ -531,7 +532,7 @@ export interface paths {
     put?: never;
     /**
      * Preview Allocations
-     * @description 在庫を変更しない FEFO 引当プレビュー
+     * @description 在庫を変更しない FEFO 引当プレビュー.
      */
     post: operations["preview_allocations_api_allocations_preview_post"];
     delete?: never;
@@ -551,9 +552,43 @@ export interface paths {
     put?: never;
     /**
      * Allocate Order
-     * @description 注文ID単位でのFEFO引当確定
+     * @description 注文ID単位でのFEFO引当確定.
      */
     post: operations["allocate_order_api_allocations_orders__order_id__allocate_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/allocations/candidate-lots": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Candidate Lots
+     * @description 候補ロット一覧取得（product_id基準）.
+     *
+     *     Args:
+     *         product_id: 製品ID（必須）
+     *         warehouse_id: 倉庫ID（任意フィルタ）
+     *         limit: 最大取得件数（デフォルト200）
+     *         db: データベースセッション
+     *
+     *     Returns:
+     *         CandidateLotsResponse: 候補ロット一覧
+     *
+     *     Note:
+     *         - free_qty > 0 のみ返却
+     *         - ロック済み・期限切れは除外
+     *         - 並び順: expiry_date NULLS FIRST, lot_id
+     */
+    get: operations["get_candidate_lots_api_allocations_candidate_lots_get"];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -571,7 +606,7 @@ export interface paths {
     put?: never;
     /**
      * Submit Ocr Data
-     * @description AI-OCR受注データ取込
+     * @description AI-OCR受注データ取込.
      *
      *     処理フロー:
      *     1. OCR取込ログ作成
@@ -598,7 +633,7 @@ export interface paths {
     };
     /**
      * List Ocr Submissions
-     * @description OCR取込ログ一覧取得
+     * @description OCR取込ログ一覧取得.
      */
     get: operations["list_ocr_submissions_api_integration_ai_ocr_submissions_get"];
     put?: never;
@@ -620,7 +655,7 @@ export interface paths {
     put?: never;
     /**
      * Register To Sap
-     * @description SAP連携(手動送信)
+     * @description SAP連携(手動送信).
      *
      *     注意: 実際のSAP APIは実装されていません。
      *     これはモック実装です。
@@ -641,7 +676,7 @@ export interface paths {
     };
     /**
      * List Sap Logs
-     * @description SAP連携ログ一覧取得
+     * @description SAP連携ログ一覧取得.
      */
     get: operations["list_sap_logs_api_integration_sap_logs_get"];
     put?: never;
@@ -661,7 +696,7 @@ export interface paths {
     };
     /**
      * Get Dashboard Stats
-     * @description ダッシュボード用の統計情報を返す
+     * @description ダッシュボード用の統計情報を返す.
      */
     get: operations["get_dashboard_stats_api_admin_stats_get"];
     put?: never;
@@ -684,7 +719,9 @@ export interface paths {
     /**
      * Reset Database
      * @description データベースリセット（開発環境のみ）
-     *     新スキーマに対応したマスタデータを投入
+     *     - テーブル構造は保持したまま、全データを削除
+     *     - alembic_versionは保持（マイグレーション履歴を維持）
+     *     - TRUNCATE ... RESTART IDENTITY CASCADEで高速にデータをクリア.
      */
     post: operations["reset_database_api_admin_reset_database_post"];
     delete?: never;
@@ -693,7 +730,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/admin/load-full-sample-data": {
+  "/api/admin/seeds": {
     parameters: {
       query?: never;
       header?: never;
@@ -703,22 +740,21 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Load Full Sample Data
-     * @description 一括サンプルデータ投入（新スキーマ対応版）
+     * Create Seeds
+     * @description シードデータ生成（UPSERT方式）.
      *
-     *     処理順序:
-     *     1. 製品マスタ
-     *     2. ロット登録
-     *     3. 受注登録
+     *     - 既存データに追加する形でサンプルデータを投入
+     *     - UPSERT（ON CONFLICT DO NOTHING）で重複を防止
+     *     - dry_run=true で投入前のサマリのみ確認可能
      */
-    post: operations["load_full_sample_data_api_admin_load_full_sample_data_post"];
+    post: operations["create_seeds_api_admin_seeds_post"];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  "/api/admin/presets": {
+  "/api/admin/diagnostics/allocatable-lots": {
     parameters: {
       query?: never;
       header?: never;
@@ -726,10 +762,24 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * List Presets
-     * @description Return available preset names.
+     * Get Allocatable Lots
+     * @description 診断API: 引当可能ロット一覧（読み取り専用）.
+     *
+     *     Args:
+     *         prod: 製品コード（任意フィルタ）
+     *         wh: 倉庫コード（任意フィルタ）
+     *         limit: 最大取得件数（デフォルト100）
+     *         db: データベースセッション
+     *
+     *     Returns:
+     *         AllocatableLotsResponse: 引当可能ロット一覧
+     *
+     *     Note:
+     *         - 読み取り専用トランザクション
+     *         - free_qty > 0 のみ
+     *         - ロック済み・期限切れは除外
      */
-    get: operations["list_presets_api_admin_presets_get"];
+    get: operations["get_allocatable_lots_api_admin_diagnostics_allocatable_lots_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -738,20 +788,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/admin/load-preset": {
+  "/api/admin/healthcheck/db-counts": {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    get?: never;
-    put?: never;
     /**
-     * Load Preset
-     * @description Load a preset JSON file and bulk insert masters.
+     * Get Db Counts
+     * @description 各テーブルのレコード件数を返す.
+     *
+     *     Returns:
+     *         dict: テーブル名をキー、件数を値とする辞書
      */
-    post: operations["load_preset_api_admin_load_preset_post"];
+    get: operations["get_db_counts_api_admin_healthcheck_db_counts_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/admin/healthcheck/masters": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Masters Health
+     * @description マスタテーブルのヘルスチェック.
+     *
+     *     Returns:
+     *         dict: 各マスタテーブルの件数とサンプルデータ（先頭5件のコード）
+     */
+    get: operations["get_masters_health_api_admin_healthcheck_masters_get"];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -767,7 +843,7 @@ export interface paths {
     };
     /**
      * List Forecast Summary
-     * @description Forecast一覧（フロント表示用）
+     * @description Forecast一覧（フロント表示用）.
      */
     get: operations["list_forecast_summary_api_forecast_list_get"];
     put?: never;
@@ -787,13 +863,13 @@ export interface paths {
     };
     /**
      * List Forecasts
-     * @description フォーキャスト一覧取得 (生データ)
+     * @description フォーキャスト一覧取得 (生データ).
      */
     get: operations["list_forecasts_api_forecast_get"];
     put?: never;
     /**
      * Create Forecast
-     * @description フォーキャスト単一登録
+     * @description フォーキャスト単一登録.
      */
     post: operations["create_forecast_api_forecast_post"];
     delete?: never;
@@ -811,18 +887,18 @@ export interface paths {
     };
     /**
      * Get Forecast
-     * @description フォーキャスト詳細取得
+     * @description フォーキャスト詳細取得.
      */
     get: operations["get_forecast_api_forecast__forecast_id__get"];
     /**
      * Update Forecast
-     * @description フォーキャスト更新
+     * @description フォーキャスト更新.
      */
     put: operations["update_forecast_api_forecast__forecast_id__put"];
     post?: never;
     /**
      * Delete Forecast
-     * @description フォーキャスト削除
+     * @description フォーキャスト削除.
      */
     delete: operations["delete_forecast_api_forecast__forecast_id__delete"];
     options?: never;
@@ -841,7 +917,7 @@ export interface paths {
     put?: never;
     /**
      * Bulk Import Forecasts
-     * @description フォーキャスト一括登録
+     * @description フォーキャスト一括登録.
      */
     post: operations["bulk_import_forecasts_api_forecast_bulk_post"];
     delete?: never;
@@ -859,7 +935,7 @@ export interface paths {
     };
     /**
      * List Versions
-     * @description フォーキャストバージョン一覧取得
+     * @description フォーキャストバージョン一覧取得.
      */
     get: operations["list_versions_api_forecast_versions_get"];
     put?: never;
@@ -881,7 +957,7 @@ export interface paths {
     put?: never;
     /**
      * Activate Version
-     * @description 指定バージョンをアクティブ化
+     * @description 指定バージョンをアクティブ化.
      */
     post: operations["activate_version_api_forecast_activate_post"];
     delete?: never;
@@ -901,65 +977,13 @@ export interface paths {
     put?: never;
     /**
      * Match Forecasts
-     * @description フォーキャストと受注明細の手動マッチング
+     * @description フォーキャストと受注明細の手動マッチング.
      */
     post: operations["match_forecasts_api_forecast_match_post"];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
-    trace?: never;
-  };
-  "/api/products": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * List Products
-     * @description List products with pagination and optional fuzzy search.
-     */
-    get: operations["list_products_api_products_get"];
-    put?: never;
-    /**
-     * Create Product
-     * @description Create a new product.
-     */
-    post: operations["create_product_api_products_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/products/{product_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Product
-     * @description Retrieve a single product.
-     */
-    get: operations["get_product_api_products__product_id__get"];
-    put?: never;
-    post?: never;
-    /**
-     * Delete Product
-     * @description Delete a product.
-     */
-    delete: operations["delete_product_api_products__product_id__delete"];
-    options?: never;
-    head?: never;
-    /**
-     * Update Product
-     * @description Partially update a product.
-     */
-    patch: operations["update_product_api_products__product_id__patch"];
     trace?: never;
   };
   "/api/warehouse-alloc/warehouses": {
@@ -971,7 +995,7 @@ export interface paths {
     };
     /**
      * List Warehouses
-     * @description 配分対象の倉庫一覧（新しいwarehouseテーブル）を取得
+     * @description 配分対象の倉庫一覧（新しいwarehouseテーブル）を取得.
      */
     get: operations["list_warehouses_api_warehouse_alloc_warehouses_get"];
     put?: never;
@@ -1050,6 +1074,141 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/admin/simulate-seed-data": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Simulate Seed Data
+     * @description テストデータシミュレーションを開始.
+     *
+     *     - Reset → Insert を一括実行
+     *     - バックグラウンドでジョブを起動
+     *     - task_id を返す
+     */
+    post: operations["simulate_seed_data_api_admin_simulate_seed_data_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/admin/simulate-progress/{task_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Simulate Progress
+     * @description テストデータシミュレーションの進捗を取得.
+     *
+     *     - ポーリングJSONで進捗を返す（3〜5秒間隔でクライアントが呼び出す想定）
+     */
+    get: operations["get_simulate_progress_api_admin_simulate_progress__task_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/admin/simulate-result/{task_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Simulate Result
+     * @description テストデータシミュレーションの結果を取得.
+     *
+     *     - 完了サマリを返す
+     */
+    get: operations["get_simulate_result_api_admin_simulate_result__task_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/admin/seed-snapshots": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Seed Snapshots
+     * @description スナップショット一覧を取得.
+     */
+    get: operations["list_seed_snapshots_api_admin_seed_snapshots_get"];
+    put?: never;
+    /**
+     * Create Seed Snapshot
+     * @description スナップショットを手動作成.
+     */
+    post: operations["create_seed_snapshot_api_admin_seed_snapshots_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/admin/seed-snapshots/{snapshot_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Delete Seed Snapshot
+     * @description スナップショットを削除.
+     */
+    delete: operations["delete_seed_snapshot_api_admin_seed_snapshots__snapshot_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/admin/seed-snapshots/{snapshot_id}/restore": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Restore Seed Snapshot
+     * @description スナップショットから復元.
+     *
+     *     - 保存されたパラメータで Reset → Insert を実行
+     *     - task_id を返す
+     */
+    post: operations["restore_seed_snapshot_api_admin_seed_snapshots__snapshot_id__restore_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/": {
     parameters: {
       query?: never;
@@ -1059,7 +1218,7 @@ export interface paths {
     };
     /**
      * Root
-     * @description ルートエンドポイント
+     * @description ルートエンドポイント.
      */
     get: operations["root__get"];
     put?: never;
@@ -1075,21 +1234,136 @@ export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
     /**
-     * AdminPresetListResponse
-     * @description プリセット名の一覧レスポンス。
+     * ActualCounts
+     * @description 実際のDB件数（投入後）.
      */
-    AdminPresetListResponse: {
-      /** Presets */
-      presets: string[];
+    ActualCounts: {
+      /** Customers */
+      customers: number;
+      /** Suppliers */
+      suppliers: number;
+      /** Delivery Places */
+      delivery_places: number;
+      /** Products */
+      products: number;
+      /** Forecasts */
+      forecasts: number;
+      /** Warehouses */
+      warehouses: number;
+      /** Lots */
+      lots: number;
+      /** Stock Movements */
+      stock_movements: number;
+      /** Orders */
+      orders: number;
+      /** Order Lines */
+      order_lines: number;
+      /** Allocations */
+      allocations: number;
     };
     /**
-     * AdminPresetLoadResponse
-     * @description プリセット投入結果。
+     * AllocatableLotItem
+     * @description 診断用引当可能ロット項目.
      */
-    AdminPresetLoadResponse: {
-      /** Preset */
-      preset: string;
-      result: components["schemas"]["MasterBulkLoadResponse"];
+    AllocatableLotItem: {
+      /** Lot Id */
+      lot_id: number;
+      /** Lot Number */
+      lot_number: string;
+      /** Product Id */
+      product_id: number;
+      /** Product Code */
+      product_code?: string | null;
+      /** Warehouse Id */
+      warehouse_id: number;
+      /** Free Qty */
+      free_qty: number;
+      /** Current Quantity */
+      current_quantity: number;
+      /** Allocated Qty */
+      allocated_qty: number;
+      /** Expiry Date */
+      expiry_date?: string | null;
+      /**
+       * Is Locked
+       * @default false
+       */
+      is_locked: boolean;
+      /** Last Updated */
+      last_updated?: string | null;
+    };
+    /**
+     * AllocatableLotsResponse
+     * @description 診断用引当可能ロット一覧レスポンス.
+     */
+    AllocatableLotsResponse: {
+      /** Items */
+      items?: components["schemas"]["AllocatableLotItem"][];
+      /**
+       * Total
+       * @default 0
+       */
+      total: number;
+    };
+    /**
+     * CandidateLotItem
+     * @description 候補ロット項目（product_id基準）.
+     */
+    CandidateLotItem: {
+      /** Lot Id */
+      lot_id: number;
+      /** Lot Number */
+      lot_number: string;
+      /** Free Qty */
+      free_qty: number;
+      /** Current Quantity */
+      current_quantity: number;
+      /** Allocated Qty */
+      allocated_qty: number;
+      /** Product Id */
+      product_id?: number | null;
+      /** Product Code */
+      product_code?: string | null;
+      /** Warehouse Id */
+      warehouse_id?: number | null;
+      /** Expiry Date */
+      expiry_date?: string | null;
+      /** Last Updated */
+      last_updated?: string | null;
+    };
+    /**
+     * CandidateLotsResponse
+     * @description 候補ロット一覧レスポンス.
+     */
+    CandidateLotsResponse: {
+      /** Items */
+      items?: components["schemas"]["CandidateLotItem"][];
+      /**
+       * Total
+       * @default 0
+       */
+      total: number;
+    };
+    /**
+     * CapCheckResult
+     * @description 上限チェック結果.
+     */
+    CapCheckResult: {
+      /**
+       * Lot Split
+       * @description ロット分割チェック（OK/NG）
+       */
+      lot_split: string;
+      /**
+       * Destinations
+       * @description 納品先数チェック（OK/NG）
+       */
+      destinations: string;
+      /**
+       * Order Lines
+       * @description 受注明細行チェック（OK/NG）
+       */
+      order_lines: string;
     };
     /** CustomerCreate */
     CustomerCreate: {
@@ -1118,7 +1392,7 @@ export interface components {
     };
     /**
      * DashboardStatsResponse
-     * @description ダッシュボード統計レスポンス
+     * @description ダッシュボード統計レスポンス.
      */
     DashboardStatsResponse: {
       /** Total Stock */
@@ -1149,8 +1423,12 @@ export interface components {
     FefoLineAllocation: {
       /** Order Line Id */
       order_line_id: number;
+      /** Product Id */
+      product_id?: number | null;
       /** Product Code */
       product_code: string;
+      /** Warehouse Id */
+      warehouse_id?: number | null;
       /** Required Qty */
       required_qty: number;
       /** Already Allocated Qty */
@@ -1191,7 +1469,7 @@ export interface components {
     };
     /**
      * ForecastActivateRequest
-     * @description バージョンアクティブ化リクエスト
+     * @description バージョンアクティブ化リクエスト.
      */
     ForecastActivateRequest: {
       /** Version No */
@@ -1204,7 +1482,7 @@ export interface components {
     };
     /**
      * ForecastActivateResponse
-     * @description バージョンアクティブ化レスポンス
+     * @description バージョンアクティブ化レスポンス.
      */
     ForecastActivateResponse: {
       /** Success */
@@ -1221,7 +1499,7 @@ export interface components {
     };
     /**
      * ForecastBulkImportRequest
-     * @description 一括インポートリクエスト
+     * @description 一括インポートリクエスト.
      */
     ForecastBulkImportRequest: {
       /** Version No */
@@ -1246,7 +1524,7 @@ export interface components {
     };
     /**
      * ForecastBulkImportResponse
-     * @description 一括インポートレスポンス
+     * @description 一括インポートレスポンス.
      */
     ForecastBulkImportResponse: {
       /** Success */
@@ -1266,7 +1544,7 @@ export interface components {
     };
     /**
      * ForecastCreate
-     * @description フォーキャスト作成リクエスト
+     * @description フォーキャスト作成リクエスト.
      */
     ForecastCreate: {
       /** Product Id */
@@ -1309,7 +1587,7 @@ export interface components {
     };
     /**
      * ForecastItemOut
-     * @description Forecast一覧（フロント表示用）
+     * @description Forecast一覧（フロント表示用）.
      */
     ForecastItemOut: {
       /** Id */
@@ -1375,7 +1653,7 @@ export interface components {
     };
     /**
      * ForecastMatchRequest
-     * @description マッチングリクエスト
+     * @description マッチングリクエスト.
      */
     ForecastMatchRequest: {
       /** Order Id */
@@ -1394,7 +1672,7 @@ export interface components {
     };
     /**
      * ForecastMatchResponse
-     * @description マッチングレスポンス
+     * @description マッチングレスポンス.
      */
     ForecastMatchResponse: {
       /** Success */
@@ -1415,7 +1693,7 @@ export interface components {
     };
     /**
      * ForecastMatchResult
-     * @description 個別マッチング結果
+     * @description 個別マッチング結果.
      */
     ForecastMatchResult: {
       /** Order Line Id */
@@ -1439,7 +1717,7 @@ export interface components {
     };
     /**
      * ForecastResponse
-     * @description フォーキャストレスポンス
+     * @description フォーキャストレスポンス.
      */
     ForecastResponse: {
       /**
@@ -1495,7 +1773,7 @@ export interface components {
     };
     /**
      * ForecastUpdate
-     * @description フォーキャスト更新リクエスト
+     * @description フォーキャスト更新リクエスト.
      */
     ForecastUpdate: {
       /** Qty Forecast */
@@ -1505,7 +1783,7 @@ export interface components {
     };
     /**
      * ForecastVersionInfo
-     * @description バージョン情報
+     * @description バージョン情報.
      */
     ForecastVersionInfo: {
       /** Version No */
@@ -1524,25 +1802,11 @@ export interface components {
     };
     /**
      * ForecastVersionListResponse
-     * @description バージョン一覧レスポンス
+     * @description バージョン一覧レスポンス.
      */
     ForecastVersionListResponse: {
       /** Versions */
       versions: components["schemas"]["ForecastVersionInfo"][];
-    };
-    /**
-     * FullSampleDataRequest
-     * @description 一括サンプルデータ投入リクエスト
-     *
-     *     注意: 投入順序が重要 (マスタ -> ロット -> 受注)
-     */
-    FullSampleDataRequest: {
-      /** Products */
-      products?: components["schemas"]["app__schemas__masters__ProductCreate"][] | null;
-      /** Lots */
-      lots?: components["schemas"]["LotCreate"][] | null;
-      /** Orders */
-      orders?: components["schemas"]["OcrOrderRecord"][] | null;
     };
     /** HTTPValidationError */
     HTTPValidationError: {
@@ -1553,8 +1817,6 @@ export interface components {
     LotCreate: {
       /** Supplier Code */
       supplier_code: string;
-      /** Product Code */
-      product_code: string;
       /** Lot Number */
       lot_number: string;
       /**
@@ -1566,10 +1828,12 @@ export interface components {
       mfg_date?: string | null;
       /** Expiry Date */
       expiry_date?: string | null;
-      /** Warehouse Code */
-      warehouse_code?: string | null;
       /** Warehouse Id */
       warehouse_id?: number | null;
+      /** Product Id */
+      product_id: number;
+      /** Supplier Id */
+      supplier_id?: number | null;
       /** Lot Unit */
       lot_unit?: string | null;
       /** Kanban Class */
@@ -1586,6 +1850,11 @@ export interface components {
       qc_certificate_status?: string | null;
       /** Qc Certificate File */
       qc_certificate_file?: string | null;
+      /**
+       * Lot Status
+       * @default available
+       */
+      lot_status: string | null;
     };
     /** LotResponse */
     LotResponse: {
@@ -1598,8 +1867,6 @@ export interface components {
       updated_at?: string | null;
       /** Supplier Code */
       supplier_code?: string | null;
-      /** Product Code */
-      product_code?: string | null;
       /** Lot Number */
       lot_number: string;
       /**
@@ -1611,10 +1878,12 @@ export interface components {
       mfg_date?: string | null;
       /** Expiry Date */
       expiry_date?: string | null;
-      /** Warehouse Code */
-      warehouse_code?: string | null;
       /** Warehouse Id */
       warehouse_id?: number | null;
+      /** Product Id */
+      product_id?: number | null;
+      /** Supplier Id */
+      supplier_id?: number | null;
       /** Lot Unit */
       lot_unit?: string | null;
       /** Kanban Class */
@@ -1631,8 +1900,15 @@ export interface components {
       qc_certificate_status?: string | null;
       /** Qc Certificate File */
       qc_certificate_file?: string | null;
+      /**
+       * Lot Status
+       * @default available
+       */
+      lot_status: string;
       /** Id */
       id: number;
+      /** Product Code */
+      product_code?: string | null;
       /**
        * Current Quantity
        * @default 0
@@ -1649,8 +1925,6 @@ export interface components {
       mfg_date?: string | null;
       /** Expiry Date */
       expiry_date?: string | null;
-      /** Warehouse Code */
-      warehouse_code?: string | null;
       /** Warehouse Id */
       warehouse_id?: number | null;
       /** Lot Unit */
@@ -1672,7 +1946,7 @@ export interface components {
       /** Customers */
       customers?: components["schemas"]["CustomerCreate"][];
       /** Products */
-      products?: components["schemas"]["app__schemas__masters__ProductCreate"][];
+      products?: components["schemas"]["ProductCreate"][];
     };
     /**
      * MasterBulkLoadResponse
@@ -1688,7 +1962,7 @@ export interface components {
     };
     /**
      * OcrOrderRecord
-     * @description OCR受注レコード
+     * @description OCR受注レコード.
      */
     OcrOrderRecord: {
       /** Order No */
@@ -1702,7 +1976,7 @@ export interface components {
     };
     /**
      * OcrSubmissionRequest
-     * @description OCR取込リクエスト
+     * @description OCR取込リクエスト.
      */
     OcrSubmissionRequest: {
       /**
@@ -1724,7 +1998,7 @@ export interface components {
     };
     /**
      * OcrSubmissionResponse
-     * @description OCR取込レスポンス
+     * @description OCR取込レスポンス.
      */
     OcrSubmissionResponse: {
       /** Status */
@@ -1784,17 +2058,25 @@ export interface components {
       /** Line No */
       line_no: number;
       /** Product Code */
-      product_code: string;
+      product_code?: string | null;
+      /** Product Id */
+      product_id?: number | null;
+      /** Warehouse Id */
+      warehouse_id?: number | null;
       /** Quantity */
       quantity: number;
       /** Unit */
-      unit: string;
+      unit?: string | null;
       /** Due Date */
       due_date?: string | null;
       /** Next Div */
       next_div?: string | null;
       /** Destination Id */
       destination_id?: number | null;
+      /** Delivery Place Id */
+      delivery_place_id?: number | null;
+      /** Delivery Place Code */
+      delivery_place_code?: string | null;
       /** External Unit */
       external_unit?: string | null;
     };
@@ -1802,8 +2084,8 @@ export interface components {
     OrderLineDemandSchema: {
       /** Product Code */
       product_code: string;
-      /** Warehouse Code */
-      warehouse_code: string;
+      /** Warehouse Id */
+      warehouse_id?: number | null;
       /** Quantity */
       quantity: number;
     };
@@ -1813,12 +2095,20 @@ export interface components {
       id: number;
       /** Line No */
       line_no?: number | null;
+      /** Product Id */
+      product_id?: number | null;
       /** Product Code */
       product_code?: string | null;
       /** Product Name */
       product_name?: string | null;
+      /** Warehouse Id */
+      warehouse_id?: number | null;
+      /** Customer Id */
+      customer_id?: number | null;
       /** Customer Code */
       customer_code?: string | null;
+      /** Supplier Id */
+      supplier_id?: number | null;
       /** Supplier Code */
       supplier_code?: string | null;
       /** Quantity */
@@ -1827,6 +2117,12 @@ export interface components {
       unit?: string | null;
       /** Due Date */
       due_date?: string | null;
+      /** Delivery Place Id */
+      delivery_place_id?: number | null;
+      /** Delivery Place Code */
+      delivery_place_code?: string | null;
+      /** Delivery Place Name */
+      delivery_place_name?: string | null;
       /** Warehouse Allocations */
       warehouse_allocations?: components["schemas"]["WarehouseAllocOut"][];
       /** Related Lots */
@@ -1877,10 +2173,12 @@ export interface components {
       sap_error_msg?: string | null;
       /** Id */
       id: number;
+      /** Customer Id */
+      customer_id?: number | null;
     };
     /**
      * OrderStatusUpdate
-     * @description 受注ステータス更新用スキーマ
+     * @description 受注ステータス更新用スキーマ.
      *
      *     Note:
      *         constrを使用してstatusが空文字でないことを保証
@@ -1896,8 +2194,8 @@ export interface components {
     };
     /** OrderValidationDetails */
     OrderValidationDetails: {
-      /** Warehouse Code */
-      warehouse_code: string;
+      /** Warehouse Id */
+      warehouse_id?: number | null;
       /** Per Lot */
       per_lot?: components["schemas"]["OrderValidationLotAvailability"][];
       /** Ship Date */
@@ -1947,7 +2245,7 @@ export interface components {
       /** Order No */
       order_no: string;
       /** Customer Code */
-      customer_code: string;
+      customer_code?: string | null;
       /**
        * Order Date
        * Format: date
@@ -1974,49 +2272,54 @@ export interface components {
       sap_error_msg?: string | null;
       /** Id */
       id: number;
+      /** Customer Id */
+      customer_id?: number | null;
       /** Lines */
       lines?: components["schemas"]["OrderLineOut"][];
     };
-    /** Page[ProductOut] */
-    Page_ProductOut_: {
-      /** Items */
-      items: components["schemas"]["ProductOut"][];
-      /** Total */
-      total: number;
-      /** Page */
-      page: number;
-      /** Per Page */
-      per_page: number;
-    };
-    /**
-     * ProductOut
-     * @description Product response model.
-     */
-    ProductOut: {
-      /** Id */
-      id: number;
+    /** ProductCreate */
+    ProductCreate: {
       /** Product Code */
       product_code: string;
       /** Product Name */
       product_name: string;
+      /** Customer Part No */
+      customer_part_no?: string | null;
+      /** Maker Item Code */
+      maker_item_code?: string | null;
+      /** Supplier Item Code */
+      supplier_item_code?: string | null;
+      /** Packaging Qty */
+      packaging_qty: number | string;
+      /** Packaging Unit */
+      packaging_unit: string;
       /** Internal Unit */
       internal_unit: string;
-      /** Customer Part No */
-      customer_part_no: string | null;
-      /** Maker Item Code */
-      maker_item_code: string | null;
-      /** Is Active */
-      is_active: boolean;
       /**
-       * Created At
-       * Format: date-time
+       * Base Unit
+       * @default EA
        */
-      created_at: string;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
+      base_unit: string;
+      /** Assemble Div */
+      assemble_div?: string | null;
+      /** Next Div */
+      next_div?: string | null;
+      /** Ji Ku Text */
+      ji_ku_text?: string | null;
+      /** Kumitsuke Ku Text */
+      kumitsuke_ku_text?: string | null;
+      /** Shelf Life Days */
+      shelf_life_days?: number | null;
+      /** Requires Lot Number */
+      requires_lot_number?: number | null;
+      /** Delivery Place Id */
+      delivery_place_id?: number | null;
+      /** Delivery Place Code */
+      delivery_place_code?: string | null;
+      /** Delivery Place Name */
+      delivery_place_name?: string | null;
+      /** Shipping Warehouse Name */
+      shipping_warehouse_name?: string | null;
     };
     /** ProductResponse */
     ProductResponse: {
@@ -2024,6 +2327,7 @@ export interface components {
       product_code: string;
       /** Product Name */
       product_name: string;
+      /** Customer Part No */
       customer_part_no?: string | null;
       /** Maker Item Code */
       maker_item_code?: string | null;
@@ -2040,8 +2344,9 @@ export interface components {
        * @default EA
        */
       base_unit: string;
-      /** Next Div */
+      /** Assemble Div */
       assemble_div?: string | null;
+      /** Next Div */
       next_div?: string | null;
       /** Ji Ku Text */
       ji_ku_text?: string | null;
@@ -2049,13 +2354,51 @@ export interface components {
       kumitsuke_ku_text?: string | null;
       /** Shelf Life Days */
       shelf_life_days?: number | null;
-      /**
-       * Requires Lot Number
-       * @default true
-       */
+      /** Requires Lot Number */
       requires_lot_number?: number | null;
       /** Delivery Place Id */
       delivery_place_id?: number | null;
+      /** Delivery Place Code */
+      delivery_place_code?: string | null;
+      /** Delivery Place Name */
+      delivery_place_name?: string | null;
+      /** Shipping Warehouse Name */
+      shipping_warehouse_name?: string | null;
+    };
+    /** ProductUpdate */
+    ProductUpdate: {
+      /** Product Name */
+      product_name?: string | null;
+      /** Customer Part No */
+      customer_part_no?: string | null;
+      /** Maker Item Code */
+      maker_item_code?: string | null;
+      /** Supplier Item Code */
+      supplier_item_code?: string | null;
+      /** Packaging Qty */
+      packaging_qty?: number | string | null;
+      /** Packaging Unit */
+      packaging_unit?: string | null;
+      /** Internal Unit */
+      internal_unit?: string | null;
+      /** Base Unit */
+      base_unit?: string | null;
+      /** Assemble Div */
+      assemble_div?: string | null;
+      /** Next Div */
+      next_div?: string | null;
+      /** Ji Ku Text */
+      ji_ku_text?: string | null;
+      /** Kumitsuke Ku Text */
+      kumitsuke_ku_text?: string | null;
+      /** Shelf Life Days */
+      shelf_life_days?: number | null;
+      /** Requires Lot Number */
+      requires_lot_number?: boolean | null;
+      /** Delivery Place Id */
+      delivery_place_id?: number | null;
+      /** Delivery Place Code */
+      delivery_place_code?: string | null;
       /** Delivery Place Name */
       delivery_place_name?: string | null;
       /** Shipping Warehouse Name */
@@ -2063,7 +2406,7 @@ export interface components {
     };
     /**
      * ResponseBase
-     * @description API共通レスポンス
+     * @description API共通レスポンス.
      */
     ResponseBase: {
       /** Success */
@@ -2075,7 +2418,7 @@ export interface components {
     };
     /**
      * SapRegisterOptions
-     * @description SAP送信オプション
+     * @description SAP送信オプション.
      */
     SapRegisterOptions: {
       /**
@@ -2091,7 +2434,7 @@ export interface components {
     };
     /**
      * SapRegisterRequest
-     * @description SAP送信リクエスト
+     * @description SAP送信リクエスト.
      */
     SapRegisterRequest: {
       target: components["schemas"]["SapRegisterTarget"];
@@ -2105,7 +2448,7 @@ export interface components {
     };
     /**
      * SapRegisterResponse
-     * @description SAP送信レスポンス
+     * @description SAP送信レスポンス.
      */
     SapRegisterResponse: {
       /** Status */
@@ -2121,7 +2464,7 @@ export interface components {
     };
     /**
      * SapRegisterTarget
-     * @description SAP送信対象指定
+     * @description SAP送信対象指定.
      */
     SapRegisterTarget: {
       /** Type */
@@ -2131,7 +2474,7 @@ export interface components {
     };
     /**
      * SapSyncLogResponse
-     * @description SAP連携ログレスポンス
+     * @description SAP連携ログレスポンス.
      */
     SapSyncLogResponse: {
       /** Id */
@@ -2149,6 +2492,352 @@ export interface components {
        * Format: date-time
        */
       executed_at: string;
+    };
+    /** SeedRequest */
+    SeedRequest: {
+      /**
+       * Seed
+       * @description Random seed for reproducibility
+       * @default 42
+       */
+      seed: number | null;
+      /**
+       * Dry Run
+       * @default false
+       */
+      dry_run: boolean;
+      /**
+       * Customers
+       * @default 3
+       */
+      customers: number;
+      /**
+       * Suppliers
+       * @default 2
+       */
+      suppliers: number;
+      /**
+       * Delivery Places
+       * @default 2
+       */
+      delivery_places: number;
+      /**
+       * Products
+       * @default 5
+       */
+      products: number;
+      /**
+       * Forecasts
+       * @default 0
+       */
+      forecasts: number;
+      /**
+       * Warehouses
+       * @default 2
+       */
+      warehouses: number;
+      /**
+       * Lots
+       * @default 10
+       */
+      lots: number;
+      /**
+       * Orders
+       * @default 5
+       */
+      orders: number;
+    };
+    /** SeedResponse */
+    SeedResponse: {
+      /** Dry Run */
+      dry_run: boolean;
+      /** Seed */
+      seed: number;
+      summary: components["schemas"]["SeedSummary"];
+      /** @description 投入後の実際のDB件数（dry_run=falseの場合のみ） */
+      actual_counts?: components["schemas"]["ActualCounts"] | null;
+    };
+    /**
+     * SeedSnapshotCreateRequest
+     * @description スナップショット作成リクエスト.
+     */
+    SeedSnapshotCreateRequest: {
+      /**
+       * Name
+       * @description スナップショット名
+       */
+      name: string;
+      /**
+       * Params Json
+       * @description パラメータJSON
+       */
+      params_json: Record<string, never>;
+      /**
+       * Profile Json
+       * @description プロファイルJSON
+       */
+      profile_json?: Record<string, never> | null;
+      /**
+       * Summary Json
+       * @description サマリJSON
+       */
+      summary_json?: Record<string, never> | null;
+    };
+    /**
+     * SeedSnapshotCreateResponse
+     * @description スナップショット作成レスポンス.
+     */
+    SeedSnapshotCreateResponse: {
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+    };
+    /**
+     * SeedSnapshotListItem
+     * @description スナップショットリストアイテム.
+     */
+    SeedSnapshotListItem: {
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Params Json */
+      params_json: Record<string, never>;
+      /** Summary Json */
+      summary_json?: Record<string, never> | null;
+    };
+    /**
+     * SeedSnapshotListResponse
+     * @description スナップショット一覧レスポンス.
+     */
+    SeedSnapshotListResponse: {
+      /** Snapshots */
+      snapshots: components["schemas"]["SeedSnapshotListItem"][];
+    };
+    /**
+     * SeedSnapshotRestoreResponse
+     * @description スナップショット復元レスポンス.
+     */
+    SeedSnapshotRestoreResponse: {
+      /** Task Id */
+      task_id: string;
+      /** Message */
+      message: string;
+    };
+    /**
+     * SeedSummary
+     * @description 作成しようとした件数（UPSERT前）.
+     */
+    SeedSummary: {
+      /** Customers */
+      customers: number;
+      /** Suppliers */
+      suppliers: number;
+      /** Delivery Places */
+      delivery_places: number;
+      /** Products */
+      products: number;
+      /** Forecasts */
+      forecasts: number;
+      /** Warehouses */
+      warehouses: number;
+      /** Lots */
+      lots: number;
+      /** Orders */
+      orders: number;
+      /** Order Lines */
+      order_lines: number;
+      /** Allocations */
+      allocations: number;
+    };
+    /**
+     * SimulateProgressResponse
+     * @description テストデータシミュレーション進捗レスポンス.
+     */
+    SimulateProgressResponse: {
+      /** Task Id */
+      task_id: string;
+      /** Status */
+      status: string;
+      /** Phase */
+      phase: string;
+      /** Progress Pct */
+      progress_pct: number;
+      /** Logs */
+      logs: string[];
+      /** Error */
+      error?: string | null;
+    };
+    /**
+     * SimulateResultResponse
+     * @description テストデータシミュレーション結果レスポンス.
+     */
+    SimulateResultResponse: {
+      /** Success */
+      success: boolean;
+      summary?: components["schemas"]["SimulateResultSummary"] | null;
+      /** Snapshot Id */
+      snapshot_id?: number | null;
+      /** Error */
+      error?: string | null;
+    };
+    /**
+     * SimulateResultSummary
+     * @description テストデータシミュレーション結果サマリ.
+     */
+    SimulateResultSummary: {
+      /** Warehouses */
+      warehouses: number;
+      /**
+       * Forecasts
+       * @description 需要予測データ件数
+       * @default 0
+       */
+      forecasts: number;
+      /** Orders */
+      orders: number;
+      /** Order Lines */
+      order_lines: number;
+      /** Lots */
+      lots: number;
+      /** Allocations */
+      allocations: number;
+      cap_checks: components["schemas"]["CapCheckResult"];
+      /** Stock Equation Ok */
+      stock_equation_ok: boolean;
+      /**
+       * Orphan Count
+       * @description 孤児レコード数
+       * @default 0
+       */
+      orphan_count: number;
+    };
+    /**
+     * SimulateSeedRequest
+     * @description テストデータシミュレーションリクエスト.
+     */
+    SimulateSeedRequest: {
+      /**
+       * Profile
+       * @description プロファイル名（small/medium/large_near、Noneの場合はデフォルト）
+       */
+      profile?: string | null;
+      /**
+       * Random Seed
+       * @description 乱数シード（Noneの場合は現在時刻を使用）
+       */
+      random_seed?: number | null;
+      /**
+       * Warehouses
+       * @description 倉庫数（1〜10、既定=2）
+       * @default 2
+       */
+      warehouses: number;
+      /**
+       * Customers
+       * @description 顧客数（0以上、Noneの場合はプロファイル既定）
+       * @default 3
+       */
+      customers: number | null;
+      /**
+       * Suppliers
+       * @description 仕入先数（0以上、Noneの場合はプロファイル既定）
+       * @default 2
+       */
+      suppliers: number | null;
+      /**
+       * Products
+       * @description 製品数（0以上、Noneの場合はプロファイル既定）
+       * @default 5
+       */
+      products: number | null;
+      /**
+       * Lots
+       * @description ロット数（0以上、Noneの場合はプロファイル既定）
+       * @default 10
+       */
+      lots: number | null;
+      /**
+       * Orders
+       * @description 受注数（0以上、Noneの場合はプロファイル既定）
+       * @default 5
+       */
+      orders: number | null;
+      /**
+       * Lot Split Max Per Line
+       * @description 1明細あたりロット分割上限（1〜3、既定=1）
+       * @default 1
+       */
+      lot_split_max_per_line: number;
+      /**
+       * Order Line Items Per Order
+       * @description 受注明細行の上限（1〜5、既定=1）
+       * @default 1
+       */
+      order_line_items_per_order: number;
+      /**
+       * Destinations Max Per Order
+       * @description 受注の納品先上限（常に5固定）
+       * @default 5
+       */
+      destinations_max_per_order: number;
+      /**
+       * Forecasts
+       * @description 需要予測データ生成（0=無効, 1=有効, Noneはプロファイル既定）
+       * @default 1
+       */
+      forecasts: number | null;
+      /**
+       * Save Snapshot
+       * @description スナップショットを保存するか
+       * @default true
+       */
+      save_snapshot: boolean;
+      /**
+       * Snapshot Name
+       * @description スナップショット名（自動生成の場合はNone）
+       */
+      snapshot_name?: string | null;
+      /**
+       * Use Last Snapshot
+       * @description 最後のスナップショットを使用するか
+       * @default false
+       */
+      use_last_snapshot: boolean;
+      /**
+       * Case Mix
+       * @description ケースミックス比率（API上書き用、合計<=1.0）
+       */
+      case_mix?: {
+        [key: string]: number;
+      } | null;
+    };
+    /**
+     * SimulateSeedResponse
+     * @description テストデータシミュレーション開始レスポンス.
+     */
+    SimulateSeedResponse: {
+      /**
+       * Task Id
+       * @description ジョブID
+       */
+      task_id: string;
+      /**
+       * Message
+       * @description メッセージ
+       */
+      message: string;
     };
     /** StockMovementCreate */
     StockMovementCreate: {
@@ -2248,15 +2937,15 @@ export interface components {
     };
     /** WarehouseAllocOut */
     WarehouseAllocOut: {
-      /** Warehouse Code */
-      warehouse_code: string;
+      /** Warehouse Id */
+      warehouse_id: number;
       /** Quantity */
       quantity: number;
     };
     /** WarehouseCreate */
     WarehouseCreate: {
-      /** Warehouse Code */
-      warehouse_code: string;
+      /** Warehouse Id */
+      warehouse_id?: number | null;
       /** Warehouse Name */
       warehouse_name: string;
       /** Address */
@@ -2274,15 +2963,15 @@ export interface components {
     };
     /** WarehouseOut */
     WarehouseOut: {
-      /** Warehouse Code */
-      warehouse_code: string;
+      /** Warehouse Id */
+      warehouse_id: number;
       /** Warehouse Name */
       warehouse_name: string;
     };
     /** WarehouseResponse */
     WarehouseResponse: {
-      /** Warehouse Code */
-      warehouse_code: string;
+      /** Warehouse Id */
+      warehouse_id?: number | null;
       /** Warehouse Name */
       warehouse_name: string;
       /** Address */
@@ -2304,135 +2993,6 @@ export interface components {
        * @default 1
        */
       is_active: number | null;
-    };
-    /** ProductCreate */
-    app__schemas__masters__ProductCreate: {
-      /** Product Code */
-      product_code: string;
-      /** Product Name */
-      product_name: string;
-      /** Supplier Code */
-      supplier_code?: string | null;
-      /** Customer Part No */
-      customer_part_no?: string | null;
-      /** Maker Item Code */
-      maker_item_code?: string | null;
-      /** Supplier Item Code */
-      supplier_item_code?: string | null;
-      /** Packaging Qty */
-      packaging_qty: number | string;
-      /** Packaging Unit */
-      packaging_unit: string;
-      /** Internal Unit */
-      internal_unit: string;
-      /**
-       * Base Unit
-       * @default EA
-       */
-      base_unit: string;
-      /** Packaging */
-      packaging?: string | null;
-      /** Assemble Div */
-      assemble_div?: string | null;
-      /** Next Div */
-      next_div?: string | null;
-      /** Ji Ku Text */
-      ji_ku_text?: string | null;
-      /** Kumitsuke Ku Text */
-      kumitsuke_ku_text?: string | null;
-      /** Shelf Life Days */
-      shelf_life_days?: number | null;
-      /**
-       * Requires Lot Number
-       * @default true
-       */
-      requires_lot_number: boolean;
-      /** Delivery Place Id */
-      delivery_place_id?: number | null;
-      /** Delivery Place Name */
-      delivery_place_name?: string | null;
-      /** Shipping Warehouse Name */
-      shipping_warehouse_name?: string | null;
-    };
-    /** ProductUpdate */
-    app__schemas__masters__ProductUpdate: {
-      /** Product Name */
-      product_name?: string | null;
-      /** Supplier Code */
-      supplier_code?: string | null;
-      /** Customer Part No */
-      customer_part_no?: string | null;
-      /** Maker Item Code */
-      maker_item_code?: string | null;
-      /** Supplier Item Code */
-      supplier_item_code?: string | null;
-      /** Packaging Qty */
-      packaging_qty?: number | string | null;
-      /** Packaging Unit */
-      packaging_unit?: string | null;
-      /** Internal Unit */
-      internal_unit?: string | null;
-      /** Base Unit */
-      base_unit?: string | null;
-      /** Packaging */
-      packaging?: string | null;
-      /** Assemble Div */
-      assemble_div?: string | null;
-      /** Next Div */
-      next_div?: string | null;
-      /** Ji Ku Text */
-      ji_ku_text?: string | null;
-      /** Kumitsuke Ku Text */
-      kumitsuke_ku_text?: string | null;
-      /** Shelf Life Days */
-      shelf_life_days?: number | null;
-      /** Requires Lot Number */
-      requires_lot_number?: boolean | null;
-      /** Delivery Place Id */
-      delivery_place_id?: number | null;
-      /** Delivery Place Name */
-      delivery_place_name?: string | null;
-      /** Shipping Warehouse Name */
-      shipping_warehouse_name?: string | null;
-    };
-    /**
-     * ProductCreate
-     * @description Payload to create a product.
-     */
-    app__schemas__products__ProductCreate: {
-      /** Product Code */
-      product_code: string;
-      /** Product Name */
-      product_name: string;
-      /** Internal Unit */
-      internal_unit: string;
-      /** Customer Part No */
-      customer_part_no?: string | null;
-      /** Maker Item Code */
-      maker_item_code?: string | null;
-      /**
-       * Is Active
-       * @default true
-       */
-      is_active: boolean;
-    };
-    /**
-     * ProductUpdate
-     * @description Payload to partially update a product.
-     */
-    app__schemas__products__ProductUpdate: {
-      /** Product Code */
-      product_code?: string | null;
-      /** Product Name */
-      product_name?: string | null;
-      /** Internal Unit */
-      internal_unit?: string | null;
-      /** Customer Part No */
-      customer_part_no?: string | null;
-      /** Maker Item Code */
-      maker_item_code?: string | null;
-      /** Is Active */
-      is_active?: boolean | null;
     };
   };
   responses: never;
@@ -2485,7 +3045,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["app__schemas__masters__ProductCreate"];
+        "application/json": components["schemas"]["ProductCreate"];
       };
     };
     responses: {
@@ -2551,7 +3111,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["app__schemas__masters__ProductUpdate"];
+        "application/json": components["schemas"]["ProductUpdate"];
       };
     };
     responses: {
@@ -3637,6 +4197,39 @@ export interface operations {
       };
     };
   };
+  get_candidate_lots_api_allocations_candidate_lots_get: {
+    parameters: {
+      query: {
+        product_id: number;
+        warehouse_id?: number | null;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CandidateLotsResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   submit_ocr_data_api_integration_ai_ocr_submit_post: {
     parameters: {
       query?: never;
@@ -3807,7 +4400,7 @@ export interface operations {
       };
     };
   };
-  load_full_sample_data_api_admin_load_full_sample_data_post: {
+  create_seeds_api_admin_seeds_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -3816,7 +4409,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["FullSampleDataRequest"];
+        "application/json": components["schemas"]["SeedRequest"];
       };
     };
     responses: {
@@ -3826,7 +4419,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["ResponseBase"];
+          "application/json": components["schemas"]["SeedResponse"];
         };
       };
       /** @description Validation Error */
@@ -3840,7 +4433,40 @@ export interface operations {
       };
     };
   };
-  list_presets_api_admin_presets_get: {
+  get_allocatable_lots_api_admin_diagnostics_allocatable_lots_get: {
+    parameters: {
+      query?: {
+        prod?: string | null;
+        wh?: string | null;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AllocatableLotsResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_db_counts_api_admin_healthcheck_db_counts_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -3855,17 +4481,14 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["AdminPresetListResponse"];
+          "application/json": unknown;
         };
       };
     };
   };
-  load_preset_api_admin_load_preset_post: {
+  get_masters_health_api_admin_healthcheck_masters_get: {
     parameters: {
-      query: {
-        /** @description プリセット名 */
-        name: string;
-      };
+      query?: never;
       header?: never;
       path?: never;
       cookie?: never;
@@ -3878,16 +4501,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["AdminPresetLoadResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
+          "application/json": unknown;
         };
       };
     };
@@ -4210,167 +4824,6 @@ export interface operations {
       };
     };
   };
-  list_products_api_products_get: {
-    parameters: {
-      query?: {
-        page?: number;
-        per_page?: number;
-        q?: string | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Page_ProductOut_"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  create_product_api_products_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["app__schemas__products__ProductCreate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ProductOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_product_api_products__product_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ProductOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  delete_product_api_products__product_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  update_product_api_products__product_id__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        product_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["app__schemas__products__ProductUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ProductOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
   list_warehouses_api_warehouse_alloc_warehouses_get: {
     parameters: {
       query?: never;
@@ -4471,6 +4924,220 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["OrderValidationResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  simulate_seed_data_api_admin_simulate_seed_data_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SimulateSeedRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SimulateSeedResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_simulate_progress_api_admin_simulate_progress__task_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description タスクID */
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SimulateProgressResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_simulate_result_api_admin_simulate_result__task_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description タスクID */
+        task_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SimulateResultResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_seed_snapshots_api_admin_seed_snapshots_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SeedSnapshotListResponse"];
+        };
+      };
+    };
+  };
+  create_seed_snapshot_api_admin_seed_snapshots_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SeedSnapshotCreateRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SeedSnapshotCreateResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_seed_snapshot_api_admin_seed_snapshots__snapshot_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description スナップショットID */
+        snapshot_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  restore_seed_snapshot_api_admin_seed_snapshots__snapshot_id__restore_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description スナップショットID */
+        snapshot_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SeedSnapshotRestoreResponse"];
         };
       };
       /** @description Validation Error */

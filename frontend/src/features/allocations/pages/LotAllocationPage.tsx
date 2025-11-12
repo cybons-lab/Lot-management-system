@@ -55,10 +55,12 @@ export function LotAllocationPage() {
   const orderCards = useOrderCards(ordersQuery.data);
 
   // 選択された受注の詳細を取得
-  const orderDetailQuery = useQuery({
+  const orderDetailQuery = useQuery<unknown, Error, Order>({
     queryKey: ["order-detail", selectedOrderId],
     queryFn: () => getOrder(selectedOrderId!),
     enabled: !!selectedOrderId,
+    // 取得スキーマ（line_noがnull可など）が広いので、selectでUI用Orderへ正規化
+    select: (data) => normalizeOrder(data as any) as Order,
   });
 
   // 自動選択ロジック
@@ -73,13 +75,9 @@ export function LotAllocationPage() {
   // 選択された明細行
   const selectedLine = orderDetailQuery.data?.lines?.find((line) => line.id === selectedLineId);
 
-  // ロット候補を取得（product_id を使用）
-  // TODO: 後でID参照に戻す（コード→ID解決API完成後）
-  // ロット候補を取得（product_code のみ。倉庫は未保持のため一時的に不使用）
-  const lotsQuery = useLotsQuery(
-    selectedLine?.product_code ?? undefined,
-    undefined, // TODO: line型に warehouse_code が入ったら渡す
-  );
+  // ロット候補を取得（product_code のみ）
+  // 注: warehouse_code は検索条件から削除。得意先×商品を基本キーとし、倉庫は在庫の所在情報のみ。
+  const lotsQuery = useLotsQuery(selectedLine?.product_code ?? undefined);
   const candidateLots: CandidateLot[] = lotsQuery.data ?? [];
 
   // 倉庫別配分の状態管理
