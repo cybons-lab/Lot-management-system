@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict Nm3cK4hxe7r63lmBgva4U5WwSd5phOq39QJqBOkoRFcEiZfdE6XhO7kXDppaFrc
+\restrict LEYskYIMvtVT2DO4iKYJHnpgu78IhUNPbWqogEdqKUuzIAuOlyMgG7vIv1WlzKC
 
 -- Dumped from database version 15.14
 -- Dumped by pg_dump version 15.14
@@ -2246,6 +2246,23 @@ CREATE VIEW public.v_delivery_place_code_to_id AS
 
 
 ALTER TABLE public.v_delivery_place_code_to_id OWNER TO admin;
+
+--
+-- Name: v_forecast_order_pairs; Type: VIEW; Schema: public; Owner: admin
+--
+
+CREATE VIEW public.v_forecast_order_pairs AS
+ SELECT f.id AS forecast_id,
+    f.customer_id,
+    f.product_id,
+    o.id AS order_id,
+    o.delivery_place_id
+   FROM ((public.forecasts f
+     JOIN public.orders o ON ((o.customer_id = f.customer_id)))
+     JOIN public.order_lines l ON (((l.order_id = o.id) AND (l.product_id = f.product_id))));
+
+
+ALTER TABLE public.v_forecast_order_pairs OWNER TO admin;
 
 --
 -- Name: v_product_code_to_id; Type: VIEW; Schema: public; Owner: admin
@@ -4664,5 +4681,5 @@ REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Nm3cK4hxe7r63lmBgva4U5WwSd5phOq39QJqBOkoRFcEiZfdE6XhO7kXDppaFrc
+\unrestrict LEYskYIMvtVT2DO4iKYJHnpgu78IhUNPbWqogEdqKUuzIAuOlyMgG7vIv1WlzKC
 
