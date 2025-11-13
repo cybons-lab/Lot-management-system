@@ -18,7 +18,7 @@ from app.domain.order import (
     ProductNotFoundError,
 )
 from app.models import Customer, Order, OrderLine, Product
-from app.schemas import OrderCreate, OrderResponse, OrderWithLinesResponse
+from app.schemas import OrderCreate, OrderLineOut, OrderResponse, OrderWithLinesResponse
 from app.services.quantity_service import QuantityConversionError, to_internal_qty
 
 
@@ -55,15 +55,57 @@ class OrderService:
     def get_order_detail(self, order_id: int) -> OrderWithLinesResponse:
         stmt: Select[Order] = (
             select(Order)
-            .options(selectinload(Order.order_lines).selectinload(OrderLine.product))
+            .options(
+                selectinload(Order.order_lines)
+                .selectinload(OrderLine.product)
+                .selectinload(Product.delivery_place)
+            )
             .where(Order.id == order_id)
         )
         order = self.db.execute(stmt).scalar_one_or_none()
         if not order:
             raise OrderNotFoundError(order_id)
 
-        order.lines = list(order.order_lines)
-        return OrderWithLinesResponse.model_validate(order)
+        order_model = OrderWithLinesResponse.model_validate(order, from_attributes=True)
+
+        enriched_lines: list[OrderLineOut] = []
+        for line in order.order_lines:
+            base_line = OrderLineOut.model_validate(line, from_attributes=True)
+            product = line.product
+            delivery_place = product.delivery_place if product else None
+
+            delivery_place_id = getattr(line, "delivery_place_id", None)
+            if delivery_place_id is None and product:
+                delivery_place_id = product.delivery_place_id
+
+            delivery_place_code = getattr(line, "delivery_place_code", None)
+            if delivery_place_code is None and delivery_place:
+                delivery_place_code = delivery_place.delivery_place_code
+
+            delivery_place_name = getattr(line, "delivery_place_name", None)
+            if delivery_place_name is None:
+                if delivery_place:
+                    delivery_place_name = delivery_place.delivery_place_name
+                elif product:
+                    delivery_place_name = getattr(product, "delivery_place_name", None)
+
+            enriched_line = base_line.model_copy(
+                update={
+                    "product_id": line.product_id,
+                    "product_code": (
+                        getattr(line, "product_code", None)
+                        or (product.product_code if product else base_line.product_code)
+                    ),
+                    "product_name": product.product_name if product else base_line.product_name,
+                    "delivery_place_id": delivery_place_id or base_line.delivery_place_id,
+                    "delivery_place_code": delivery_place_code or base_line.delivery_place_code,
+                    "delivery_place_name": delivery_place_name or base_line.delivery_place_name,
+                }
+            )
+            enriched_lines.append(enriched_line)
+
+        order_model = order_model.model_copy(update={"lines": enriched_lines})
+        return order_model
 
     def create_order(self, order_data: OrderCreate) -> OrderWithLinesResponse:
         OrderBusinessRules.validate_order_no(order_data.order_no)

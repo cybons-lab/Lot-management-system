@@ -6633,6 +6633,22 @@
           },
           {
             "in": "query",
+            "name": "delivery_place_code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Delivery Place Code"
+            }
+          },
+          {
+            "in": "query",
             "name": "expiry_from",
             "required": false,
             "schema": {

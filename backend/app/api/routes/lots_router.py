@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_db
 from app.models import (
+    DeliveryPlace,
     Lot,
     LotCurrentStock,
     Product,
@@ -37,6 +38,7 @@ def list_lots(
     product_code: str | None = None,
     supplier_code: str | None = None,
     warehouse_code: str | None = None,
+    delivery_place_code: str | None = None,
     expiry_from: date | None = None,
     expiry_to: date | None = None,
     with_stock: bool = True,
@@ -57,7 +59,10 @@ def list_lots(
         with_stock: 在庫あり(>0)のみ取得
         db: データベースセッション
     """
-    query = db.query(Lot).options(joinedload(Lot.product), joinedload(Lot.warehouse))
+    query = db.query(Lot).options(
+        joinedload(Lot.product).joinedload(Product.delivery_place),
+        joinedload(Lot.warehouse),
+    )
 
     # フィルタ適用
     if product_id is not None:
@@ -71,6 +76,10 @@ def list_lots(
         query = query.filter(Lot.supplier_code == supplier_code)
     if warehouse_code:
         query = query.filter(Lot.warehouse_code == warehouse_code)
+    if delivery_place_code:
+        query = query.join(Product, Lot.product_id == Product.id)
+        query = query.join(DeliveryPlace, Product.delivery_place_id == DeliveryPlace.id)
+        query = query.filter(DeliveryPlace.delivery_place_code == delivery_place_code)
     if expiry_from:
         query = query.filter(Lot.expiry_date >= expiry_from)
     if expiry_to:
@@ -93,6 +102,20 @@ def list_lots(
 
         if lot.product:
             response.product_name = lot.product.product_name
+            response.product_code = lot.product.product_code
+
+            # delivery_place は product 経由で取得
+            if lot.product.delivery_place:
+                response.delivery_place_id = lot.product.delivery_place.id
+                response.delivery_place_code = (
+                    lot.product.delivery_place.delivery_place_code
+                )
+                response.delivery_place_name = (
+                    lot.product.delivery_place.delivery_place_name
+                )
+            else:
+                response.delivery_place_id = lot.product.delivery_place_id
+                response.delivery_place_name = lot.product.delivery_place_name
 
         if lot.current_stock:
             response.current_quantity = lot.current_stock.current_quantity

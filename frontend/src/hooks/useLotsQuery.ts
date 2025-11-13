@@ -8,7 +8,7 @@ import { getLots } from "@/features/inventory/api";
 import type { CandidateLotItem } from "@/shared/types/aliases";
 
 export interface UseLotsQueryParams {
-  productId?: number | null;
+  productId?: number;
   productCode?: string | null;
   deliveryPlaceCode?: string | null;
   supplierCode?: string | null;
@@ -54,25 +54,56 @@ function normalizeLots(res: unknown): CandidateLotItem[] {
 export function useLotsQuery(params?: UseLotsQueryParams) {
   const hasLookupKey = Boolean(
     params &&
-      (params.productId != null || params.productCode || params.deliveryPlaceCode || params.supplierCode),
+      ((typeof params.productId === "number" &&
+        Number.isFinite(params.productId) &&
+        params.productId > 0) ||
+        (typeof params.productCode === "string" && params.productCode.length > 0) ||
+        (typeof params.deliveryPlaceCode === "string" && params.deliveryPlaceCode.length > 0) ||
+        (typeof params.supplierCode === "string" && params.supplierCode.length > 0)),
   );
+
+  if (params) {
+    console.debug("useLotsQuery params", { params, hasLookupKey });
+  }
 
   return useQuery<Lot[], Error>({
     queryKey: [
       "lots",
       {
-        productId: params?.productId ?? null,
-        productCode: params?.productCode ?? null,
-        deliveryPlaceCode: params?.deliveryPlaceCode ?? null,
-        supplierCode: params?.supplierCode ?? null,
+        productId: params?.productId,
+        productCode: params?.productCode ?? undefined,
+        deliveryPlaceCode: params?.deliveryPlaceCode ?? undefined,
+        supplierCode: params?.supplierCode ?? undefined,
       },
     ],
     queryFn: async () => {
+      const searchParams: Record<string, unknown> = {};
+
+      if (
+        typeof params?.productId === "number" &&
+        Number.isFinite(params.productId) &&
+        params.productId > 0
+      ) {
+        searchParams.product_id = params.productId;
+      }
+      if (typeof params?.productCode === "string" && params.productCode.length > 0) {
+        searchParams.product_code = params.productCode;
+      }
+      if (
+        typeof params?.supplierCode === "string" &&
+        params.supplierCode.length > 0
+      ) {
+        searchParams.supplier_code = params.supplierCode;
+      }
+      if (
+        typeof params?.deliveryPlaceCode === "string" &&
+        params.deliveryPlaceCode.length > 0
+      ) {
+        searchParams.delivery_place_code = params.deliveryPlaceCode;
+      }
+
       const res = await getLots({
-        ...(params?.productId != null ? { product_id: params.productId } : {}),
-        ...(params?.productCode ? { product_code: params.productCode } : {}),
-        ...(params?.supplierCode ? { supplier_code: params.supplierCode } : {}),
-        ...(params?.deliveryPlaceCode ? { delivery_place_code: params.deliveryPlaceCode } : {}),
+        ...searchParams,
         with_stock: params?.withStock ?? true,
       });
 
@@ -94,10 +125,18 @@ export function useLotsQuery(params?: UseLotsQueryParams) {
       });
 
       return lots.filter((lot) => {
-        if (params?.productId != null && lot.product_id != null) {
+        if (
+          typeof params?.productId === "number" &&
+          Number.isFinite(params.productId) &&
+          params.productId > 0 &&
+          typeof lot.product_id === "number"
+        ) {
           return lot.product_id === params.productId;
         }
-        if (params?.productCode) {
+        if (
+          typeof params?.productCode === "string" &&
+          params.productCode.length > 0
+        ) {
           return lot.product_code === params.productCode;
         }
         return true;

@@ -4040,6 +4040,7 @@ export interface operations {
                 product_code?: string | null;
                 supplier_code?: string | null;
                 warehouse_code?: string | null;
+                delivery_place_code?: string | null;
                 expiry_from?: string | null;
                 expiry_to?: string | null;
                 with_stock?: boolean;
