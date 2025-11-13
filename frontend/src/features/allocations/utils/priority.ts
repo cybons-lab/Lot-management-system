@@ -22,7 +22,10 @@ const sumUnallocatedQuantity = (lines: OrderLine[] | undefined): number => {
   }, 0);
 };
 
-const computeDaysUntilDue = (orderDueDate?: string | null, lineDueDate?: string | null): number | null => {
+const computeDaysUntilDue = (
+  orderDueDate?: string | null,
+  lineDueDate?: string | null,
+): number | null => {
   const dueDateSource = sanitizeDateValue(orderDueDate) ?? sanitizeDateValue(lineDueDate);
   if (!dueDateSource) {
     return null;
@@ -37,7 +40,10 @@ const computeDaysUntilDue = (orderDueDate?: string | null, lineDueDate?: string 
   return Number.isNaN(diffDays) ? null : diffDays;
 };
 
-const hasMissingRequiredFields = (lines: OrderLine[] | undefined, hasLineData: boolean): boolean => {
+const hasMissingRequiredFields = (
+  lines: OrderLine[] | undefined,
+  hasLineData: boolean,
+): boolean => {
   if (!hasLineData) return false;
   const safeLines = lines ?? [];
   if (safeLines.length === 0) return true;

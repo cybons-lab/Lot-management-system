@@ -70,9 +70,13 @@ export function LotAllocationPane({
             </div>
           ) : lotsQuery.isError ? (
             <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-              <p className="text-center text-sm font-semibold text-red-800">候補ロットの取得に失敗しました</p>
+              <p className="text-center text-sm font-semibold text-red-800">
+                候補ロットの取得に失敗しました
+              </p>
               <p className="mt-1 text-center text-xs text-red-600">
-                {lotsQuery.error instanceof Error ? lotsQuery.error.message : "サーバーエラーが発生しました"}
+                {lotsQuery.error instanceof Error
+                  ? lotsQuery.error.message
+                  : "サーバーエラーが発生しました"}
               </p>
             </div>
           ) : (candidateLots?.length ?? 0) === 0 ? (
@@ -89,7 +93,9 @@ export function LotAllocationPane({
                 const availableQty = toQty(
                   lot.free_qty ?? lot.current_stock?.current_quantity ?? lot.current_quantity,
                 );
-                const totalStock = toQty(lot.current_stock?.current_quantity ?? lot.current_quantity);
+                const totalStock = toQty(
+                  lot.current_stock?.current_quantity ?? lot.current_quantity,
+                );
                 const allocatedQty = lotAllocations[lotId] ?? 0;
                 const lotLabel = lot.lot_number ?? `LOT-${lotId}`;
                 const deliveryCode = lot.delivery_place_code ?? null;
@@ -107,9 +113,7 @@ export function LotAllocationPane({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-900">
-                          {lotLabel}
-                        </p>
+                        <p className="text-sm font-semibold text-gray-900">{lotLabel}</p>
                         <dl className="mt-2 space-y-1 text-xs text-gray-600">
                           <div className="flex justify-between">
                             <dt className="text-gray-500">納品先</dt>
@@ -136,7 +140,10 @@ export function LotAllocationPane({
                     </div>
 
                     <div className="mt-3">
-                      <label className="block text-xs font-medium text-gray-700" htmlFor={`lot-allocation-${lotId}`}>
+                      <label
+                        className="block text-xs font-medium text-gray-700"
+                        htmlFor={`lot-allocation-${lotId}`}
+                      >
                         このロットから引当
                       </label>
                       <input
@@ -149,7 +156,7 @@ export function LotAllocationPane({
                           const parsed = Number(event.target.value);
                           onLotAllocationChange(lotId, Number.isFinite(parsed) ? parsed : 0);
                         }}
-                        className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                       />
                     </div>
                   </div>

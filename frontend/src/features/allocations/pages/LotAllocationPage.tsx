@@ -15,7 +15,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LotAllocationPane } from "../components/LotAllocationPane";
 import { OrderDetailPane } from "../components/OrderDetailPane";
 import { OrderListPane } from "../components/OrderListPane";
-import { useOrderSelection, useAutoSelection, useAllocationMutation, useSnackbar, useOrderCards } from "../hooks";
+import {
+  useOrderSelection,
+  useAutoSelection,
+  useAllocationMutation,
+  useSnackbar,
+  useOrderCards,
+} from "../hooks";
 import type { Order } from "../types";
 import { toQty } from "../utils/qty";
 
@@ -129,7 +135,9 @@ export function LotAllocationPage() {
         const lotId = (lot.id ?? lot.lot_id) as number | undefined;
         if (!lotId) continue;
 
-        const maxQty = toQty(lot.free_qty ?? lot.current_stock?.current_quantity ?? lot.current_quantity);
+        const maxQty = toQty(
+          lot.free_qty ?? lot.current_stock?.current_quantity ?? lot.current_quantity,
+        );
         const prevQty = prev[lotId] ?? 0;
         const clampedQty = Math.min(Math.max(prevQty, 0), maxQty);
 
@@ -187,7 +195,11 @@ export function LotAllocationPage() {
     (lotId: number, value: number) => {
       const targetLot = candidateLots.find((lot) => (lot.id ?? lot.lot_id) === lotId);
       const maxQty = targetLot
-        ? toQty(targetLot.free_qty ?? targetLot.current_stock?.current_quantity ?? targetLot.current_quantity)
+        ? toQty(
+            targetLot.free_qty ??
+              targetLot.current_stock?.current_quantity ??
+              targetLot.current_quantity,
+          )
         : Number.POSITIVE_INFINITY;
 
       const clampedValue = Math.max(0, Math.min(maxQty, Number.isFinite(value) ? value : 0));

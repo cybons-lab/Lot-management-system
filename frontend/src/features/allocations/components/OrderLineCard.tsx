@@ -74,7 +74,9 @@ export function OrderLineCard({
       </div>
 
       <div className="flex justify-between text-xs text-gray-600">
-        <span>受注数量: {totalQuantity.toLocaleString()} {unitLabel}</span>
+        <span>
+          受注数量: {totalQuantity.toLocaleString()} {unitLabel}
+        </span>
         <span>{progress.toFixed(0)}% 引当済</span>
       </div>
 

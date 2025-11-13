@@ -45,12 +45,22 @@ export function OrderDetailPane({
         {orderDetailQuery.data && (
           <div className="mt-3 space-y-1 text-sm text-gray-600">
             <div className="flex flex-wrap gap-x-6 gap-y-1">
-              <span>得意先: {orderDetailQuery.data.customer_name || orderDetailQuery.data.customer_code || "—"}</span>
-              <span>納品先: {orderDetailQuery.data.delivery_place_name || orderDetailQuery.data.delivery_place_code || "—"}</span>
+              <span>
+                得意先:{" "}
+                {orderDetailQuery.data.customer_name || orderDetailQuery.data.customer_code || "—"}
+              </span>
+              <span>
+                納品先:{" "}
+                {orderDetailQuery.data.delivery_place_name ||
+                  orderDetailQuery.data.delivery_place_code ||
+                  "—"}
+              </span>
             </div>
             <div className="flex flex-wrap gap-x-6 gap-y-1">
               <span>受注日: {formatDate(orderDetailQuery.data.order_date, { fallback: "—" })}</span>
-              <span>納期: {formatDate(orderDetailQuery.data.due_date ?? undefined, { fallback: "—" })}</span>
+              <span>
+                納期: {formatDate(orderDetailQuery.data.due_date ?? undefined, { fallback: "—" })}
+              </span>
             </div>
           </div>
         )}
