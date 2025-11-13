@@ -1222,7 +1222,7 @@ CREATE TABLE public.orders (
     sap_status text,
     sap_sent_at timestamp without time zone,
     sap_error_msg text,
-    created_at timestamp without time zone,
+    created_at timestamp without time zone DEFAULT now(),
     updated_at timestamp without time zone,
     created_by character varying(50),
     updated_by character varying(50),

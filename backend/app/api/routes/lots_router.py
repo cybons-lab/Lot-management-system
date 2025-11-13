@@ -33,6 +33,7 @@ router = APIRouter(prefix="/lots", tags=["lots"])
 def list_lots(
     skip: int = 0,
     limit: int = 100,
+    product_id: int | None = None,
     product_code: str | None = None,
     supplier_code: str | None = None,
     warehouse_code: str | None = None,
@@ -47,6 +48,7 @@ def list_lots(
     Args:
         skip: スキップ件数
         limit: 取得件数
+        product_id: 製品IDでフィルタ（優先）
         product_code: 製品コードでフィルタ
         supplier_code: 仕入先コードでフィルタ
         warehouse_code: 倉庫コードでフィルタ
@@ -58,7 +60,9 @@ def list_lots(
     query = db.query(Lot).options(joinedload(Lot.product), joinedload(Lot.warehouse))
 
     # フィルタ適用
-    if product_code:
+    if product_id is not None:
+        query = query.filter(Lot.product_id == product_id)
+    elif product_code:
         # product_code から product_id を取得してフィルタ
         product = db.query(Product).filter(Product.product_code == product_code).first()
         if product:
@@ -89,9 +93,7 @@ def list_lots(
 
         if lot.product:
             response.product_name = lot.product.product_name
-
-        if lot.warehouse:
-            response.warehouse_code = lot.warehouse.warehouse_code
+            response.product_code = lot.product.product_code
 
         if lot.current_stock:
             response.current_quantity = lot.current_stock.current_quantity
@@ -175,8 +177,7 @@ def create_lot(lot: LotCreate, db: Session = Depends(get_db)):
     response = LotResponse.model_validate(db_lot)
     response.current_quantity = 0.0
     response.last_updated = None
-    if db_lot.warehouse:
-        response.warehouse_code = db_lot.warehouse.warehouse_code
+
     return response
 
 
@@ -252,8 +253,7 @@ def update_lot(lot_id: int, lot: LotUpdate, db: Session = Depends(get_db)):
     if db_lot.current_stock:
         response.current_quantity = db_lot.current_stock.current_quantity
         response.last_updated = db_lot.current_stock.last_updated
-    if db_lot.warehouse:
-        response.warehouse_code = db_lot.warehouse.warehouse_code
+
     return response
 
 

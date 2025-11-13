@@ -22,7 +22,7 @@ export type Customer = {
   address?: string | null;
 };
 export type Warehouse = {
-  warehouse_code: string;
+  warehouse_code: string; // eslint-disable-line no-restricted-syntax
   warehouse_name: string;
   address?: string | null;
   is_active?: boolean | null;
@@ -34,12 +34,13 @@ export type LotResponse = {
   id: number;
   lot_number: string;
   product_id?: number | null;
-  product_code: string;
+  product_code: string | null;
   product_name?: string | null;
   supplier_id?: number | null;
-  supplier_code: string;
-  warehouse_id?: number | null;
-  warehouse_code?: string | null;
+  supplier_code: string | null;
+  delivery_place_id?: number | null;
+  delivery_place_code: string | null;
+  delivery_place_name: string | null;
   lot_unit?: string | null;
   receipt_date: string;
   mfg_date?: string | null;
@@ -61,17 +62,17 @@ export type AllocatedLot = {
   lot_id: number;
   allocated_qty: number | null;
   allocation_id?: number; // UI参照あり
-  warehouse_code?: string | null;
-  warehouse_name?: string | null;
+  delivery_place_code: string | null;
+  delivery_place_name: string | null;
 };
 export type LotCandidate = {
   id?: number;
   lot_id?: number;
   lot_code?: string;
   lot_number?: string;
-  product_code: string;
-  warehouse_code?: string | null;
-  warehouse_name?: string | null;
+  product_code: string | null;
+  delivery_place_code: string | null;
+  delivery_place_name: string | null;
   base_unit?: string | null;
   lot_unit?: string | null;
   lot_unit_qty?: number | null;
@@ -92,8 +93,9 @@ export type CandidateLotItem = {
   allocated_qty: number;
   product_id?: number | null;
   product_code?: string | null;
-  warehouse_id?: number | null;
-  warehouse_code?: string | null;
+  delivery_place_id?: number | null;
+  delivery_place_code?: string | null;
+  delivery_place_name?: string | null;
   expiry_date?: string | null;
   last_updated?: string | null;
 };
@@ -103,14 +105,17 @@ export type CandidateLotsResponse = {
   total: number;
 };
 
-export type WarehouseAlloc = {
+export type DeliveryPlaceAlloc = {
   qty: number;
-  warehouse_id: number; // API保存時に必須に寄せる
-  warehouse_code: string;
-  warehouse_name?: string;
+  delivery_place_id: number;
+  delivery_place_code: string;
+  delivery_place_name?: string;
   lot_id: number;
   quantity: number;
 };
+
+// Backwards compatibility alias
+export type WarehouseAlloc = DeliveryPlaceAlloc;
 
 export type LotAllocationRequest = {
   allocations: { lot_id: number; qty: number }[]; // API実シグネチャに合わせる
@@ -155,20 +160,21 @@ export type OrderLine = {
   order_id?: number;
   line_no?: number;
   product_id?: number | null; // product_id基準の引当に必要
-  product_code?: string | null; // Optional化（表示用のみ）
+  product_code?: string | null; // Optional化(表示用のみ)
   product_name?: string;
-  warehouse_id?: number | null;
-  warehouse_code?: string | null;
+  delivery_place_id?: number | null;
   customer_id?: number | null;
-  customer_code?: string;
+  customer_code?: string | null;
   supplier_id?: number | null;
-  supplier_code?: string;
+  supplier_code?: string | null;
+  delivery_place_code?: string | null;
+  delivery_place_name?: string | null;
   quantity: number;
   unit: string;
   status?: string;
   due_date?: string | null;
   allocated_qty?: number | null;
-  warehouse_allocations?: Array<{ warehouse_code: string; quantity: number }>;
+  delivery_place_allocations?: Array<{ delivery_place_code: string; quantity: number }>;
   related_lots?: Array<Record<string, unknown>>;
   allocated_lots?: AllocatedLot[];
   next_div?: string | null;
@@ -179,7 +185,7 @@ export type OrderResponse = {
   id: number;
   order_no: string;
   customer_id?: number | null;
-  customer_code?: string | null;
+  customer_code?: string | null | undefined; // undefined を追加
   customer_name?: string | null;
   order_date: string;
   status: string;
@@ -209,7 +215,7 @@ export type OrderLineComputed = {
   orderId?: number;
   id?: number;
   productId?: number | null; // product_id基準の引当に必要
-  productCode?: string | null; // Optional化（表示用のみ）
+  productCode?: string | null; // Optionalか(表示用のみ)
   productName: string;
   status?: string;
   orderDate?: string | null;
@@ -223,7 +229,7 @@ export type OrderLineComputed = {
   progressPct: number; // UI計算値
   customerCode?: string;
   customerName?: string;
-  warehouses: string[];
+  deliveryPlaces: string[]; // warehouse → deliveryPlace に変更
   shippingLeadTime?: string; // 任意表示
 };
 
@@ -242,8 +248,8 @@ export type FefoLotAllocation = {
   lot_code?: string;
   lot_number?: string;
   product_code: string;
-  warehouse_code?: string | null;
-  warehouse_name?: string | null;
+  delivery_place_code?: string | null;
+  delivery_place_name?: string | null;
   base_unit?: string | null;
   lot_unit?: string | null;
   lot_unit_qty?: number | null;

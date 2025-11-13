@@ -55,10 +55,12 @@ export function LotAllocationPage() {
   const orderCards = useOrderCards(ordersQuery.data);
 
   // 選択された受注の詳細を取得
-  const orderDetailQuery = useQuery({
+  const orderDetailQuery = useQuery<unknown, Error, Order>({
     queryKey: ["order-detail", selectedOrderId],
     queryFn: () => getOrder(selectedOrderId!),
     enabled: !!selectedOrderId,
+    // 取得スキーマ（line_noがnull可など）が広いので、selectでUI用Orderへ正規化
+    select: (data) => normalizeOrder(data as OrderResponse) as Order,
   });
 
   // 自動選択ロジック
@@ -71,14 +73,25 @@ export function LotAllocationPage() {
   );
 
   // 選択された明細行
-  const selectedLine = orderDetailQuery.data?.lines?.find((line) => line.id === selectedLineId);
+  const normalizedSelectedLineId =
+    selectedLineId != null && Number.isFinite(Number(selectedLineId))
+      ? Number(selectedLineId)
+      : null;
+  const selectedLine =
+    normalizedSelectedLineId != null
+      ? orderDetailQuery.data?.lines?.find((line) => Number(line.id) === normalizedSelectedLineId)
+      : undefined;
 
-  // ロット候補を取得（product_id を使用）
-  // TODO: 後でID参照に戻す（コード→ID解決API完成後）
-  // ロット候補を取得（product_code のみ。倉庫は未保持のため一時的に不使用）
+  // ロット候補を取得
+  // product_codeがnullの場合はproduct_idでフィルタする
   const lotsQuery = useLotsQuery(
-    selectedLine?.product_code ?? undefined,
-    undefined, // TODO: line型に warehouse_code が入ったら渡す
+    selectedLine
+      ? {
+          productId: selectedLine.product_id || undefined,
+          productCode: selectedLine.product_code || undefined,
+          deliveryPlaceCode: selectedLine.delivery_place_code || undefined,
+        }
+      : undefined,
   );
   const candidateLots: CandidateLot[] = lotsQuery.data ?? [];
 
@@ -86,7 +99,7 @@ export function LotAllocationPage() {
   const {
     warehouseAllocations,
     setWarehouseAllocations,
-    warehouseSummaries,
+    warehouseSummaries, // ← Hookの戻り値
     allocationList,
     allocationTotalAll,
   } = useWarehouseAllocations(candidateLots, selectedLineId);
@@ -104,7 +117,7 @@ export function LotAllocationPage() {
   // 倉庫配分変更ハンドラー
   const handleWarehouseAllocationChange = useCallback(
     (key: string, value: number) => {
-      setWarehouseAllocations((prev) => ({
+      setWarehouseAllocations((prev: Record<string, number>) => ({
         ...prev,
         [key]: value,
       }));

@@ -15,7 +15,11 @@ export const D = (v: string | null | undefined, fallback = ""): string => v ?? f
 
 // API型のエイリアス
 type OrderResponse = OrderResponseAlias;
-type LotResponse = components["schemas"]["LotResponse"];
+type LotResponse = components["schemas"]["LotResponse"] & {
+  delivery_place_id?: number | null;
+  delivery_place_code?: string | null;
+  delivery_place_name?: string | null;
+};
 type ProductResponse = components["schemas"]["ProductResponse"];
 type OrderLineOut = components["schemas"]["OrderLineOut"];
 
@@ -49,8 +53,8 @@ export interface LotUI extends Record<string, unknown> {
   receipt_date: string;
   mfg_date: string;
   expiry_date: string;
-  warehouse_code: string;
-  warehouse_id: number;
+  delivery_place_id: number | null;
+  delivery_place_code: string | null;
   lot_unit: string;
   kanban_class: string;
   sales_unit: string;
@@ -142,8 +146,8 @@ export function normalizeLot(lot: LotResponse): LotUI {
     receipt_date: S(lot.receipt_date),
     mfg_date: S(lot.mfg_date),
     expiry_date: S(lot.expiry_date),
-    warehouse_code: S(lot.warehouse_code),
-    warehouse_id: N(lot.warehouse_id),
+    delivery_place_id: lot.delivery_place_id ?? null,
+    delivery_place_code: lot.delivery_place_code ?? null,
     lot_unit: S(lot.lot_unit, "EA"),
     kanban_class: S(lot.kanban_class),
     sales_unit: S(lot.sales_unit),
