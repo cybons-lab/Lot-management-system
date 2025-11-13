@@ -82,17 +82,25 @@ export function LotAllocationPage() {
       ? orderDetailQuery.data?.lines?.find((line) => Number(line.id) === normalizedSelectedLineId)
       : undefined;
 
-  // ロット候補を取得
-  // product_codeがnullの場合はproduct_idでフィルタする
-  const lotsQuery = useLotsQuery(
-    selectedLine
-      ? {
-          productId: selectedLine.product_id || undefined,
+  // ロット候補を取得（product_codeを優先しつつ、product_idでもフォールバック）
+  // product_id が数値文字列で返ってくるケースにも対応するため、ここで正規化する
+  const lotsQueryParams = selectedLine
+    ? (() => {
+        const rawProductId = selectedLine.product_id;
+        const parsedProductId =
+          rawProductId != null && Number.isFinite(Number(rawProductId))
+            ? Number(rawProductId)
+            : undefined;
+
+        return {
+          productId: parsedProductId != null && parsedProductId > 0 ? parsedProductId : undefined,
           productCode: selectedLine.product_code || undefined,
           deliveryPlaceCode: selectedLine.delivery_place_code || undefined,
-        }
-      : undefined,
-  );
+        };
+      })()
+    : undefined;
+
+  const lotsQuery = useLotsQuery(lotsQueryParams);
   const candidateLots: CandidateLot[] = lotsQuery.data ?? [];
 
   // 倉庫別配分の状態管理
