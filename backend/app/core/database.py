@@ -42,35 +42,13 @@ def get_db() -> Generator[Session, None, None]:
 # --- Schema lifecycle -----------------------------------------------------
 def init_db() -> None:
     """
-    DB初期化（テーブル作成はAlembicに委譲）
-    Alembicマイグレーションを実行してテーブルを作成します.
+    起動時の Alembic マイグレーションを無効化。
+    現在は SQL / ダンプでスキーマを復元するため、ここでは何もしない。
     """
-    import app.models  # noqa: F401  モデルのメタデータを読み込むための副作用import
+    import app.models  # noqa: F401
+    logger.info("⏭️ init_db: skipping Alembic migrations (handled manually via SQL)")
+    return
 
-    # Alembicマイグレーションを実行してテーブルを作成
-    try:
-        # プロジェクトルートディレクトリ（alembic.iniがある場所）
-        backend_dir = Path(__file__).parent.parent.parent
-
-        logger.info("🔄 Running Alembic migrations to create tables...")
-        result = subprocess.run(
-            ["alembic", "upgrade", "head"],
-            cwd=backend_dir,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        logger.info("✅ Alembic migrations completed successfully")
-        if result.stdout:
-            logger.debug(f"Alembic output: {result.stdout}")
-    except subprocess.CalledProcessError as e:
-        logger.error(f"❌ Alembic migration failed: {e}")
-        logger.error(f"stdout: {e.stdout}")
-        logger.error(f"stderr: {e.stderr}")
-        raise RuntimeError(f"Failed to run Alembic migrations: {e.stderr}")
-    except Exception as e:
-        logger.error(f"❌ Unexpected error running Alembic: {e}")
-        raise
 
 
 def _drop_dependent_views() -> None:
