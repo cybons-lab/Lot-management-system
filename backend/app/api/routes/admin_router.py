@@ -1,7 +1,6 @@
 """管理機能のAPIエンドポイント - サンプルデータ投入修正版（パッチ適用済）."""
 
 import logging
-import random  # ファイル冒頭に追加されていなければ
 import traceback
 from datetime import date
 
@@ -23,7 +22,7 @@ from app.models import (
     Warehouse,  # 統合された新Warehouse
 )
 from app.schemas import (
-    AllocatableLotsResponse,
+    CandidateLotsResponse,
     DashboardStatsResponse,
     FullSampleDataRequest,
     ResponseBase,
@@ -34,7 +33,6 @@ from app.services.seeds_service import create_seed_data
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 logger = logging.getLogger(__name__)
-rng = random.Random()
 
 
 @router.get("/stats", response_model=DashboardStatsResponse)
@@ -254,7 +252,7 @@ def _collect_customer_codes(data: FullSampleDataRequest) -> set[str]:
     return codes
 
 
-@router.get("/diagnostics/allocatable-lots", response_model=AllocatableLotsResponse)
+@router.get("/diagnostics/allocatable-lots", response_model=CandidateLotsResponse)
 def get_allocatable_lots(
     prod: str | None = None,
     wh: str | None = None,
@@ -274,7 +272,7 @@ def get_allocatable_lots(
         db: データベースセッション
 
     Returns:
-        AllocatableLotsResponse: 引当可能ロット一覧
+        CandidateLotsResponse: 引当可能ロット一覧
 
     Note:
         - 読み取り専用トランザクション
@@ -295,7 +293,7 @@ def get_allocatable_lots(
                 vld.lot_id,
                 vld.lot_number,
                 vld.product_id,
-                p.product_code,
+                p.maker_part_code AS product_code,
                 vld.warehouse_id,
                 vld.warehouse_code,
                 vld.current_quantity,
@@ -311,7 +309,7 @@ def get_allocatable_lots(
                 vld.available_quantity > 0
                 AND vld.status = 'active'
                 AND (vld.expiry_date IS NULL OR vld.expiry_date >= CURRENT_DATE)
-                AND (:prod IS NULL OR p.product_code = :prod)
+                AND (:prod IS NULL OR p.maker_part_code = :prod)
                 AND (:wh IS NULL OR vld.warehouse_code = :wh)
             ORDER BY
                 vld.expiry_date NULLS LAST,
@@ -341,7 +339,7 @@ def get_allocatable_lots(
             for row in rows
         ]
 
-        return AllocatableLotsResponse(items=items, total=len(items))
+        return CandidateLotsResponse(items=items, total=len(items))
 
     except Exception as e:
         logger.error(f"診断API実行エラー: {e}")
