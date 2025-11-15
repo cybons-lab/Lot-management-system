@@ -48,30 +48,26 @@ class Lot(Base):
 
     __tablename__ = "lots"
 
-    id: Mapped[int] = mapped_column("lot_id", BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     lot_number: Mapped[str] = mapped_column(String(100), nullable=False)
     product_id: Mapped[int] = mapped_column(
-        "product_id",
         BigInteger,
-        ForeignKey("products.product_id", ondelete="RESTRICT"),
+        ForeignKey("products.id", ondelete="RESTRICT"),
         nullable=False,
     )
     warehouse_id: Mapped[int] = mapped_column(
-        "warehouse_id",
         BigInteger,
-        ForeignKey("warehouses.warehouse_id", ondelete="RESTRICT"),
+        ForeignKey("warehouses.id", ondelete="RESTRICT"),
         nullable=False,
     )
     supplier_id: Mapped[int | None] = mapped_column(
-        "supplier_id",
         BigInteger,
-        ForeignKey("suppliers.supplier_id", ondelete="SET NULL"),
+        ForeignKey("suppliers.id", ondelete="SET NULL"),
         nullable=True,
     )
     expected_lot_id: Mapped[int | None] = mapped_column(
-        "expected_lot_id",
         BigInteger,
-        ForeignKey("expected_lots.expected_lot_id", ondelete="SET NULL"),
+        ForeignKey("expected_lots.id", ondelete="SET NULL"),
         nullable=True,
     )
     received_date: Mapped[date] = mapped_column(Date, nullable=False)
@@ -139,10 +135,10 @@ class StockHistory(Base):
 
     __tablename__ = "stock_history"
 
-    id: Mapped[int] = mapped_column("history_id", BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     lot_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("lots.lot_id", ondelete="CASCADE"),
+        ForeignKey("lots.id", ondelete="CASCADE"),
         nullable=False,
     )
     transaction_type: Mapped[StockTransactionType] = mapped_column(
@@ -184,10 +180,10 @@ class Adjustment(Base):
 
     __tablename__ = "adjustments"
 
-    id: Mapped[int] = mapped_column("adjustment_id", BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     lot_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("lots.lot_id", ondelete="RESTRICT"),
+        ForeignKey("lots.id", ondelete="RESTRICT"),
         nullable=False,
     )
     adjustment_type: Mapped[AdjustmentType] = mapped_column(String(20), nullable=False)
@@ -195,7 +191,7 @@ class Adjustment(Base):
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     adjusted_by: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id", ondelete="RESTRICT"),
+        ForeignKey("users.id", ondelete="RESTRICT"),
         nullable=False,
     )
     adjusted_at: Mapped[datetime] = mapped_column(
@@ -219,15 +215,15 @@ class InventoryItem(Base):
 
     __tablename__ = "inventory_items"
 
-    id: Mapped[int] = mapped_column("inventory_item_id", BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     product_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("products.product_id", ondelete="CASCADE"),
+        ForeignKey("products.id", ondelete="CASCADE"),
         nullable=False,
     )
     warehouse_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("warehouses.warehouse_id", ondelete="CASCADE"),
+        ForeignKey("warehouses.id", ondelete="CASCADE"),
         nullable=False,
     )
     total_quantity: Mapped[Decimal] = mapped_column(
@@ -290,16 +286,14 @@ class AllocationSuggestion(Base):
 
     __tablename__ = "allocation_suggestions"
 
-    suggestion_id: Mapped[int] = mapped_column(
-        BigInteger, primary_key=True, autoincrement=True, name="suggestion_id"
-    )
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     forecast_line_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("forecast_lines.forecast_line_id", ondelete="CASCADE"),
+        ForeignKey("forecast_lines.id", ondelete="CASCADE"),
         nullable=False,
     )
     lot_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("lots.lot_id", ondelete="CASCADE"), nullable=False
+        BigInteger, ForeignKey("lots.id", ondelete="CASCADE"), nullable=False
     )
     suggested_quantity: Mapped[Decimal] = mapped_column(Numeric(15, 3), nullable=False)
     allocation_logic: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -315,13 +309,18 @@ class AllocationSuggestion(Base):
         Index("idx_allocation_suggestions_lot", "lot_id"),
     )
 
-    forecast_line: Mapped[ForecastLine] = relationship(
-        "ForecastLine", back_populates="allocation_suggestions"
-    )
+    forecast_line: Mapped[ForecastLine] = relationship("ForecastLine")
     lot: Mapped[Lot] = relationship("Lot")
 
 
 # Backward compatibility aliases (to be removed in later refactors)
 StockMovement = StockHistory
 StockMovementReason = StockTransactionType
+
+# DEPRECATED in v2.2: Use Lot model or VLotDetails view instead
+# LotCurrentStock was an alias for InventoryItem, which aggregated
+# stock by product and warehouse. In v2.2, use:
+# - Lot.current_quantity for lot-level inventory
+# - VLotDetails view for detailed lot information with joins
+# This alias is kept temporarily for backward compatibility but will be removed.
 LotCurrentStock = InventoryItem

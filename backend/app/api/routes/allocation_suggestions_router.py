@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.inventory_models import Lot, LotCurrentStock
+from app.models.inventory_models import Lot
 from app.models.orders_models import OrderLine
 from app.schemas.allocation_suggestions_schema import (
     AllocationSuggestionGenerateRequest,
@@ -221,13 +221,12 @@ def create_manual_suggestion(
     if not lot:
         raise HTTPException(status_code=404, detail="ロットが見つかりません")
 
-    # 在庫確認
-    stock = db.query(LotCurrentStock).filter(LotCurrentStock.lot_id == request.lot_id).first()
-    current_qty = float(stock.current_quantity if stock else 0.0)
-    if current_qty < request.quantity:
+    # v2.2: 在庫確認 - Lot モデルから直接計算
+    available_qty = float(lot.current_quantity - lot.allocated_quantity)
+    if available_qty < request.quantity:
         raise HTTPException(
             status_code=400,
-            detail=f"在庫不足: ロット {lot.lot_number} の利用可能数量 {current_qty} < 要求数量 {request.quantity}",
+            detail=f"在庫不足: ロット {lot.lot_number} の利用可能数量 {available_qty} < 要求数量 {request.quantity}",
         )
 
     # プレビュー結果を返す（DB保存なし）
@@ -241,7 +240,7 @@ def create_manual_suggestion(
         lot_id=request.lot_id,
         lot_number=lot.lot_number,
         suggested_quantity=request.quantity,
-        available_quantity=current_qty,
+        available_quantity=available_qty,
         product_id=order_line.product_id,
         product_code=order_line.product_code,
         warehouse_id=getattr(lot, "warehouse_id", None),

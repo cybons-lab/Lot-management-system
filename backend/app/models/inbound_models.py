@@ -45,11 +45,11 @@ class InboundPlan(Base):
 
     __tablename__ = "inbound_plans"
 
-    id: Mapped[int] = mapped_column("inbound_plan_id", BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     plan_number: Mapped[str] = mapped_column(String(50), nullable=False)
     supplier_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("suppliers.supplier_id", ondelete="RESTRICT"),
+        ForeignKey("suppliers.id", ondelete="RESTRICT"),
         nullable=False,
     )
     planned_arrival_date: Mapped[date] = mapped_column(Date, nullable=False)
@@ -94,15 +94,15 @@ class InboundPlanLine(Base):
 
     __tablename__ = "inbound_plan_lines"
 
-    id: Mapped[int] = mapped_column("inbound_plan_line_id", BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     inbound_plan_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("inbound_plans.inbound_plan_id", ondelete="CASCADE"),
+        ForeignKey("inbound_plans.id", ondelete="CASCADE"),
         nullable=False,
     )
     product_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("products.product_id", ondelete="RESTRICT"),
+        ForeignKey("products.id", ondelete="RESTRICT"),
         nullable=False,
     )
     planned_quantity: Mapped[Decimal] = mapped_column(Numeric(15, 3), nullable=False)
@@ -134,11 +134,11 @@ class ExpectedLot(Base):
 
     __tablename__ = "expected_lots"
 
-    id: Mapped[int] = mapped_column("expected_lot_id", BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     inbound_plan_line_id: Mapped[int] = mapped_column(
         BigInteger,
         ForeignKey(
-            "inbound_plan_lines.inbound_plan_line_id",
+            "inbound_plan_lines.id",
             ondelete="CASCADE",
         ),
         nullable=False,

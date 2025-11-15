@@ -28,7 +28,7 @@ from .inventory_models import ExpiryRule
 if TYPE_CHECKING:  # pragma: no cover - for type checkers only
     from .forecast_models import ForecastHeader, ForecastLine
     from .inbound_models import InboundPlan, InboundPlanLine
-    from .inventory_models import InventoryItem, Lot, StockMovement
+    from .inventory_models import InventoryItem, Lot
     from .orders_models import (
         Allocation,
         Order,
@@ -65,9 +65,6 @@ class Warehouse(Base):
     )
 
     lots: Mapped[list[Lot]] = relationship("Lot", back_populates="warehouse")
-    stock_movements: Mapped[list[StockMovement]] = relationship(
-        "StockMovement", back_populates="warehouse"
-    )
     inventory_items: Mapped[list[InventoryItem]] = relationship(
         "InventoryItem", back_populates="warehouse"
     )
@@ -238,9 +235,6 @@ class Product(Base):
     expiry_rules: Mapped[list[ExpiryRule]] = relationship("ExpiryRule", back_populates="product")
     purchase_requests: Mapped[list[PurchaseRequest]] = relationship(
         "PurchaseRequest", back_populates="product"
-    )
-    stock_movements: Mapped[list[StockMovement]] = relationship(
-        "StockMovement", back_populates="product"
     )
     unit_conversions: Mapped[list[UnitConversion]] = relationship(
         "UnitConversion", back_populates="product"
