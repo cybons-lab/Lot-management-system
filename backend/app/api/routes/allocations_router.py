@@ -7,7 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.models import Allocation, Lot, LotCurrentStock, OrderLine
+from app.models import Allocation, Lot, OrderLine
 from app.schemas.allocations_schema import (
     AllocationCommitRequest,
     AllocationCommitResponse,
@@ -55,9 +55,9 @@ def drag_assign_allocation(request: DragAssignRequest, db: Session = Depends(get
     if not lot:
         raise HTTPException(status_code=404, detail="ロットが見つかりません")
 
-    stock = db.query(LotCurrentStock).filter(LotCurrentStock.lot_id == request.lot_id).first()
-    current_qty = float(stock.current_quantity if stock else 0.0)
-    if current_qty < request.allocate_qty:
+    # v2.2: Calculate available stock from Lot model
+    available_qty = float(lot.current_quantity - lot.allocated_quantity)
+    if available_qty < request.allocate_qty:
         raise HTTPException(status_code=400, detail="Insufficient stock")
 
     allocation = Allocation(
@@ -67,17 +67,20 @@ def drag_assign_allocation(request: DragAssignRequest, db: Session = Depends(get
         status="active",
     )
     db.add(allocation)
-    stock.current_quantity = current_qty - float(request.allocate_qty)
+
+    # v2.2: Update Lot.allocated_quantity instead of LotCurrentStock
+    lot.allocated_quantity += float(request.allocate_qty)
+
     db.commit()
     db.refresh(allocation)
-    db.refresh(stock)
+    db.refresh(lot)
 
     return {
         "success": True,
         "message": "引当成功",
         "allocation_id": allocation.id,
         "allocated_id": allocation.id,
-        "remaining_lot_qty": stock.current_quantity,
+        "remaining_lot_qty": float(lot.current_quantity - lot.allocated_quantity),
     }
 
 
@@ -212,48 +215,34 @@ def get_candidate_lots(
         # クエリタイムアウト設定（5秒）
         db.execute(text("SET LOCAL statement_timeout = '5s'"))
 
-        # メインクエリ: product_id 基準で候補ロットを取得
+        # v2.2: メインクエリ - lots テーブルから直接取得
         query = text(
             """
             SELECT
-                lcs.lot_id,
+                l.id AS lot_id,
                 l.lot_number,
-                lcs.current_quantity,
-                COALESCE(SUM(a.allocated_qty), 0) AS allocated_qty,
-                (lcs.current_quantity - COALESCE(SUM(a.allocated_qty), 0)) AS free_qty,
-                lcs.product_id,
+                l.current_quantity,
+                l.allocated_quantity AS allocated_qty,
+                (l.current_quantity - l.allocated_quantity) AS free_qty,
+                l.product_id,
                 l.product_code,
-                lcs.warehouse_id,
+                l.warehouse_id,
                 l.warehouse_code,
                 l.expiry_date,
-                lcs.last_updated
+                l.updated_at AS last_updated
             FROM
-                public.lot_current_stock lcs
-                INNER JOIN public.lots l ON l.id = lcs.lot_id
-                LEFT JOIN public.allocations a ON a.lot_id = lcs.lot_id
-                    AND a.deleted_at IS NULL
+                public.lots l
             WHERE
-                lcs.product_id = :product_id
-                AND lcs.current_quantity > 0
+                l.product_id = :product_id
+                AND l.current_quantity > 0
                 AND l.deleted_at IS NULL
                 AND (l.is_locked IS NULL OR l.is_locked = false)
                 AND (l.expiry_date IS NULL OR l.expiry_date >= CURRENT_DATE)
-                AND (:warehouse_id IS NULL OR lcs.warehouse_id = :warehouse_id)
-            GROUP BY
-                lcs.lot_id,
-                l.lot_number,
-                lcs.current_quantity,
-                lcs.product_id,
-                l.product_code,
-                lcs.warehouse_id,
-                l.warehouse_code,
-                l.expiry_date,
-                lcs.last_updated
-            HAVING
-                (lcs.current_quantity - COALESCE(SUM(a.allocated_qty), 0)) > 0
+                AND (:warehouse_id IS NULL OR l.warehouse_id = :warehouse_id)
+                AND (l.current_quantity - l.allocated_quantity) > 0
             ORDER BY
                 l.expiry_date NULLS FIRST,
-                lcs.lot_id
+                l.id
             LIMIT :limit
             """
         )
