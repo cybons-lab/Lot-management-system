@@ -45,7 +45,7 @@ class ForecastHeader(Base):
     id: Mapped[int] = mapped_column("forecast_id", BigInteger, primary_key=True)
     customer_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("customers.customer_id", ondelete="RESTRICT"),
+        ForeignKey("customers.id", ondelete="RESTRICT"),
         nullable=False,
     )
     delivery_place_id: Mapped[int] = mapped_column(
