@@ -8,6 +8,7 @@ import { AdminPage } from "@/features/admin/pages/AdminPage";
 import { AdjustmentCreatePage } from "@/features/adjustments/pages/AdjustmentCreatePage";
 import { AdjustmentsListPage } from "@/features/adjustments/pages/AdjustmentsListPage";
 import { LotAllocationPage } from "@/features/allocations/pages/LotAllocationPage";
+import { CustomerItemsListPage } from "@/features/customer-items/pages/CustomerItemsListPage";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
 import { ForecastDetailPage } from "@/features/forecasts/pages/ForecastDetailPage";
 import { ForecastImportPage } from "@/features/forecasts/pages/ForecastImportPage";
@@ -20,6 +21,12 @@ import { LotsPage } from "@/features/inventory/pages/LotsPage";
 import { MovesPage } from "@/features/inventory/pages/MovesPage";
 import { SummaryPage } from "@/features/inventory/pages/SummaryPage";
 import { OrdersListPage } from "@/features/orders/pages/OrdersListPage";
+import { BatchJobsPage } from "@/features/batch-jobs/pages/BatchJobsPage";
+import { BusinessRulesPage } from "@/features/business-rules/pages/BusinessRulesPage";
+import { OperationLogsPage } from "@/features/operation-logs/pages/OperationLogsPage";
+import { RolesListPage } from "@/features/roles/pages/RolesListPage";
+import { UsersListPage } from "@/features/users/pages/UsersListPage";
+import { UserDetailPage } from "@/features/users/pages/UserDetailPage";
 import { TopNavLayout } from "@/layouts/TopNavLayout";
 
 function App() {
@@ -71,8 +78,19 @@ function App() {
           element={<InventoryItemDetailPage />}
         />
 
-        {/* Admin */}
+        {/* Masters - Phase G-1 */}
+        <Route path={ROUTES.MASTERS.CUSTOMER_ITEMS} element={<CustomerItemsListPage />} />
+
+        {/* Settings - Phase G-2 */}
+        <Route path={ROUTES.SETTINGS.USERS} element={<UsersListPage />} />
+        <Route path="/settings/users/:id" element={<UserDetailPage />} />
+        <Route path={ROUTES.SETTINGS.ROLES} element={<RolesListPage />} />
+
+        {/* Admin - Phase H */}
         <Route path={ROUTES.ADMIN.INDEX} element={<AdminPage />} />
+        <Route path={ROUTES.ADMIN.OPERATION_LOGS} element={<OperationLogsPage />} />
+        <Route path={ROUTES.ADMIN.BUSINESS_RULES} element={<BusinessRulesPage />} />
+        <Route path={ROUTES.ADMIN.BATCH_JOBS} element={<BatchJobsPage />} />
 
         {/* Catch all - redirect to dashboard */}
         <Route path="*" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
