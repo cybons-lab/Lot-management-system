@@ -233,9 +233,7 @@ def seed_products(
         existing_dps = created_delivery_places
 
     existing_product_codes = (
-        {c for (c,) in db.execute(select(Product.product_code)).all()}
-        if not req.dry_run
-        else set()
+        {c for (c,) in db.execute(select(Product.product_code)).all()} if not req.dry_run else set()
     )
 
     product_rows = []

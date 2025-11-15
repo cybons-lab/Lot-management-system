@@ -1,7 +1,10 @@
 """
-OCR submission service - unified OCR order processing logic.
+External submissions service - unified processing for external order intake.
 
-Refactored: Consolidates duplicate OCR processing from integration_router and submissions_router.
+Domain-focused naming: "submission" (not "ocr" - input channel agnostic).
+Supports multiple input channels: OCR, Excel, API, EDI, etc.
+
+Refactored: Consolidates duplicate submission processing from multiple routers.
 """
 
 from __future__ import annotations
@@ -30,83 +33,136 @@ except ImportError:
 
 
 # ============================
-# Helper Functions
+# Domain Models (Internal)
 # ============================
 
 
-def parse_ocr_payload(submission: SubmissionRequest) -> list[OcrOrderRecord]:
+class ExternalSubmissionRecord:
     """
-    Parse OCR payload from submission request.
+    Normalized external submission record (input-channel agnostic).
+
+    Can be created from OCR, Excel, API, EDI, or other sources.
+    """
+
+    def __init__(
+        self,
+        order_no: str,
+        customer_code: str,
+        order_date: datetime | None,
+        lines: list,
+    ):
+        """
+        Initialize submission record.
+
+        Args:
+            order_no: Order number
+            customer_code: Customer code
+            order_date: Order date (optional)
+            lines: List of line items
+        """
+        self.order_no = order_no
+        self.customer_code = customer_code
+        self.order_date = order_date
+        self.lines = lines
+
+
+# ============================
+# Service Functions
+# ============================
+
+
+def normalize_external_submission(submission: SubmissionRequest) -> list[ExternalSubmissionRecord]:
+    """
+    Normalize external submission data to domain model (input-channel agnostic).
+
+    Supports multiple input channels:
+    - OCR: payload.records with OCR-specific structure
+    - Excel: payload.records with Excel-specific structure
+    - API: payload.records with standard structure
+    - Future: EDI, CSV, etc.
 
     Args:
-        submission: Submission request
+        submission: Submission request (from any channel)
 
     Returns:
-        List of OCR order records
+        List of normalized submission records
 
     Raises:
         ValueError: If payload parsing fails
     """
+    source = submission.source.lower()
+
     try:
         records_data = submission.payload.get("records", [])
         if not records_data:
             raise ValueError("payload に 'records' が含まれていません")
 
-        return [OcrOrderRecord(**rec) for rec in records_data]
+        # Channel-specific parsing
+        if source in ("ocr", "excel", "api"):
+            # For now, OCR/Excel/API use same structure (OcrOrderRecord)
+            # Future: Add channel-specific parsers as needed
+            ocr_records = [OcrOrderRecord(**rec) for rec in records_data]
+
+            # Convert to normalized domain model
+            normalized = []
+            for ocr_rec in ocr_records:
+                normalized.append(
+                    ExternalSubmissionRecord(
+                        order_no=ocr_rec.order_no,
+                        customer_code=ocr_rec.customer_code,
+                        order_date=ocr_rec.order_date,
+                        lines=ocr_rec.lines,
+                    )
+                )
+            return normalized
+        else:
+            raise ValueError(f"未対応のソース種別: {source}")
+
     except Exception as e:
         raise ValueError(f"payload のパース失敗: {str(e)}") from e
 
 
-def validate_customer_exists(db: Session, customer_code: str) -> Customer:
+def validate_submission(
+    db: Session, record: ExternalSubmissionRecord
+) -> tuple[bool, Customer | None, str | None]:
     """
-    Validate customer exists.
+    Validate submission record.
 
     Args:
         db: Database session
-        customer_code: Customer code
+        record: Normalized submission record
 
     Returns:
-        Customer entity
-
-    Raises:
-        ValueError: If customer not found
+        Tuple of (is_valid, customer_entity, error_message)
     """
-    customer = db.query(Customer).filter(Customer.customer_code == customer_code).first()
+    # Check for duplicate order
+    existing = db.query(Order).filter(Order.order_number == record.order_no).first()
+    if existing:
+        return False, None, f"受注番号 {record.order_no} は既に存在します"
+
+    # Validate customer exists
+    customer = db.query(Customer).filter(Customer.customer_code == record.customer_code).first()
     if not customer:
-        raise ValueError(f"得意先コード {customer_code} が見つかりません")
-    return customer
+        return False, None, f"得意先コード {record.customer_code} が見つかりません"
+
+    return True, customer, None
 
 
-def check_order_duplicate(db: Session, order_no: str) -> bool:
-    """
-    Check if order already exists.
-
-    Args:
-        db: Database session
-        order_no: Order number
-
-    Returns:
-        True if duplicate, False otherwise
-    """
-    existing = db.query(Order).filter(Order.order_number == order_no).first()
-    return existing is not None
-
-
-def create_order_from_record(
+def map_submission_to_domain(
     db: Session,
-    record: OcrOrderRecord,
+    record: ExternalSubmissionRecord,
     customer: Customer,
 ) -> Order:
     """
-    Create order header from OCR record.
+    Map normalized submission to domain entities (Order).
 
     Args:
         db: Database session
-        record: OCR order record
-        customer: Customer entity
+        record: Normalized submission record
+        customer: Validated customer entity
 
     Returns:
-        Created order
+        Created order entity
     """
     order = Order(
         order_number=record.order_no,
@@ -120,20 +176,20 @@ def create_order_from_record(
     return order
 
 
-def process_order_line(
+def persist_submission_line(
     db: Session,
     order: Order,
     line_data,
-    matcher,
+    forecast_matcher,
 ) -> tuple[bool, str | None]:
     """
-    Process single order line from OCR data.
+    Persist single order line from submission.
 
     Args:
         db: Database session
         order: Parent order
-        line_data: Line data from OCR
-        matcher: Forecast matcher (optional)
+        line_data: Line data from submission
+        forecast_matcher: Forecast matcher (optional)
 
     Returns:
         Tuple of (success, error_message)
@@ -143,7 +199,7 @@ def process_order_line(
     if not product:
         return False, f"製品コード {line_data.product_code} が見つかりません"
 
-    # Convert quantity
+    # Convert quantity to internal unit
     try:
         internal_qty = to_internal_qty(
             product=product,
@@ -165,9 +221,9 @@ def process_order_line(
     db.flush()
 
     # Optional forecast matching
-    if matcher and order.order_date:
+    if forecast_matcher and order.order_date:
         try:
-            matcher.apply_forecast_to_order_line(
+            forecast_matcher.apply_forecast_to_order_line(
                 order_line=order_line,
                 product_code=line_data.product_code,
                 customer_code=order.customer.customer_code if order.customer else "",
@@ -175,50 +231,41 @@ def process_order_line(
             )
         except Exception as e:
             logger.warning(
-                f"⚠️ Forecast matching failed for order {order.order_number} line {line_data.line_no}: {e}"
+                f"⚠️ Forecast matching failed for order {order.order_number} "
+                f"line {line_data.line_no}: {e}"
             )
 
     return True, None
 
 
-def process_ocr_record(
+def persist_submission(
     db: Session,
-    record: OcrOrderRecord,
-    matcher,
+    record: ExternalSubmissionRecord,
+    customer: Customer,
+    forecast_matcher,
 ) -> tuple[int, int, list[str]]:
     """
-    Process single OCR record (order with lines).
+    Persist submission to database (order with lines).
 
     Args:
         db: Database session
-        record: OCR order record
-        matcher: Forecast matcher (optional)
+        record: Normalized submission record
+        customer: Validated customer entity
+        forecast_matcher: Forecast matcher (optional)
 
     Returns:
         Tuple of (created_orders, created_lines, errors)
     """
     errors = []
 
-    # Check duplicate
-    if check_order_duplicate(db, record.order_no):
-        errors.append(f"受注番号 {record.order_no} は既に存在します")
-        return 0, 0, errors
-
-    # Validate customer
-    try:
-        customer = validate_customer_exists(db, record.customer_code)
-    except ValueError as e:
-        errors.append(str(e))
-        return 0, 0, errors
-
     # Create order header
-    order = create_order_from_record(db, record, customer)
+    order = map_submission_to_domain(db, record, customer)
     created_orders = 1
     created_lines = 0
 
-    # Process order lines
+    # Persist order lines
     for line in record.lines:
-        success, error = process_order_line(db, order, line, matcher)
+        success, error = persist_submission_line(db, order, line, forecast_matcher)
         if success:
             created_lines += 1
         else:
@@ -227,7 +274,7 @@ def process_ocr_record(
     return created_orders, created_lines, errors
 
 
-def build_ocr_response(
+def build_submission_response(
     submission_id: str,
     source: str,
     total_records: int,
@@ -243,7 +290,7 @@ def build_ocr_response(
 
     Args:
         submission_id: Submission ID
-        source: Submission source
+        source: Submission source (ocr, excel, api, etc.)
         total_records: Total records
         processed_records: Successfully processed records
         failed_records: Failed records
@@ -278,12 +325,18 @@ def build_ocr_response(
 # ============================
 
 
-def process_ocr_submission(
+def process_external_submission(
     db: Session,
     submission: SubmissionRequest,
 ) -> SubmissionResponse:
     """
-    Process OCR submission (unified logic).
+    Process external submission (input-channel agnostic).
+
+    Unified processing for:
+    - OCR submissions
+    - Excel imports
+    - API submissions
+    - Future: EDI, CSV, etc.
 
     Replaces:
     - integration_router.submit_ocr_data
@@ -291,7 +344,7 @@ def process_ocr_submission(
 
     Args:
         db: Database session
-        submission: Submission request
+        submission: Submission request (from any channel)
 
     Returns:
         Submission response
@@ -301,8 +354,12 @@ def process_ocr_submission(
     """
     submission_id = f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{submission.source}"
 
-    # Parse payload
-    records = parse_ocr_payload(submission)
+    # Step 1: Normalize external data to domain model
+    try:
+        records = normalize_external_submission(submission)
+    except ValueError as e:
+        logger.error(f"Submission normalization failed: {e}")
+        raise
 
     # Initialize counters
     total_records = len(records)
@@ -316,23 +373,29 @@ def process_ocr_submission(
     # Initialize forecast matcher
     forecast_matcher = ForecastService(db) if FORECAST_AVAILABLE else None
 
-    # Process each record
+    # Step 2-4: Validate, map, and persist each record
     for record in records:
         try:
-            orders, lines, errors = process_ocr_record(db, record, forecast_matcher)
+            # Step 2: Validate
+            is_valid, customer, error = validate_submission(db, record)
 
-            if errors and orders == 0:
-                if "既に存在します" in errors[0]:
+            if not is_valid:
+                if customer is None and "既に存在します" in (error or ""):
                     skipped_records += 1
                 else:
                     failed_records += 1
+                if error:
+                    error_details.append(error)
+                continue
+
+            # Step 3-4: Map to domain and persist
+            orders, lines, errors = persist_submission(db, record, customer, forecast_matcher)
+
+            processed_records += 1
+            created_orders += orders
+            created_lines += lines
+            if errors:
                 error_details.extend(errors)
-            else:
-                processed_records += 1
-                created_orders += orders
-                created_lines += lines
-                if errors:
-                    error_details.extend(errors)
 
         except Exception as e:
             failed_records += 1
@@ -343,12 +406,13 @@ def process_ocr_submission(
 
     # Log result
     logger.info(
-        f"OCR取込完了 (submissions API): {processed_records}/{total_records} 件成功, "
+        f"External submission completed ({submission.source}): "
+        f"{processed_records}/{total_records} 件成功, "
         f"{failed_records} 件失敗, {skipped_records} 件スキップ"
     )
 
-    # Build response
-    return build_ocr_response(
+    # Step 5: Build response
+    return build_submission_response(
         submission_id=submission_id,
         source=submission.source,
         total_records=total_records,

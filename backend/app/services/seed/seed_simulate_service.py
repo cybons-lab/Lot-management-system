@@ -1045,14 +1045,10 @@ def run_seed_simulation(
         _ = create_lot_inventory(db, params, masters, faker, rng, tracker, task_id)
 
         # Phase 4: Orders
-        _, _ = create_orders_with_constraints(
-            db, params, masters, faker, rng, tracker, task_id
-        )
+        _, _ = create_orders_with_constraints(db, params, masters, faker, rng, tracker, task_id)
 
         # Phase 5: Allocations
-        _ = create_allocations_with_constraints(
-            db, params, rng, tracker, task_id
-        )
+        _ = create_allocations_with_constraints(db, params, rng, tracker, task_id)
 
         # Phase 6: Post-check
         checks = validate_simulation_constraints(db, params, tracker, task_id)

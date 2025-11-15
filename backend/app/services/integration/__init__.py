@@ -1,8 +1,8 @@
 """Integration services subpackage."""
 
-from app.services.integration.ocr_submission_service import process_ocr_submission
+from app.services.integration.submissions_service import process_external_submission
 
 
 __all__ = [
-    "process_ocr_submission",
+    "process_external_submission",
 ]

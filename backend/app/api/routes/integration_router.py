@@ -5,32 +5,24 @@ OCR取込、SAP連携.
 """
 
 import logging
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_db
-from app.models import Customer, Order, OrderLine, Product
+from app.models import Order
 from app.schemas import (
     OcrSubmissionRequest,
     OcrSubmissionResponse,
     SapRegisterRequest,
     SapRegisterResponse,
 )
-from app.services.quantity_service import QuantityConversionError, to_internal_qty
+from app.schemas.integration_schema import SubmissionRequest
+from app.services.integration import process_external_submission
 
 
 logger = logging.getLogger(__name__)
-# フォーキャストマッチング機能（オプション）
-try:
-    from app.services.forecast_service import ForecastService
-
-    FORECAST_AVAILABLE = True
-except ImportError:
-    FORECAST_AVAILABLE = False
-    logger.warning("⚠️ ForecastService not available - forecast matching will be skipped")
 
 router = APIRouter(prefix="/integration", tags=["integration"])
 
@@ -57,132 +49,46 @@ def submit_ocr_data(submission: OcrSubmissionRequest, db: Session = Depends(get_
         "DEPRECATED: POST /integration/ai-ocr/submit called. "
         "Please migrate to POST /submissions with source='ocr'."
     )
-    # 取込ID生成
-    submission_id = f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{submission.source}"
 
-    total_records = len(submission.records)
-    processed_records = 0
-    failed_records = 0
-    skipped_records = 0
-    created_orders = 0
-    created_lines = 0
-    error_details = []
-
-    # フォーキャストマッチャーの初期化
-    forecast_matcher = ForecastService(db) if FORECAST_AVAILABLE else None
-
-    # 各受注レコードを処理
-    for _idx, record in enumerate(submission.records):
-        try:
-            # 重複チェック
-            existing = db.query(Order).filter(Order.order_number == record.order_no).first()
-            if existing:
-                skipped_records += 1
-                error_details.append(f"受注番号 {record.order_no} は既に存在します")
-                continue
-
-            # 得意先チェック
-            customer = (
-                db.query(Customer).filter(Customer.customer_code == record.customer_code).first()
-            )
-            if not customer:
-                failed_records += 1
-                error_details.append(f"得意先コード {record.customer_code} が見つかりません")
-                continue
-
-            # 受注ヘッダ作成
-            db_order = Order(
-                order_number=record.order_no,
-                customer_id=customer.id,
-                delivery_place_id=customer.id,  # TODO: Get from request if available
-                order_date=record.order_date if record.order_date else None,
-                status="pending",
-            )
-            db.add(db_order)
-            db.flush()
-            created_orders += 1
-
-            # 受注明細作成
-            for line in record.lines:
-                # 製品チェック
-                product = (
-                    db.query(Product).filter(Product.maker_part_code == line.product_code).first()
-                )
-                if not product:
-                    failed_records += 1
-                    error_details.append(
-                        f"受注 {record.order_no} 明細 {line.line_no}: 製品コード {line.product_code} が見つかりません"
-                    )
-                    continue
-
-                try:
-                    internal_qty = to_internal_qty(
-                        product=product,
-                        qty_external=line.quantity,
-                        external_unit=line.external_unit,
-                    )
-                except QuantityConversionError as exc:
-                    failed_records += 1
-                    error_details.append(f"受注 {record.order_no} 明細 {line.line_no}: {exc}")
-                    continue
-
-                db_line = OrderLine(
-                    order_id=db_order.id,
-                    product_id=product.id,
-                    order_quantity=float(internal_qty),
-                    unit=product.base_unit,
-                    delivery_date=line.due_date,
-                )
-                db.add(db_line)
-                db.flush()
-
-                # フォーキャストマッチング（オプション）
-                if forecast_matcher and db_order.order_date:
-                    try:
-                        forecast_matcher.apply_forecast_to_order_line(
-                            order_line=db_line,
-                            product_code=line.product_code,
-                            customer_code=record.customer_code,
-                            order_date=db_order.order_date,
-                        )
-                    except Exception as e:
-                        # フォーキャストマッチングエラーは警告のみ
-                        logger.warning(
-                            f"⚠️ Forecast matching failed for order {record.order_no} line {line.line_no}: {e}"
-                        )
-
-                created_lines += 1
-
-            processed_records += 1
-
-        except Exception as e:
-            failed_records += 1
-            error_details.append(f"受注 {record.order_no}: {str(e)}")
-
-    # DDL v2.2: ocr_submissions テーブルは削除されました
-    # ログ記録は operation_logs または別のログシステムで行ってください
-    status = (
-        "success" if failed_records == 0 else ("partial" if processed_records > 0 else "failed")
+    # Convert OcrSubmissionRequest to SubmissionRequest format
+    submission_request = SubmissionRequest(
+        source=submission.source,
+        payload={
+            "records": [
+                {
+                    "order_no": record.order_no,
+                    "customer_code": record.customer_code,
+                    "order_date": record.order_date,
+                    "lines": [
+                        {
+                            "line_no": line.line_no,
+                            "product_code": line.product_code,
+                            "quantity": line.quantity,
+                            "external_unit": line.external_unit,
+                            "due_date": line.due_date,
+                        }
+                        for line in record.lines
+                    ],
+                }
+                for record in submission.records
+            ]
+        },
     )
 
-    # Note: OcrSubmission モデルは DDL v2.2 で削除されました
-    # このエンドポイントは DEPRECATED であり、/api/submissions を使用してください
-    db.commit()
+    # Delegate to unified submission service
+    response = process_external_submission(db, submission_request)
 
-    logger.info(
-        f"OCR取込完了: {processed_records}/{total_records} 件成功, {failed_records} 件失敗, {skipped_records} 件スキップ"
-    )
-
+    # Convert SubmissionResponse to OcrSubmissionResponse for backward compatibility
     return OcrSubmissionResponse(
-        status=status,
-        submission_id=submission_id,
-        created_orders=created_orders,
-        created_lines=created_lines,
-        total_records=total_records,
-        processed_records=processed_records,
-        failed_records=failed_records,
-        skipped_records=skipped_records,
-        error_details="\n".join(error_details) if error_details else None,
+        status=response.status,
+        submission_id=response.submission_id,
+        created_orders=response.created_records,
+        created_lines=0,  # Not tracked separately in SubmissionResponse
+        total_records=response.total_records,
+        processed_records=response.processed_records,
+        failed_records=response.failed_records,
+        skipped_records=response.skipped_records,
+        error_details=response.error_details,
     )
 
 
