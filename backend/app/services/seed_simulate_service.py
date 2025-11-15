@@ -197,6 +197,8 @@ def run_seed_simulation(
             db.flush()
         tracker.add_log(task_id, f"Created {num_customers} customers")
 
+        existing_customers = db.execute(select(Customer)).scalars().all()
+
         # Suppliers (YAMLまたはデフォルト)
         num_suppliers = params.get("suppliers", params["warehouses"] * 5)
         existing_supplier_codes: set[str] = set()
@@ -218,43 +220,51 @@ def run_seed_simulation(
         # DeliveryPlaces (固定5箇所)
         num_delivery_places = 5
         existing_dp_codes: set[str] = set()
-        delivery_place_rows = [
-            {
-                "delivery_place_code": _next_code("D", 3, rng, existing_dp_codes),
-                "delivery_place_name": f"{faker.city()}配送センター",
-                "address": faker.address(),
-                "postal_code": faker.postcode(),
-                "created_at": datetime.utcnow(),
-            }
-            for _ in range(num_delivery_places)
-        ]
+        delivery_place_rows = []
+        if existing_customers:
+            for _ in range(num_delivery_places):
+                customer = _choose(rng, existing_customers)
+                delivery_place_rows.append(
+                    {
+                        "jiku_code": None,
+                        "delivery_place_code": _next_code("D", 3, rng, existing_dp_codes),
+                        "delivery_place_name": f"{faker.city()}配送センター",
+                        "customer_id": customer.id,
+                        "created_at": datetime.utcnow(),
+                    }
+                )
+
         if delivery_place_rows:
             stmt = pg_insert(DeliveryPlace).values(delivery_place_rows)
             stmt = stmt.on_conflict_do_nothing(index_elements=[DeliveryPlace.delivery_place_code])
             db.execute(stmt)
             db.flush()
-        tracker.add_log(task_id, f"Created {num_delivery_places} delivery places")
+            tracker.add_log(task_id, f"Created {len(delivery_place_rows)} delivery places")
+        else:
+            tracker.add_log(
+                task_id,
+                "Skipped delivery place creation because no customers were generated",
+            )
 
         # Products (YAMLまたはデフォルト)
         tracker.add_log(task_id, "→ Creating Products...")
         num_products = params.get("products", params["warehouses"] * 20)
-        existing_dps = db.execute(select(DeliveryPlace)).scalars().all()
         existing_product_codes: set[str] = set()
+        base_units = ["PCS", "BOX", "SET"]
         product_rows = []
         for _ in range(num_products):
-            dp = _choose(rng, existing_dps) if existing_dps else None
             row = {
-                "product_code": _next_code("P", 5, rng, existing_product_codes),
+                "maker_part_code": _next_code("P", 5, rng, existing_product_codes),
                 "product_name": faker.bs().title(),
-                "internal_unit": "PCS",
-                "delivery_place_id": dp.id if dp else None,
+                "base_unit": _choose(rng, base_units),
+                "consumption_limit_days": rng.randint(30, 180),
                 "created_at": datetime.utcnow(),
             }
             product_rows.append(row)
 
         if product_rows:
             stmt = pg_insert(Product).values(product_rows)
-            stmt = stmt.on_conflict_do_nothing(index_elements=[Product.product_code])
+            stmt = stmt.on_conflict_do_nothing(index_elements=[Product.maker_part_code])
             db.execute(stmt)
             db.flush()
         tracker.add_log(task_id, f"✓ Created {num_products} products")
@@ -263,10 +273,12 @@ def run_seed_simulation(
         tracker.add_log(task_id, "→ Creating Warehouses...")
         num_warehouses = params["warehouses"]
         existing_wh_codes: set[str] = set()
+        warehouse_types = ["internal", "external", "supplier"]
         warehouse_rows = [
             {
                 "warehouse_code": _next_code("W", 2, rng, existing_wh_codes),
                 "warehouse_name": f"{faker.city()}倉庫",
+                "warehouse_type": _choose(rng, warehouse_types),
                 "created_at": datetime.utcnow(),
             }
             for _ in range(num_warehouses)
