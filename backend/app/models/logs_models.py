@@ -33,11 +33,11 @@ class OperationLog(Base):
 
     __tablename__ = "operation_logs"
 
-    log_id: Mapped[int] = mapped_column(
-        BigInteger, primary_key=True, autoincrement=True, name="log_id"
+    id: Mapped[int] = mapped_column(
+        BigInteger, primary_key=True, autoincrement=True
     )
     user_id: Mapped[int | None] = mapped_column(
-        BigInteger, ForeignKey("users.user_id", ondelete="SET NULL")
+        BigInteger, ForeignKey("users.id", ondelete="SET NULL")
     )
     operation_type: Mapped[str] = mapped_column(String(50), nullable=False)
     target_table: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -61,8 +61,8 @@ class MasterChangeLog(Base):
 
     __tablename__ = "master_change_logs"
 
-    change_log_id: Mapped[int] = mapped_column(
-        BigInteger, primary_key=True, autoincrement=True, name="change_log_id"
+    id: Mapped[int] = mapped_column(
+        BigInteger, primary_key=True, autoincrement=True
     )
     table_name: Mapped[str] = mapped_column(String(50), nullable=False)
     record_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
@@ -70,7 +70,7 @@ class MasterChangeLog(Base):
     old_values: Mapped[dict | None] = mapped_column(JSONB)
     new_values: Mapped[dict | None] = mapped_column(JSONB)
     changed_by: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.user_id", ondelete="RESTRICT"), nullable=False
+        BigInteger, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
     )
     changed_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
@@ -89,8 +89,8 @@ class BusinessRule(Base):
 
     __tablename__ = "business_rules"
 
-    rule_id: Mapped[int] = mapped_column(
-        BigInteger, primary_key=True, autoincrement=True, name="rule_id"
+    id: Mapped[int] = mapped_column(
+        BigInteger, primary_key=True, autoincrement=True
     )
     rule_code: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
     rule_name: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -117,8 +117,8 @@ class BatchJob(Base):
 
     __tablename__ = "batch_jobs"
 
-    job_id: Mapped[int] = mapped_column(
-        BigInteger, primary_key=True, autoincrement=True, name="job_id"
+    id: Mapped[int] = mapped_column(
+        BigInteger, primary_key=True, autoincrement=True
     )
     job_name: Mapped[str] = mapped_column(String(100), nullable=False)
     job_type: Mapped[str] = mapped_column(String(50), nullable=False)

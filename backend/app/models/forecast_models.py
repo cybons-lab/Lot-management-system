@@ -42,7 +42,7 @@ class ForecastHeader(Base):
 
     __tablename__ = "forecast_headers"
 
-    id: Mapped[int] = mapped_column("forecast_id", BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     customer_id: Mapped[int] = mapped_column(
         BigInteger,
         ForeignKey("customers.id", ondelete="RESTRICT"),
@@ -50,7 +50,7 @@ class ForecastHeader(Base):
     )
     delivery_place_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("delivery_places.delivery_place_id", ondelete="RESTRICT"),
+        ForeignKey("delivery_places.id", ondelete="RESTRICT"),
         nullable=False,
     )
     forecast_number: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -101,15 +101,15 @@ class ForecastLine(Base):
 
     __tablename__ = "forecast_lines"
 
-    id: Mapped[int] = mapped_column("forecast_line_id", BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     forecast_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("forecast_headers.forecast_id", ondelete="CASCADE"),
+        ForeignKey("forecast_headers.id", ondelete="CASCADE"),
         nullable=False,
     )
     product_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("products.product_id", ondelete="RESTRICT"),
+        ForeignKey("products.id", ondelete="RESTRICT"),
         nullable=False,
     )
     delivery_date: Mapped[date] = mapped_column(Date, nullable=False)
