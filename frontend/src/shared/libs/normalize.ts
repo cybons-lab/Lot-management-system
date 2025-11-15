@@ -37,6 +37,7 @@ export interface OrderUI extends Record<string, unknown> {
   // Legacy fields (deprecated, for backward compatibility)
   order_no?: string;
   customer_code?: string;
+  due_date?: string | null;
   lines?: OrderLine[];
 }
 
@@ -133,6 +134,7 @@ export function normalizeOrder(order: OrderResponse): OrderUI {
     // Legacy fields (for backward compatibility)
     order_no: S(order.order_no ?? order.order_number),
     customer_code: S(order.customer_code),
+    due_date: order.due_date ?? null,
     delivery_place: (order as Record<string, unknown>).delivery_place ?? null,
     delivery_place_code: (order as Record<string, unknown>).delivery_place_code ?? null,
     delivery_place_name: (order as Record<string, unknown>).delivery_place_name ?? null,

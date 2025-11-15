@@ -13,6 +13,8 @@ export type OrderLine = components["schemas"]["OrderLineResponse"] & {
   due_date?: string | null;
   allocated_qty?: number | string | null;
   allocated_lots?: unknown[];
+  delivery_place_name?: string | null;
+  delivery_place_code?: string | null;
 };
 
 export type PriorityLevel = "urgent" | "warning" | "attention" | "allocated" | "inactive";

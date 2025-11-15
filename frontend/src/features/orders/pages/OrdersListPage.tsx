@@ -116,7 +116,7 @@ export function OrdersListPage() {
       {
         id: "due_date",
         header: "納期",
-        cell: (order: OrderUI) => formatDate(order.due_date ?? null),
+        cell: (order: OrderUI) => formatDate(order.due_date || null),
         sortable: true,
       },
       {

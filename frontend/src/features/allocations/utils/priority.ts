@@ -14,11 +14,14 @@ const sanitizeDateValue = (value?: string | null) => {
 };
 
 const sumUnallocatedQuantity = (lines: OrderLine[] | undefined): number => {
-  return (lines ?? []).reduce((sum, line) => {
+  return (lines ?? []).reduce((sum: number, line) => {
     const allocated =
-      line.allocated_lots?.reduce((acc, alloc) => {
+      line.allocated_lots?.reduce((acc: number, alloc) => {
         // DDL v2.2: prefer allocated_quantity, fallback to allocated_qty
-        const qty = Number(alloc.allocated_quantity ?? alloc.allocated_qty ?? 0);
+        const qty = typeof alloc === 'object' && alloc !== null
+          ? Number((alloc as { allocated_quantity?: number | string | null; allocated_qty?: number | null }).allocated_quantity ??
+                   (alloc as { allocated_quantity?: number | string | null; allocated_qty?: number | null }).allocated_qty ?? 0)
+          : 0;
         return acc + qty;
       }, 0) ?? 0;
     // DDL v2.2: prefer order_quantity, fallback to quantity

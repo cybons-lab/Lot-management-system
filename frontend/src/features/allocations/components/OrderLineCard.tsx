@@ -20,8 +20,8 @@ export function OrderLineCard({
   pendingAllocatedQty = 0,
 }: OrderLineCardProps) {
   // 引当済み数量を計算(allocated_lotsまたはallocationsから)
-  const allocatedQty = line.allocated_lots
-    ? line.allocated_lots.reduce((sum, alloc) => {
+  const allocatedQty: number = line.allocated_lots
+    ? line.allocated_lots.reduce((sum: number, alloc) => {
         // DDL v2.2: prefer allocated_quantity, fallback to allocated_qty
         const qty = typeof alloc === 'object' && alloc !== null
           ? Number((alloc as { allocated_quantity?: number | string | null; allocated_qty?: number | null }).allocated_quantity ??

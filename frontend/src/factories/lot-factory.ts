@@ -33,10 +33,6 @@ export function createLot(overrides?: Partial<LotResponse>): LotResponse {
     expected_lot_id: null, // DDL v2.2
     created_at: faker.date.past().toISOString(),
     updated_at: faker.date.recent().toISOString(),
-    // Legacy fields for backward compatibility
-    delivery_place_code: faker.helpers.arrayElement(["DP-001", "DP-002", "DP-003", null]),
-    delivery_place_name: faker.helpers.arrayElement(["納品先A", "納品先B", "納品先C", null]),
-    product_name: faker.commerce.productName(),
     ...overrides,
   };
 }
