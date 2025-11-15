@@ -10,6 +10,8 @@ import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
 import { ForecastDetailPage } from "@/features/forecasts/pages/ForecastDetailPage";
 import { ForecastImportPage } from "@/features/forecasts/pages/ForecastImportPage";
 import { ForecastListPage } from "@/features/forecasts/pages/ForecastListPage";
+import { InboundPlanDetailPage } from "@/features/inbound-plans/pages/InboundPlanDetailPage";
+import { InboundPlansListPage } from "@/features/inbound-plans/pages/InboundPlansListPage";
 import { InventoryLayout } from "@/features/inventory/pages/InventoryLayout";
 import { LotsPage } from "@/features/inventory/pages/LotsPage";
 import { MovesPage } from "@/features/inventory/pages/MovesPage";
@@ -45,6 +47,10 @@ function App() {
           path={LEGACY_ROUTES.FORECAST_LIST}
           element={<Navigate to={ROUTES.FORECASTS.LIST} replace />}
         />
+
+        {/* Inbound Plans - New (v2.2 - Phase C) */}
+        <Route path={ROUTES.INBOUND_PLANS.LIST} element={<InboundPlansListPage />} />
+        <Route path="/inbound-plans/:id" element={<InboundPlanDetailPage />} />
 
         {/* Inventory routes with nested children */}
         <Route path={ROUTES.INVENTORY.ROOT} element={<InventoryLayout />}>
