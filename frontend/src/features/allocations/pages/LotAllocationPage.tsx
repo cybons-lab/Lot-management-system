@@ -25,9 +25,9 @@ import {
 import type { Order } from "../types";
 import { toQty } from "../utils/qty";
 
-import type { AllocationInputItem } from "@/features/allocations/api";
+import type { AllocationInputItem, CandidateLotItem } from "@/features/allocations/api";
+import { useAllocationCandidates } from "@/features/allocations/hooks/useAllocationCandidates";
 import { getOrders, getOrder } from "@/features/orders/api";
-import { useLotsQuery, type Lot as CandidateLot } from "@/hooks/useLotsQuery";
 import { normalizeOrder } from "@/shared/libs/normalize";
 import type { OrderResponse } from "@/shared/types/aliases";
 
@@ -84,23 +84,17 @@ export function LotAllocationPage() {
       ? orderDetailQuery.data?.lines?.find((line) => Number(line.id) === normalizedSelectedLineId)
       : undefined;
 
-  // ロット候補を取得
-  // product_codeがnullの場合はproduct_idでフィルタする
-  const lotsQueryInput = useMemo(
-    () =>
-      selectedLine
-        ? {
-            productId: selectedLine.product_id || undefined,
-            productCode: selectedLine.product_code || undefined,
-            deliveryPlaceCode: selectedLine.delivery_place_code || undefined,
-          }
-        : undefined,
-    [selectedLine],
+  // ロット候補を取得（新API: /allocation-candidates）
+  const lotsQuery = useAllocationCandidates({
+    order_line_id: normalizedSelectedLineId ?? 0,
+    strategy: "fefo",
+    limit: 200,
+  });
+
+  const candidateLots: CandidateLotItem[] = useMemo(
+    () => lotsQuery.data?.items ?? [],
+    [lotsQuery.data?.items],
   );
-
-  const lotsQuery = useLotsQuery(lotsQueryInput);
-
-  const candidateLots: CandidateLot[] = useMemo(() => lotsQuery.data ?? [], [lotsQuery.data]);
 
   // ロット単位の配分状態
   const [lotAllocations, setLotAllocations] = useState<Record<number, number>>({});
@@ -132,12 +126,10 @@ export function LotAllocationPage() {
       let changed = false;
 
       for (const lot of candidateLots) {
-        const lotId = (lot.id ?? lot.lot_id) as number | undefined;
+        const lotId = lot.lot_id;
         if (!lotId) continue;
 
-        const maxQty = toQty(
-          lot.free_qty ?? lot.current_stock?.current_quantity ?? lot.current_quantity,
-        );
+        const maxQty = toQty(lot.free_qty ?? 0);
         const prevQty = prev[lotId] ?? 0;
         const clampedQty = Math.min(Math.max(prevQty, 0), maxQty);
 
@@ -158,7 +150,7 @@ export function LotAllocationPage() {
   const allocationList: AllocationInputItem[] = useMemo(() => {
     return candidateLots
       .map<AllocationInputItem | null>((lot) => {
-        const lotId = (lot.id ?? lot.lot_id) as number | undefined;
+        const lotId = lot.lot_id;
         if (!lotId) return null;
 
         const quantity = Number(lotAllocations[lotId] ?? 0);
@@ -167,8 +159,8 @@ export function LotAllocationPage() {
         return {
           lotId,
           lot: null,
-          delivery_place_id: lot.delivery_place_id ?? null,
-          delivery_place_code: lot.delivery_place_code ?? null,
+          delivery_place_id: null,
+          delivery_place_code: null,
           quantity,
         };
       })
@@ -193,14 +185,8 @@ export function LotAllocationPage() {
   // ロット配分変更ハンドラー
   const handleLotAllocationChange = useCallback(
     (lotId: number, value: number) => {
-      const targetLot = candidateLots.find((lot) => (lot.id ?? lot.lot_id) === lotId);
-      const maxQty = targetLot
-        ? toQty(
-            targetLot.free_qty ??
-              targetLot.current_stock?.current_quantity ??
-              targetLot.current_quantity,
-          )
-        : Number.POSITIVE_INFINITY;
+      const targetLot = candidateLots.find((lot) => lot.lot_id === lotId);
+      const maxQty = targetLot ? toQty(targetLot.free_qty ?? 0) : Number.POSITIVE_INFINITY;
 
       const clampedValue = Math.max(0, Math.min(maxQty, Number.isFinite(value) ? value : 0));
 
@@ -255,9 +241,10 @@ export function LotAllocationPage() {
 
       {/* 右ペイン: 候補ロット & 倉庫別配分 */}
       <LotAllocationPane
-        selectedLineId={selectedLineId}
+        selectedLineId={normalizedSelectedLineId}
         selectedLine={selectedLine}
-        lotsQuery={lotsQuery}
+        isLoading={lotsQuery.isLoading}
+        error={lotsQuery.error ?? null}
         candidateLots={candidateLots}
         lotAllocations={lotAllocations}
         allocationTotalAll={allocationTotalAll}

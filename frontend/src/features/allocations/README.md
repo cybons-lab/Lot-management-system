@@ -202,12 +202,27 @@ function AllocationWorkflow({ orderLineId, orderId }: Props) {
 
 ## Migration Checklist
 
-- [ ] Replace `getCandidateLots` with `useAllocationCandidates`
-- [ ] Replace `POST /allocations/drag-assign` with `createManualAllocationSuggestion` + `commitAllocation`
+- [x] Replace `getCandidateLots` with `useAllocationCandidates` ✅ **Phase F (2025-11-15)**
+- [ ] Replace `POST /allocations/drag-assign` with `createManualAllocationSuggestion` + `commitAllocation` ⚠️ **On Hold**
 - [ ] Replace `POST /allocations/preview` with `createFefoAllocationSuggestion` + `commitAllocation`
 - [ ] Replace `POST /allocations/orders/{id}/allocate` with `commitAllocation`
 - [ ] Test the two-step flow (preview → commit)
 - [ ] Remove deprecated API calls
+
+### Phase F Implementation Notes (2025-11-15)
+
+**✅ Completed:**
+
+- `LotAllocationPage.tsx` now uses `useAllocationCandidates` for fetching candidate lots
+- Migrated from `useLotsQuery` (old) to `useAllocationCandidates` (new API)
+- Updated candidate lot data structure from `Lot[]` to `CandidateLotItem[]`
+
+**⚠️ On Hold:**
+
+- Manual allocation save remains using old API (`useAllocationMutation` → `POST /allocations/drag-assign`)
+- **Reason:** New `/allocations/commit` API only supports FEFO auto-allocation, not manual multi-lot allocation
+- **Action Required:** Backend needs to implement manual allocation commit API before frontend migration
+- **Deadline:** 2026-02-15 (deprecated API removal date)
 
 ## Breaking Changes
 
