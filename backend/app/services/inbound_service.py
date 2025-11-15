@@ -81,9 +81,7 @@ class InboundService:
         """
         plan = (
             self.db.query(InboundPlan)
-            .options(
-                joinedload(InboundPlan.lines).joinedload(InboundPlanLine.expected_lots)
-            )
+            .options(joinedload(InboundPlan.lines).joinedload(InboundPlanLine.expected_lots))
             .filter(InboundPlan.id == plan_id)
             .first()
         )
@@ -127,9 +125,7 @@ class InboundService:
             ],
         )
 
-    def create_inbound_plan(
-        self, plan: InboundPlanCreate
-    ) -> InboundPlanDetailResponse:
+    def create_inbound_plan(self, plan: InboundPlanCreate) -> InboundPlanDetailResponse:
         """
         Create inbound plan (with optional lines and expected lots).
 
@@ -237,9 +233,7 @@ class InboundService:
         Returns:
             Updated inbound plan, or None if not found
         """
-        db_plan = (
-            self.db.query(InboundPlan).filter(InboundPlan.id == plan_id).first()
-        )
+        db_plan = self.db.query(InboundPlan).filter(InboundPlan.id == plan_id).first()
 
         if not db_plan:
             return None
@@ -275,9 +269,7 @@ class InboundService:
         Returns:
             True if deleted, False if not found
         """
-        db_plan = (
-            self.db.query(InboundPlan).filter(InboundPlan.id == plan_id).first()
-        )
+        db_plan = self.db.query(InboundPlan).filter(InboundPlan.id == plan_id).first()
 
         if not db_plan:
             return False
@@ -331,9 +323,7 @@ class InboundService:
             for line in lines
         ]
 
-    def create_line(
-        self, plan_id: int, line: InboundPlanLineCreate
-    ) -> InboundPlanLineResponse:
+    def create_line(self, plan_id: int, line: InboundPlanLineCreate) -> InboundPlanLineResponse:
         """
         Create inbound plan line.
 
@@ -425,9 +415,7 @@ class InboundService:
         # Get plan with lines and expected lots
         plan = (
             self.db.query(InboundPlan)
-            .options(
-                joinedload(InboundPlan.lines).joinedload(InboundPlanLine.expected_lots)
-            )
+            .options(joinedload(InboundPlan.lines).joinedload(InboundPlanLine.expected_lots))
             .filter(InboundPlan.id == plan_id)
             .first()
         )
@@ -439,9 +427,7 @@ class InboundService:
             raise ValueError(f"Inbound plan {plan.plan_number} is already received")
 
         if plan.status == "cancelled":
-            raise ValueError(
-                f"Inbound plan {plan.plan_number} is cancelled and cannot be received"
-            )
+            raise ValueError(f"Inbound plan {plan.plan_number} is cancelled and cannot be received")
 
         created_lot_ids = []
 

@@ -75,9 +75,7 @@ class AdjustmentService:
         Returns:
             Adjustment record, or None if not found
         """
-        adjustment = (
-            self.db.query(Adjustment).filter(Adjustment.id == adjustment_id).first()
-        )
+        adjustment = self.db.query(Adjustment).filter(Adjustment.id == adjustment_id).first()
 
         if not adjustment:
             return None

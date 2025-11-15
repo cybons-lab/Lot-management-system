@@ -17,6 +17,7 @@ from app.schemas.inbound_schema import (
 )
 from app.services.inbound_service import InboundService
 
+
 router = APIRouter(prefix="/inbound-plans", tags=["inbound-plans"])
 
 

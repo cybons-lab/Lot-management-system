@@ -10,10 +10,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.routes import (
+    adjustments_router,
     admin_healthcheck_router,
     admin_router,
     admin_simulate_router,
-    adjustments_router,
     allocations_router,
     forecast_router,
     forecasts_router,

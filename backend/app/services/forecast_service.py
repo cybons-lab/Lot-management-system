@@ -194,9 +194,7 @@ class ForecastService:
         Returns:
             Updated forecast header, or None if not found
         """
-        db_header = (
-            self.db.query(ForecastHeader).filter(ForecastHeader.id == header_id).first()
-        )
+        db_header = self.db.query(ForecastHeader).filter(ForecastHeader.id == header_id).first()
 
         if not db_header:
             return None
@@ -233,9 +231,7 @@ class ForecastService:
         Returns:
             True if deleted, False if not found
         """
-        db_header = (
-            self.db.query(ForecastHeader).filter(ForecastHeader.id == header_id).first()
-        )
+        db_header = self.db.query(ForecastHeader).filter(ForecastHeader.id == header_id).first()
 
         if not db_header:
             return False
@@ -293,9 +289,7 @@ class ForecastService:
             ValueError: If header not found
         """
         # Verify header exists
-        header = (
-            self.db.query(ForecastHeader).filter(ForecastHeader.id == header_id).first()
-        )
+        header = self.db.query(ForecastHeader).filter(ForecastHeader.id == header_id).first()
 
         if not header:
             raise ValueError(f"Forecast header with id={header_id} not found")
@@ -410,3 +404,16 @@ class ForecastService:
         except Exception as e:
             self.db.rollback()
             raise e
+
+
+def assign_auto_forecast_identifier(*args, **kwargs):
+    """Backward compatible stub for old assign_auto_forecast_identifier.
+
+    Todo:
+        forecast_router 側を ForecastService ベースの新実装に
+        リファクタしたら、この関数は削除する。
+    """
+    raise NotImplementedError(
+        "assign_auto_forecast_identifier is deprecated. "
+        "Use ForecastService-based implementation instead."
+    )

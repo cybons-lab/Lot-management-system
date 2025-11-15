@@ -15,6 +15,7 @@ from app.schemas.forecast_schema import (
 )
 from app.services.forecast_service import ForecastService
 
+
 router = APIRouter(prefix="/forecasts", tags=["forecasts"])
 
 

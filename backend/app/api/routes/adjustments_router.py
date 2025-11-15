@@ -7,6 +7,7 @@ from app.api.deps import get_db
 from app.schemas.inventory_schema import AdjustmentCreate, AdjustmentResponse
 from app.services.adjustment_service import AdjustmentService
 
+
 router = APIRouter(prefix="/adjustments", tags=["adjustments"])
 
 
