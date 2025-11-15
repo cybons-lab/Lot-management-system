@@ -65,9 +65,7 @@ class Warehouse(Base):
     )
 
     lots: Mapped[list[Lot]] = relationship("Lot", back_populates="warehouse")
-    stock_movements: Mapped[list[StockMovement]] = relationship(
-        "StockMovement", back_populates="warehouse"
-    )
+    stock_movements: Mapped[list[StockMovement]] = relationship("StockMovement")
     inventory_items: Mapped[list[InventoryItem]] = relationship(
         "InventoryItem", back_populates="warehouse"
     )
@@ -239,9 +237,7 @@ class Product(Base):
     purchase_requests: Mapped[list[PurchaseRequest]] = relationship(
         "PurchaseRequest", back_populates="product"
     )
-    stock_movements: Mapped[list[StockMovement]] = relationship(
-        "StockMovement", back_populates="product"
-    )
+    stock_movements: Mapped[list[StockMovement]] = relationship("StockMovement")
     unit_conversions: Mapped[list[UnitConversion]] = relationship(
         "UnitConversion", back_populates="product"
     )

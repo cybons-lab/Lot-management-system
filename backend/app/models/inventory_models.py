@@ -311,9 +311,7 @@ class AllocationSuggestion(Base):
         Index("idx_allocation_suggestions_lot", "lot_id"),
     )
 
-    forecast_line: Mapped[ForecastLine] = relationship(
-        "ForecastLine", back_populates="allocation_suggestions"
-    )
+    forecast_line: Mapped[ForecastLine] = relationship("ForecastLine")
     lot: Mapped[Lot] = relationship("Lot")
 
 
