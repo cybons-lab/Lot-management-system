@@ -9,7 +9,7 @@ from app.api.deps import get_db
 
 # 既存の models.masters.Warehouse とは異なる、新しいモデルをインポート
 from app.models import Warehouse
-from app.schemas import WarehouseListResponse, WarehouseOut
+from app.schemas.masters.masters_schema import WarehouseListResponse, WarehouseOut
 
 
 router = APIRouter(prefix="/warehouse-alloc", tags=["warehouse-alloc"])

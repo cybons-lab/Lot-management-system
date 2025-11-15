@@ -5,7 +5,9 @@ import traceback
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.schemas import (
+# TODO: These schema classes don't exist yet. Need to be created in app.schemas.orders or app.schemas.system
+# For now, this import will fail when wildcard re-exports are removed
+from app.schemas import (  # type: ignore[attr-defined]
     OrderValidationDetails,
     OrderValidationErrorData,
     OrderValidationLotAvailability,

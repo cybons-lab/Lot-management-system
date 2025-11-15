@@ -1,5 +1,5 @@
 """
-Unified re-export of Pydantic schema classes used by the backend API.
+Pydantic schemas package.
 
 Organized into feature-based subpackages:
 - common/ - Base schemas and common utilities (2 files)
@@ -11,17 +11,10 @@ Organized into feature-based subpackages:
 - integration/ - Integration schemas (1 file)
 - admin/ - Admin schemas (3 files)
 - system/ - System schemas (6 files)
+
+Import schemas directly from their subpackages:
+    from app.schemas.orders.orders_schema import OrderCreate, OrderResponse
+    from app.schemas.masters.masters_schema import ProductCreate
 """
 
 from __future__ import annotations
-
-# Re-export all schemas from subpackages
-from app.schemas.admin import *  # noqa: F403
-from app.schemas.allocations import *  # noqa: F403
-from app.schemas.common import *  # noqa: F403
-from app.schemas.forecasts import *  # noqa: F403
-from app.schemas.integration import *  # noqa: F403
-from app.schemas.inventory import *  # noqa: F403
-from app.schemas.masters import *  # noqa: F403
-from app.schemas.orders import *  # noqa: F403
-from app.schemas.system import *  # noqa: F403

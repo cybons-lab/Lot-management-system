@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.models import Customer, Forecast, Order, OrderLine, Product
-from app.schemas import (
+from app.schemas.forecasts.forecast_schema import (
     ForecastActivateRequest,
     ForecastActivateResponse,
     ForecastBulkImportRequest,

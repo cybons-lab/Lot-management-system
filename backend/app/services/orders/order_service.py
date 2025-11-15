@@ -18,7 +18,11 @@ from app.domain.order import (
     ProductNotFoundError,
 )
 from app.models import Customer, Order, OrderLine, Product
-from app.schemas import OrderCreate, OrderResponse, OrderWithLinesResponse
+from app.schemas.orders.orders_schema import (
+    OrderCreate,
+    OrderResponse,
+    OrderWithLinesResponse,
+)
 from app.services.quantity_service import QuantityConversionError, to_internal_qty
 
 
@@ -53,7 +57,7 @@ class OrderService:
         return [OrderWithLinesResponse.model_validate(order) for order in orders]
 
     def get_order_detail(self, order_id: int) -> OrderWithLinesResponse:
-        from app.schemas import OrderLineOut
+        from app.schemas.orders.orders_schema import OrderLineOut
 
         stmt: Select[Order] = (
             select(Order)

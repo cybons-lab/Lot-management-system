@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import get_db
 from app.models import Order
-from app.schemas import (
+from app.schemas.integration.integration_schema import (
     OcrSubmissionRequest,
     OcrSubmissionResponse,
     SapRegisterRequest,

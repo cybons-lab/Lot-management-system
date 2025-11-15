@@ -5,7 +5,11 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.models import Warehouse
-from app.schemas import WarehouseCreate, WarehouseResponse, WarehouseUpdate
+from app.schemas.masters.masters_schema import (
+    WarehouseCreate,
+    WarehouseResponse,
+    WarehouseUpdate,
+)
 
 
 router = APIRouter(prefix="/warehouses", tags=["masters"])

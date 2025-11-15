@@ -21,13 +21,10 @@ from app.models import (
     Supplier,
     Warehouse,  # 統合された新Warehouse
 )
-from app.schemas import (
-    CandidateLotsResponse,
-    DashboardStatsResponse,
-    FullSampleDataRequest,
-    ResponseBase,
-)
-from app.schemas.admin_seeds_schema import SeedRequest, SeedResponse
+from app.schemas.admin.admin_schema import DashboardStatsResponse, FullSampleDataRequest
+from app.schemas.admin.admin_seeds_schema import SeedRequest, SeedResponse
+from app.schemas.allocations.allocations_schema import CandidateLotsResponse
+from app.schemas.common.base import ResponseBase
 from app.services.seeds_service import create_seed_data
 
 

@@ -16,7 +16,7 @@ from app.models import (
     Supplier,
     Warehouse,
 )
-from app.schemas import (
+from app.schemas.inventory.inventory_schema import (
     LotCreate,
     LotResponse,
     LotUpdate,

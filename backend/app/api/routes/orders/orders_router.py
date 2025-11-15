@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_uow
-from app.schemas import (
+from app.schemas.orders.orders_schema import (
     OrderCreate,
     OrderResponse,
     OrderStatusUpdate,
