@@ -1039,18 +1039,18 @@ def run_seed_simulation(
         masters = create_master_data(db, params, faker, rng, tracker, task_id)
 
         # Phase 2.5: Forecasts
-        forecast_count = create_forecast_data(db, params, masters, rng, tracker, task_id)
+        _ = create_forecast_data(db, params, masters, rng, tracker, task_id)
 
         # Phase 3: Stock
-        lot_count = create_lot_inventory(db, params, masters, faker, rng, tracker, task_id)
+        _ = create_lot_inventory(db, params, masters, faker, rng, tracker, task_id)
 
         # Phase 4: Orders
-        order_count, line_count = create_orders_with_constraints(
+        _, _ = create_orders_with_constraints(
             db, params, masters, faker, rng, tracker, task_id
         )
 
         # Phase 5: Allocations
-        allocation_count = create_allocations_with_constraints(
+        _ = create_allocations_with_constraints(
             db, params, rng, tracker, task_id
         )
 
