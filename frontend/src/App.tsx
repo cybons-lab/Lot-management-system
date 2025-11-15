@@ -8,6 +8,7 @@ import { AdminPage } from "@/features/admin/pages/AdminPage";
 import { AdjustmentCreatePage } from "@/features/adjustments/pages/AdjustmentCreatePage";
 import { AdjustmentsListPage } from "@/features/adjustments/pages/AdjustmentsListPage";
 import { LotAllocationPage } from "@/features/allocations/pages/LotAllocationPage";
+import { CustomerItemsListPage } from "@/features/customer-items/pages/CustomerItemsListPage";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
 import { ForecastDetailPage } from "@/features/forecasts/pages/ForecastDetailPage";
 import { ForecastImportPage } from "@/features/forecasts/pages/ForecastImportPage";
@@ -70,6 +71,9 @@ function App() {
           path="/inventory/items/:productId/:warehouseId"
           element={<InventoryItemDetailPage />}
         />
+
+        {/* Masters - Phase G-1 */}
+        <Route path={ROUTES.MASTERS.CUSTOMER_ITEMS} element={<CustomerItemsListPage />} />
 
         {/* Admin */}
         <Route path={ROUTES.ADMIN.INDEX} element={<AdminPage />} />
