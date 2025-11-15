@@ -2,7 +2,6 @@
 
 import logging
 import os
-import subprocess
 from collections.abc import Generator
 from pathlib import Path
 
@@ -42,7 +41,8 @@ def get_db() -> Generator[Session, None, None]:
 # --- Schema lifecycle -----------------------------------------------------
 def init_db() -> None:
     """
-    起動時の Alembic マイグレーションを無効化。
+    Disable Alembic migrations at startup.
+
     現在は SQL / ダンプでスキーマを復元するため、ここでは何もしない。
     """
     import app.models  # noqa: F401
