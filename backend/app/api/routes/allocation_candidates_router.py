@@ -67,52 +67,36 @@ def get_allocation_candidates(
         # クエリタイムアウト設定（5秒）
         db.execute(text("SET LOCAL statement_timeout = '5s'"))
 
-        # メインクエリ: product_id 基準で候補ロットを取得
+        # v2.2: メインクエリ - lots テーブルから直接取得
         # 並び順はFEFO戦略の場合: expiry_date NULLS FIRST（期限が近いものを優先）
         order_by_clause = (
-            "l.expiry_date NULLS FIRST, lcs.lot_id"
-            if strategy == "fefo"
-            else "lcs.lot_id"  # fifoやcustomは将来実装
+            "l.expiry_date NULLS FIRST, l.id" if strategy == "fefo" else "l.id"  # fifoやcustomは将来実装
         )
 
         query = text(
             f"""
             SELECT
-                lcs.lot_id,
+                l.id AS lot_id,
                 l.lot_number,
-                lcs.current_quantity,
-                COALESCE(SUM(a.allocated_qty), 0) AS allocated_qty,
-                (lcs.current_quantity - COALESCE(SUM(a.allocated_qty), 0)) AS free_qty,
-                lcs.product_id,
+                l.current_quantity,
+                l.allocated_quantity AS allocated_qty,
+                (l.current_quantity - l.allocated_quantity) AS free_qty,
+                l.product_id,
                 l.product_code,
-                lcs.warehouse_id,
+                l.warehouse_id,
                 l.warehouse_code,
                 l.expiry_date,
-                lcs.last_updated
+                l.updated_at AS last_updated
             FROM
-                public.lot_current_stock lcs
-                INNER JOIN public.lots l ON l.id = lcs.lot_id
-                LEFT JOIN public.allocations a ON a.lot_id = lcs.lot_id
-                    AND a.deleted_at IS NULL
+                public.lots l
             WHERE
-                lcs.product_id = :product_id
-                AND lcs.current_quantity > 0
+                l.product_id = :product_id
+                AND l.current_quantity > 0
                 AND l.deleted_at IS NULL
                 AND (l.is_locked IS NULL OR l.is_locked = false)
                 AND (l.expiry_date IS NULL OR l.expiry_date >= CURRENT_DATE)
-                AND (:warehouse_id IS NULL OR lcs.warehouse_id = :warehouse_id)
-            GROUP BY
-                lcs.lot_id,
-                l.lot_number,
-                lcs.current_quantity,
-                lcs.product_id,
-                l.product_code,
-                lcs.warehouse_id,
-                l.warehouse_code,
-                l.expiry_date,
-                lcs.last_updated
-            HAVING
-                (lcs.current_quantity - COALESCE(SUM(a.allocated_qty), 0)) > 0
+                AND (:warehouse_id IS NULL OR l.warehouse_id = :warehouse_id)
+                AND (l.current_quantity - l.allocated_quantity) > 0
             ORDER BY
                 {order_by_clause}
             LIMIT :limit
