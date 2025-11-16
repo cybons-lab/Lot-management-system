@@ -32,8 +32,8 @@ from app.schemas.admin.admin_simulate_schema import (
     SimulateResultSummary,
     SimulateSeedRequest,
 )
-from app.services.job_tracker import JobPhase, get_job_tracker
-from app.services.profile_loader import get_profile
+from app.services.common.job_tracker import JobPhase, get_job_tracker
+from app.services.common.profile_loader import get_profile
 
 
 logger = logging.getLogger(__name__)

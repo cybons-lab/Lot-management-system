@@ -20,7 +20,7 @@ from app.schemas.admin.admin_simulate_schema import (
     SimulateSeedRequest,
     SimulateSeedResponse,
 )
-from app.services.job_tracker import get_job_tracker
+from app.services.common.job_tracker import get_job_tracker
 from app.services.seed.seed_simulate_service import run_seed_simulation
 
 

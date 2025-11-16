@@ -2,9 +2,9 @@
 """
 LotServiceのテスト
 """
-import pytest
 from datetime import date, timedelta
 
+import pytest
 from sqlalchemy.orm import Session
 
 from app.domain.lot import LotCandidate
