@@ -41,7 +41,7 @@ export function CheckboxFilterField({
       <div className="flex flex-col gap-1">
         <Label
           htmlFor={label}
-          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
         >
           {label}
         </Label>
