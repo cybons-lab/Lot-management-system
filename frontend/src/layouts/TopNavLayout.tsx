@@ -14,6 +14,10 @@ import {
   GitBranch,
   Settings,
   Sparkles,
+  TrendingUp,
+  PackagePlus,
+  Database,
+  Users,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -40,6 +44,20 @@ const navItems: NavItem[] = [
     activeColor: "text-blue-600 bg-blue-50",
   },
   {
+    title: "需要予測",
+    href: "/forecasts",
+    icon: TrendingUp,
+    color: "text-gray-600",
+    activeColor: "text-cyan-600 bg-cyan-50",
+  },
+  {
+    title: "入荷予定",
+    href: "/inbound-plans",
+    icon: PackagePlus,
+    color: "text-gray-600",
+    activeColor: "text-indigo-600 bg-indigo-50",
+  },
+  {
     title: "在庫管理",
     href: "/inventory/summary",
     icon: Package,
@@ -59,6 +77,20 @@ const navItems: NavItem[] = [
     icon: GitBranch,
     color: "text-gray-600",
     activeColor: "text-orange-600 bg-orange-50",
+  },
+  {
+    title: "マスタ",
+    href: "/masters/customer-items",
+    icon: Database,
+    color: "text-gray-600",
+    activeColor: "text-teal-600 bg-teal-50",
+  },
+  {
+    title: "設定",
+    href: "/settings/users",
+    icon: Users,
+    color: "text-gray-600",
+    activeColor: "text-amber-600 bg-amber-50",
   },
   {
     title: "管理",
