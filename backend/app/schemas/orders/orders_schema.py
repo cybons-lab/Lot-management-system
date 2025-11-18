@@ -65,7 +65,9 @@ class OrderResponse(OrderBase):
 class OrderWithLinesResponse(OrderResponse):
     """Order with lines response."""
 
-    lines: list[OrderLineResponse] = Field(default_factory=list)
+    lines: list[OrderLineResponse] = Field(
+        default_factory=list, validation_alias="order_lines", serialization_alias="lines"
+    )
 
 
 # ============================================================

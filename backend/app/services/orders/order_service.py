@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import date
-from decimal import Decimal
 
 from sqlalchemy import Select, select
 from sqlalchemy.orm import Session, selectinload
@@ -11,7 +10,6 @@ from sqlalchemy.orm import Session, selectinload
 from app.domain.order import (
     DuplicateOrderError,
     InvalidOrderStatusError,
-    OrderBusinessRules,
     OrderNotFoundError,
     OrderStateMachine,
     OrderValidationError,
@@ -23,7 +21,6 @@ from app.schemas.orders.orders_schema import (
     OrderResponse,
     OrderWithLinesResponse,
 )
-from app.services.common.quantity_service import QuantityConversionError, to_internal_qty
 
 
 class OrderService:
@@ -46,7 +43,10 @@ class OrderService:
         if status:
             stmt = stmt.where(Order.status == status)
         if customer_code:
-            stmt = stmt.where(Order.customer_code == customer_code)
+            # JOIN Customer table to filter by customer_code
+            stmt = stmt.join(Customer, Order.customer_id == Customer.id).where(
+                Customer.customer_code == customer_code
+            )
         if date_from:
             stmt = stmt.where(Order.order_date >= date_from)
         if date_to:
@@ -57,17 +57,13 @@ class OrderService:
         return [OrderWithLinesResponse.model_validate(order) for order in orders]
 
     def get_order_detail(self, order_id: int) -> OrderWithLinesResponse:
-        from app.schemas.orders.orders_schema import OrderLineOut
-
+        # Load order with related data (DDL v2.2 compliant)
         stmt: Select[Order] = (
             select(Order)
             .options(
-                selectinload(Order.order_lines)
-                .selectinload(OrderLine.product)
-                .selectinload(Product.delivery_place),
-                selectinload(Order.order_lines)
-                .selectinload(OrderLine.product)
-                .selectinload(Product.supplier),
+                selectinload(Order.order_lines).selectinload(OrderLine.product),
+                selectinload(Order.customer),
+                selectinload(Order.delivery_place),
             )
             .where(Order.id == order_id)
         )
@@ -75,112 +71,52 @@ class OrderService:
         if not order:
             raise OrderNotFoundError(order_id)
 
-        # Build OrderLineOut manually to include product and delivery_place data
-        lines_out = []
-        for line in order.order_lines:
-            line_dict = {
-                "id": line.id,
-                "line_no": line.line_no,
-                "product_id": line.product_id,
-                "warehouse_id": line.warehouse_id,
-                "quantity": float(line.quantity),
-                "unit": line.unit,
-                "allocated_qty": 0.0,  # Will be calculated from allocations
-            }
-
-            # Add product information
-            if line.product:
-                line_dict["product_code"] = line.product.product_code
-                line_dict["product_name"] = line.product.product_name
-                line_dict["supplier_id"] = line.product.supplier_id
-
-                # Add supplier information
-                if line.product.supplier:
-                    line_dict["supplier_code"] = line.product.supplier.supplier_code
-
-                # Add delivery_place information
-                if line.product.delivery_place:
-                    line_dict["delivery_place_id"] = line.product.delivery_place.id
-                    line_dict["delivery_place_code"] = (
-                        line.product.delivery_place.delivery_place_code
-                    )
-                    line_dict["delivery_place_name"] = (
-                        line.product.delivery_place.delivery_place_name
-                    )
-
-            lines_out.append(OrderLineOut(**line_dict))
-
-        # Build OrderWithLinesResponse
-        order_dict = OrderResponse.model_validate(order).model_dump()
-        order_dict["lines"] = lines_out
-        return OrderWithLinesResponse(**order_dict)
+        return OrderWithLinesResponse.model_validate(order)
 
     def create_order(self, order_data: OrderCreate) -> OrderWithLinesResponse:
-        OrderBusinessRules.validate_order_no(order_data.order_no)
-
-        existing_stmt = select(Order).where(Order.order_no == order_data.order_no)
+        # Validate order_number uniqueness
+        existing_stmt = select(Order).where(Order.order_number == order_data.order_number)
         existing = self.db.execute(existing_stmt).scalar_one_or_none()
         if existing:
-            raise DuplicateOrderError(order_data.order_no)
+            raise DuplicateOrderError(order_data.order_number)
 
-        customer_stmt = select(Customer).where(Customer.customer_code == order_data.customer_code)
+        # Validate customer_id exists
+        customer_stmt = select(Customer).where(Customer.id == order_data.customer_id)
         customer = self.db.execute(customer_stmt).scalar_one_or_none()
         if not customer:
-            raise OrderValidationError(f"Customer not found for code {order_data.customer_code}")
+            raise OrderValidationError(f"Customer not found for ID {order_data.customer_id}")
 
+        # Create order (DDL v2.2 compliant - no legacy fields)
         order = Order(
-            order_no=order_data.order_no,
-            customer_id=customer.id,
-            customer_code=customer.customer_code,
+            order_number=order_data.order_number,
+            customer_id=order_data.customer_id,
+            delivery_place_id=order_data.delivery_place_id,
             order_date=order_data.order_date,
-            status=order_data.status or "open",
-            customer_order_no=order_data.customer_order_no,
-            delivery_mode=order_data.delivery_mode,
-            sap_order_id=order_data.sap_order_id,
-            sap_status=order_data.sap_status,
-            sap_sent_at=order_data.sap_sent_at,
-            sap_error_msg=order_data.sap_error_msg,
+            status=order_data.status,
         )
         self.db.add(order)
         self.db.flush()
 
+        # Create order lines
         for line_data in order_data.lines:
-            OrderBusinessRules.validate_quantity(line_data.quantity, line_data.product_code)
-            if line_data.due_date:
-                OrderBusinessRules.validate_due_date(line_data.due_date, order.order_date)
-
-            product_stmt = select(Product).where(Product.product_code == line_data.product_code)
+            # Validate product_id exists
+            product_stmt = select(Product).where(Product.id == line_data.product_id)
             product = self.db.execute(product_stmt).scalar_one_or_none()
             if not product:
-                raise ProductNotFoundError(line_data.product_code)
+                raise ProductNotFoundError(line_data.product_id)
 
-            try:
-                if line_data.external_unit:
-                    internal_qty = to_internal_qty(
-                        product=product,
-                        qty_external=line_data.quantity,
-                        external_unit=line_data.external_unit,
-                    )
-                else:
-                    internal_qty = Decimal(str(line_data.quantity))
-            except QuantityConversionError as exc:
-                raise OrderValidationError(str(exc)) from exc
-
+            # Create order line (DDL v2.2 compliant)
             line = OrderLine(
                 order_id=order.id,
-                line_no=line_data.line_no,
-                product_id=product.id,
-                product_code=product.product_code,
-                quantity=internal_qty,
-                unit=product.internal_unit,
+                product_id=line_data.product_id,
+                delivery_date=line_data.delivery_date,
+                order_quantity=line_data.order_quantity,
+                unit=line_data.unit,
             )
-            if hasattr(line, "due_date"):
-                line.due_date = line_data.due_date
             self.db.add(line)
 
         self.db.flush()
         self.db.refresh(order)
-        order.lines = list(order.order_lines)
 
         return OrderWithLinesResponse.model_validate(order)
 
