@@ -34,6 +34,14 @@ export function OrdersPane({
     }
     if (order.customer_code) return order.customer_code;
     if (order.customer_name) return order.customer_name;
+
+    const firstLine = order.lines?.[0];
+    const lineCode = firstLine?.customer_code ?? null;
+    const lineName = firstLine?.customer_name ?? null;
+    if (lineCode && lineName) return `${lineCode} ${lineName}`;
+    if (lineCode) return lineCode;
+    if (lineName) return lineName;
+
     return "未設定";
   };
 

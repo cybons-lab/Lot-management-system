@@ -27,6 +27,8 @@ interface LotAllocationPanelProps {
   lotAllocations: Record<number, number>;
   /** ロット引当数量変更ハンドラー */
   onLotAllocationChange: (lotId: number, quantity: number) => void;
+  /** 全量ボタンハンドラー（指定ロットで全量にしたい場合） */
+  onFillAllFromLot?: (lotId: number) => void;
   /** 自動引当（FEFO）ハンドラー */
   onAutoAllocate: () => void;
   /** クリアハンドラー */
@@ -48,6 +50,7 @@ export function LotAllocationPanel({
   candidateLots,
   lotAllocations,
   onLotAllocationChange,
+  onFillAllFromLot,
   onAutoAllocate,
   onClearAllocations,
   onSaveAllocations,
@@ -263,17 +266,18 @@ export function LotAllocationPanel({
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          // このロット以外の現在入力数
+                          if (onFillAllFromLot) {
+                            onFillAllFromLot(lotId);
+                            return;
+                          }
+
+                          // フォールバック: 既存ロジックで残量に合わせて入力
                           const otherLotsCurrentInput = uiAllocatedTotal - allocatedQty;
-                          // DBに保存済みの引当数量
                           const dbAllocated = Number(
                             orderLine?.allocated_qty ?? orderLine?.allocated_quantity ?? 0,
                           );
-                          // このロット以外の合計引当（DB保存済み + 他ロットの現在入力）
                           const totalOtherAllocation = dbAllocated + otherLotsCurrentInput;
-                          // 残り必要数量
                           const remainingNeeded = Math.max(0, requiredQty - totalOtherAllocation);
-                          // 最大引当可能数（残り必要数 と 在庫数 の小さい方）
                           const maxAllocation = Math.min(remainingNeeded, availableQty);
                           onLotAllocationChange(lotId, maxAllocation);
                         }}

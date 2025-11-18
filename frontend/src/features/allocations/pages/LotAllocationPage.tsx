@@ -198,6 +198,25 @@ export function LotAllocationPage() {
     [candidateLots],
   );
 
+  const handleFillAllFromLot = useCallback(
+    (lotId: number) => {
+      if (!selectedOrderLine) return;
+      const targetLot = candidateLots.find((lot) => lot.lot_id === lotId);
+      if (!targetLot) return;
+
+      const requiredQty = Number(selectedOrderLine.order_quantity ?? selectedOrderLine.quantity ?? 0);
+      const dbAllocated = Number(
+        selectedOrderLine.allocated_qty ?? selectedOrderLine.allocated_quantity ?? 0,
+      );
+      const remainingNeeded = Math.max(0, requiredQty - dbAllocated);
+      const availableQty = Number(targetLot.free_qty ?? targetLot.current_quantity ?? 0);
+      const maxAllocation = Math.min(remainingNeeded, availableQty);
+
+      setLotAllocations(maxAllocation > 0 ? { [lotId]: maxAllocation } : {});
+    },
+    [selectedOrderLine, candidateLots],
+  );
+
   // 自動引当（FEFO）ハンドラー
   const handleAutoAllocate = useCallback(() => {
     if (!selectedOrderLine || candidateLots.length === 0) return;
@@ -368,6 +387,7 @@ export function LotAllocationPage() {
               candidateLots={candidateLots}
               lotAllocations={lotAllocations}
               onLotAllocationChange={handleLotAllocationChange}
+              onFillAllFromLot={handleFillAllFromLot}
               onAutoAllocate={handleAutoAllocate}
               onClearAllocations={handleClearAllocations}
               onSaveAllocations={handleCommitAllocation}
@@ -410,14 +430,15 @@ export function LotAllocationPage() {
 
           {/* 右カラム: ロット引当パネル */}
           <div className="w-96">
-            <LotAllocationPanel
-              orderLine={selectedOrderLine}
-              candidateLots={candidateLots}
-              lotAllocations={lotAllocations}
-              onLotAllocationChange={handleLotAllocationChange}
-              onAutoAllocate={handleAutoAllocate}
-              onClearAllocations={handleClearAllocations}
-              onSaveAllocations={handleCommitAllocation}
+                <LotAllocationPanel
+                  orderLine={selectedOrderLine}
+                  candidateLots={candidateLots}
+                  lotAllocations={lotAllocations}
+                  onLotAllocationChange={handleLotAllocationChange}
+                  onFillAllFromLot={handleFillAllFromLot}
+                  onAutoAllocate={handleAutoAllocate}
+                  onClearAllocations={handleClearAllocations}
+                  onSaveAllocations={handleCommitAllocation}
               layout="sidePane"
               isLoading={candidatesQuery.isLoading}
               error={candidatesQuery.error}
@@ -453,6 +474,7 @@ export function LotAllocationPage() {
                   candidateLots={candidateLots}
                   lotAllocations={lotAllocations}
                   onLotAllocationChange={handleLotAllocationChange}
+                  onFillAllFromLot={handleFillAllFromLot}
                   onAutoAllocate={handleAutoAllocate}
                   onClearAllocations={handleClearAllocations}
                   onSaveAllocations={handleCommitAllocation}

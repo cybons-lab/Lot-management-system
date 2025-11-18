@@ -66,10 +66,18 @@ export function OrderLinesPane({
       return lineCode && lineName ? `${lineCode} / ${lineName}` : lineCode ?? lineName ?? "未設定";
     }
 
+    if (line.delivery_place) {
+      return line.delivery_place;
+    }
+
     const orderCode = orderDetail?.delivery_place_code ?? null;
     const orderName = orderDetail?.delivery_place_name ?? null;
     if (orderCode || orderName) {
       return orderCode && orderName ? `${orderCode} / ${orderName}` : orderCode ?? orderName ?? "未設定";
+    }
+
+    if (orderDetail?.delivery_place) {
+      return orderDetail.delivery_place;
     }
 
     return "未設定";

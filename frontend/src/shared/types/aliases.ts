@@ -158,6 +158,7 @@ export type OrderLine = ApiOrderLine & {
   allocated_quantity?: number | string | null; // API may expose the canonical column name
   allocated_lots?: AllocatedLot[];
   delivery_place_allocations?: Array<{ delivery_place_code: string; quantity: number }>;
+  delivery_place?: string | null;
   delivery_place_code?: string | null;
   delivery_place_name?: string | null;
   forecast_qty?: number | null;
