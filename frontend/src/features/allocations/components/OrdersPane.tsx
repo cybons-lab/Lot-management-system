@@ -137,9 +137,7 @@ export function OrdersPane({
                 <span className="font-medium">
                   {order.customer_code ? `${order.customer_code}` : ""}
                 </span>
-                {order.customer_name && (
-                  <span className="ml-1">/ {order.customer_name}</span>
-                )}
+                {order.customer_name && <span className="ml-1">/ {order.customer_name}</span>}
               </div>
             )}
 
@@ -161,7 +159,7 @@ export function OrdersPane({
 
             {/* 選択インジケーター */}
             {isSelected && (
-              <div className="absolute left-0 top-0 h-full w-1 rounded-l-lg bg-blue-500" />
+              <div className="absolute top-0 left-0 h-full w-1 rounded-l-lg bg-blue-500" />
             )}
           </button>
         );

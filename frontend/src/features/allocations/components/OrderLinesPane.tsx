@@ -141,9 +141,7 @@ export function OrderLinesPane({
 
                   {/* 展開アイコン（インラインモード時） */}
                   {renderInlineLots && (
-                    <span className="text-gray-400">
-                      {isExpanded ? "▼" : "▶"}
-                    </span>
+                    <span className="text-gray-400">{isExpanded ? "▼" : "▶"}</span>
                   )}
                 </div>
 
@@ -188,7 +186,9 @@ export function OrderLinesPane({
                 <div className="mt-3">
                   <div className="mb-1 flex items-center justify-between text-xs text-gray-500">
                     <span>引当進捗</span>
-                    <span className="font-medium">{Math.round((allocatedQty / requiredQty) * 100)}%</span>
+                    <span className="font-medium">
+                      {Math.round((allocatedQty / requiredQty) * 100)}%
+                    </span>
                   </div>
                   <Progress
                     value={(allocatedQty / requiredQty) * 100}
@@ -201,7 +201,7 @@ export function OrderLinesPane({
 
                 {/* 選択インジケーター */}
                 {isSelected && (
-                  <div className="absolute left-0 top-0 h-full w-1 rounded-l-lg bg-blue-500" />
+                  <div className="absolute top-0 left-0 h-full w-1 rounded-l-lg bg-blue-500" />
                 )}
               </button>
 

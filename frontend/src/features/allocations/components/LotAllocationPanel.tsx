@@ -61,20 +61,14 @@ export function LotAllocationPanel({
     layout === "sidePane" ? "h-full" : "rounded-lg border border-gray-200",
   );
 
-  const headerClasses = cn(
-    "border-b bg-white px-4 py-3",
-    layout === "inline" && "rounded-t-lg",
-  );
+  const headerClasses = cn("border-b bg-white px-4 py-3", layout === "inline" && "rounded-t-lg");
 
   const contentClasses = cn(
     "flex-1 space-y-4 overflow-y-auto px-4 py-4",
     layout === "inline" && "max-h-[600px]",
   );
 
-  const footerClasses = cn(
-    "border-t bg-white px-4 py-3",
-    layout === "inline" && "rounded-b-lg",
-  );
+  const footerClasses = cn("border-t bg-white px-4 py-3", layout === "inline" && "rounded-b-lg");
 
   // 必要数量・引当済み・残り
   const requiredQty = orderLine ? Number(orderLine.order_quantity || orderLine.quantity || 0) : 0;
@@ -114,9 +108,7 @@ export function LotAllocationPanel({
           <div className="grid grid-cols-3 gap-2 text-xs">
             <div>
               <div className="text-gray-500">必要数量</div>
-              <div className="mt-1 font-semibold text-gray-900">
-                {requiredQty.toLocaleString()}
-              </div>
+              <div className="mt-1 font-semibold text-gray-900">{requiredQty.toLocaleString()}</div>
             </div>
             <div>
               <div className="text-gray-500">既引当</div>

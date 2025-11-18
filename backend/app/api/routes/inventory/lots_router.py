@@ -56,9 +56,8 @@ def list_lots(
         with_stock: 在庫あり(>0)のみ取得
         db: データベースセッション
     """
-    query = (
-        db.query(Lot)
-        .options(joinedload(Lot.product), joinedload(Lot.warehouse), joinedload(Lot.supplier))
+    query = db.query(Lot).options(
+        joinedload(Lot.product), joinedload(Lot.warehouse), joinedload(Lot.supplier)
     )
 
     # フィルタ適用

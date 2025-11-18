@@ -88,7 +88,10 @@ export function LotAllocationPage() {
   // 選択中の受注明細
   const selectedOrderLine = useMemo<OrderLine | null>(() => {
     if (!selectedOrderLineId || !orderDetailQuery.data) return null;
-    return (orderDetailQuery.data.lines?.find((line) => line.id === selectedOrderLineId) as OrderLine) || null;
+    return (
+      (orderDetailQuery.data.lines?.find((line) => line.id === selectedOrderLineId) as OrderLine) ||
+      null
+    );
   }, [selectedOrderLineId, orderDetailQuery.data]);
 
   // 明細が変わったら引当入力をリセット
@@ -128,15 +131,12 @@ export function LotAllocationPage() {
   }, [candidateLots]);
 
   // 受注選択ハンドラー（先頭明細を自動選択）
-  const handleSelectOrder = useCallback(
-    (orderId: number) => {
-      setSelectedOrderId(orderId);
+  const handleSelectOrder = useCallback((orderId: number) => {
+    setSelectedOrderId(orderId);
 
-      // 明細が読み込まれたら先頭を自動選択
-      // ここでは orderDetailQuery を使うため、useEffect で処理
-    },
-    [],
-  );
+    // 明細が読み込まれたら先頭を自動選択
+    // ここでは orderDetailQuery を使うため、useEffect で処理
+  }, []);
 
   // 明細選択ハンドラー
   const handleSelectOrderLine = useCallback((lineId: number) => {
