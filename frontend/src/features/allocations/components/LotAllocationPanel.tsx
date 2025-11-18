@@ -35,6 +35,8 @@ interface LotAllocationPanelProps {
   onClearAllocations: () => void;
   /** 保存ハンドラー */
   onSaveAllocations?: () => void;
+  /** 保存可否（外部制御用） */
+  canSave?: boolean;
   /** レイアウトモード */
   layout?: "inline" | "sidePane";
   /** ローディング状態 */
@@ -54,6 +56,7 @@ export function LotAllocationPanel({
   onAutoAllocate,
   onClearAllocations,
   onSaveAllocations,
+  canSave,
   layout = "sidePane",
   isLoading = false,
   error = null,
@@ -85,7 +88,8 @@ export function LotAllocationPanel({
   const progressPercent = requiredQty > 0 ? Math.min(100, (totalAllocated / requiredQty) * 100) : 0;
 
   // 保存可能判定
-  const canSave = uiAllocatedTotal > 0 && !isSaving;
+  const autoCanSave = uiAllocatedTotal > 0 && !isSaving;
+  const effectiveCanSave = typeof canSave === "boolean" ? canSave : autoCanSave;
 
   if (!orderLine) {
     return (
@@ -200,8 +204,11 @@ export function LotAllocationPanel({
           <div className="space-y-3">
             {candidateLots.map((lot) => {
               const lotId = lot.lot_id;
-              const availableQty = Number(lot.free_qty ?? lot.current_quantity ?? 0);
+              const availableQty = Number(
+                lot.free_qty ?? lot.current_quantity ?? lot.available_qty ?? 0,
+              );
               const allocatedQty = lotAllocations[lotId] ?? 0;
+              const displayAvailableQty = Math.max(0, availableQty - allocatedQty);
               const lotLabel = lot.lot_number ?? `LOT-${lotId}`;
 
               const warehouseCode = lot.warehouse_code ?? null;
@@ -236,7 +243,7 @@ export function LotAllocationPanel({
                     <div className="text-right text-xs text-gray-600">
                       <div>在庫数量</div>
                       <div className="mt-1 text-lg font-semibold text-blue-600">
-                        {availableQty.toLocaleString()}
+                        {displayAvailableQty.toLocaleString()}
                       </div>
                     </div>
                   </div>
@@ -305,7 +312,7 @@ export function LotAllocationPanel({
             type="button"
             className="mt-3 w-full"
             onClick={onSaveAllocations}
-            disabled={!canSave}
+            disabled={!effectiveCanSave}
           >
             {isSaving ? "保存中..." : "保存"}
           </Button>

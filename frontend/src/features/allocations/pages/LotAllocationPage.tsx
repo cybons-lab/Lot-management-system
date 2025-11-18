@@ -24,15 +24,22 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useOrdersForAllocation } from "../hooks/useOrdersForAllocation";
 import { useOrderDetailForAllocation } from "../hooks/useOrderDetailForAllocation";
-import { useAllocationCandidates } from "../hooks/useAllocationCandidates";
-import { dragAssignAllocation } from "../api";
+import { useAllocationCandidates, allocationCandidatesKeys } from "../hooks/useAllocationCandidates";
+import { saveManualAllocations, type ManualAllocationSaveResponse } from "../api";
 import { OrdersPane } from "../components/OrdersPane";
 import { OrderLinesPane, type OrderLineStockStatus } from "../components/OrderLinesPane";
 import { LotAllocationPanel } from "../components/LotAllocationPanel";
 import type { CandidateLotItem } from "../api";
 import type { OrderLine } from "@/shared/types/aliases";
+
+type SaveAllocationsVariables = {
+  orderLineId: number;
+  orderId: number | null;
+  allocations: Array<{ lot_id: number; quantity: number }>;
+};
 
 export function LotAllocationPage() {
   // ローカル選択状態
@@ -46,9 +53,7 @@ export function LotAllocationPage() {
   const [toast, setToast] = useState<{ message: string; variant: "success" | "error" } | null>(
     null,
   );
-
-  // 保存中状態
-  const [isSaving, setIsSaving] = useState(false);
+  const queryClient = useQueryClient();
 
   // レスポンシブ判定（画面幅によるレイアウト切り替え）
   const [isWideScreen, setIsWideScreen] = useState(window.innerWidth >= 1280); // 3カラム表示
@@ -89,6 +94,37 @@ export function LotAllocationPage() {
     () => Object.values(lotAllocations).reduce((sum, qty) => sum + qty, 0),
     [lotAllocations],
   );
+
+  const saveAllocationsMutation = useMutation<
+    ManualAllocationSaveResponse,
+    unknown,
+    SaveAllocationsVariables
+  >({
+    mutationFn: ({ orderLineId, allocations }) =>
+      saveManualAllocations({
+        order_line_id: orderLineId,
+        allocations,
+      }),
+    onSuccess: (response, variables) => {
+      setToast({ message: response?.message ?? "引当を登録しました", variant: "success" });
+      setLotAllocations({});
+      queryClient.invalidateQueries({ queryKey: ["orders", "for-allocation"] });
+      if (variables.orderId) {
+        queryClient.invalidateQueries({ queryKey: ["order-detail", variables.orderId] });
+      }
+      queryClient.invalidateQueries({ queryKey: allocationCandidatesKeys.all });
+    },
+    onError: (error: unknown) => {
+      setToast({
+        message: error instanceof Error ? error.message : "引当の登録に失敗しました",
+        variant: "error",
+      });
+    },
+  });
+
+  const canSaveAllocations = selectedOrderLineId !== null && uiAllocatedSum > 0;
+  const isSavingAllocations = saveAllocationsMutation.isPending;
+  const allocationPanelCanSave = canSaveAllocations && !isSavingAllocations;
 
   // 選択中の受注明細
   const selectedOrderLine = useMemo<OrderLine | null>(() => {
@@ -252,44 +288,28 @@ export function LotAllocationPage() {
     setLotAllocations({});
   }, []);
 
-  // 引当確定ハンドラー（手動引当用）
-  const handleCommitAllocation = useCallback(async () => {
-    if (!selectedOrderLineId || Object.keys(lotAllocations).length === 0) return;
+  // 引当保存ハンドラー
+  const handleSaveAllocations = useCallback(() => {
+    if (!selectedOrderLineId) return;
 
-    setIsSaving(true);
+    const allocations = Object.entries(lotAllocations)
+      .map(([lotIdStr, qty]) => {
+        const numericQty = Number(qty);
+        return {
+          lot_id: Number(lotIdStr),
+          quantity: Number.isFinite(numericQty) ? numericQty : 0,
+        };
+      })
+      .filter((item) => item.quantity > 0);
 
-    try {
-      // 各ロットごとに drag-assign API を呼び出し
-      const promises = Object.entries(lotAllocations).map(([lotIdStr, quantity]) => {
-        const lotId = Number(lotIdStr);
-        if (quantity <= 0) return null;
+    if (allocations.length === 0) return;
 
-        return dragAssignAllocation({
-          order_line_id: selectedOrderLineId,
-          lot_id: lotId,
-          allocated_quantity: quantity,
-        });
-      });
-
-      // すべての引当を並列実行
-      await Promise.all(promises.filter((p) => p !== null));
-
-      // 成功後の処理
-      setToast({ message: "引当を登録しました", variant: "success" });
-      setLotAllocations({});
-
-      // クエリを再取得して最新の状態を反映
-      orderDetailQuery.refetch();
-      candidatesQuery.refetch();
-    } catch (error) {
-      setToast({
-        message: error instanceof Error ? error.message : "引当の登録に失敗しました",
-        variant: "error",
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  }, [selectedOrderLineId, lotAllocations, orderDetailQuery, candidatesQuery]);
+    saveAllocationsMutation.mutate({
+      orderLineId: selectedOrderLineId,
+      orderId: selectedOrderId,
+      allocations,
+    });
+  }, [selectedOrderLineId, selectedOrderId, lotAllocations, saveAllocationsMutation]);
 
   // 各明細の在庫状態を計算（在庫不足判定用）
   const lineStockStatus = useMemo<Record<number, OrderLineStockStatus>>(() => {
@@ -390,11 +410,12 @@ export function LotAllocationPage() {
               onFillAllFromLot={handleFillAllFromLot}
               onAutoAllocate={handleAutoAllocate}
               onClearAllocations={handleClearAllocations}
-              onSaveAllocations={handleCommitAllocation}
+              onSaveAllocations={handleSaveAllocations}
+              canSave={allocationPanelCanSave}
               layout="sidePane"
               isLoading={candidatesQuery.isLoading}
               error={candidatesQuery.error}
-              isSaving={isSaving}
+              isSaving={isSavingAllocations}
             />
           </div>
         </>
@@ -430,19 +451,20 @@ export function LotAllocationPage() {
 
           {/* 右カラム: ロット引当パネル */}
           <div className="w-96">
-                <LotAllocationPanel
-                  orderLine={selectedOrderLine}
-                  candidateLots={candidateLots}
-                  lotAllocations={lotAllocations}
-                  onLotAllocationChange={handleLotAllocationChange}
-                  onFillAllFromLot={handleFillAllFromLot}
-                  onAutoAllocate={handleAutoAllocate}
-                  onClearAllocations={handleClearAllocations}
-                  onSaveAllocations={handleCommitAllocation}
+            <LotAllocationPanel
+              orderLine={selectedOrderLine}
+              candidateLots={candidateLots}
+              lotAllocations={lotAllocations}
+              onLotAllocationChange={handleLotAllocationChange}
+              onFillAllFromLot={handleFillAllFromLot}
+              onAutoAllocate={handleAutoAllocate}
+              onClearAllocations={handleClearAllocations}
+              onSaveAllocations={handleSaveAllocations}
+              canSave={allocationPanelCanSave}
               layout="sidePane"
               isLoading={candidatesQuery.isLoading}
               error={candidatesQuery.error}
-              isSaving={isSaving}
+              isSaving={isSavingAllocations}
             />
           </div>
         </>
@@ -477,11 +499,12 @@ export function LotAllocationPage() {
                   onFillAllFromLot={handleFillAllFromLot}
                   onAutoAllocate={handleAutoAllocate}
                   onClearAllocations={handleClearAllocations}
-                  onSaveAllocations={handleCommitAllocation}
+                  onSaveAllocations={handleSaveAllocations}
+                  canSave={allocationPanelCanSave}
                   layout="inline"
                   isLoading={candidatesQuery.isLoading}
                   error={candidatesQuery.error}
-                  isSaving={isSaving}
+                  isSaving={isSavingAllocations}
                 />
               )}
               isLoading={orderDetailQuery.isLoading}
