@@ -38,29 +38,33 @@ Major cleanup of the backend codebase to remove unused and deprecated features, 
 #### Deleted Files
 
 **Routes:**
+
 - `backend/app/api/routes/integration/integration_router.py`
 - `backend/app/api/routes/integration/submissions_router.py`
 - `backend/app/api/routes/integration/__init__.py`
 
 **Services:**
+
 - `backend/app/services/integration/submissions_service.py`
 - `backend/app/services/integration/__init__.py`
 
 **Schemas:**
+
 - `backend/app/schemas/integration/integration_schema.py`
 - `backend/app/schemas/integration/__init__.py`
 
 #### Removed Endpoints
 
-| Method | Endpoint | Reason |
-|--------|----------|--------|
-| POST | `/api/integration/ai-ocr/submit` | Deprecated: Use `/api/submissions` |
-| GET | `/api/integration/ai-ocr/submissions` | Table `ocr_submissions` removed in DDL v2.2 |
-| POST | `/api/integration/sap/register` | Mock implementation; not in use |
-| GET | `/api/integration/sap/logs` | Table `sap_sync_logs` removed in DDL v2.2 |
-| POST | `/api/submissions` | Not called by frontend |
+| Method | Endpoint                              | Reason                                      |
+| ------ | ------------------------------------- | ------------------------------------------- |
+| POST   | `/api/integration/ai-ocr/submit`      | Deprecated: Use `/api/submissions`          |
+| GET    | `/api/integration/ai-ocr/submissions` | Table `ocr_submissions` removed in DDL v2.2 |
+| POST   | `/api/integration/sap/register`       | Mock implementation; not in use             |
+| GET    | `/api/integration/sap/logs`           | Table `sap_sync_logs` removed in DDL v2.2   |
+| POST   | `/api/submissions`                    | Not called by frontend                      |
 
 **Impact:**
+
 - OCR/SAP integration features removed
 - Generic submissions endpoint removed
 - Related services and schemas cleaned up
@@ -73,7 +77,6 @@ Major cleanup of the backend codebase to remove unused and deprecated features, 
 
 #### Deleted Files
 
-- `backend/app/api/routes/masters/masters_router.py` - Main legacy router
 - `backend/app/api/routes/masters/masters_warehouses_router.py`
 - `backend/app/api/routes/masters/masters_suppliers_router.py`
 - `backend/app/api/routes/masters/masters_customers_router.py`
@@ -82,13 +85,13 @@ Major cleanup of the backend codebase to remove unused and deprecated features, 
 
 #### Removed Endpoints
 
-| Method | Endpoint | Replacement |
-|--------|----------|-------------|
-| GET | `/api/masters/products` | → `/api/products` |
-| GET | `/api/masters/customers` | → `/api/customers` |
-| GET | `/api/masters/suppliers` | → `/api/suppliers` |
-| GET | `/api/masters/warehouses` | → `/api/warehouses` |
-| POST | `/api/masters/bulk-load` | Removed (not in use) |
+| Method | Endpoint                  | Replacement          |
+| ------ | ------------------------- | -------------------- |
+| GET    | `/api/masters/products`   | → `/api/products`    |
+| GET    | `/api/masters/customers`  | → `/api/customers`   |
+| GET    | `/api/masters/suppliers`  | → `/api/suppliers`   |
+| GET    | `/api/masters/warehouses` | → `/api/warehouses`  |
+| POST   | `/api/masters/bulk-load`  | Removed (not in use) |
 
 #### Kept Files (New Direct Access)
 
@@ -99,6 +102,7 @@ Major cleanup of the backend codebase to remove unused and deprecated features, 
 - `backend/app/api/routes/masters/customer_items_router.py` - `/api/customer-items`
 
 **Impact:**
+
 - Simplified master data access with direct endpoints
 - Removed redundant `/api/masters/*` prefix layer
 - Frontend already migrated to new endpoints
@@ -115,16 +119,17 @@ Major cleanup of the backend codebase to remove unused and deprecated features, 
 
 #### Removed Functions & Endpoints
 
-| Method | Endpoint | Replacement | Lines Removed |
-|--------|----------|-------------|---------------|
-| POST | `/api/allocations/drag-assign` | → `/api/allocation-suggestions/manual` | ~50 lines |
-| POST | `/api/allocations/preview` | → `/api/allocation-suggestions/fefo` | ~25 lines |
-| POST | `/api/allocations/orders/{id}/allocate` | → `/api/allocations/commit` | ~30 lines |
-| GET | `/api/allocations/candidate-lots` | → `/api/allocation-candidates` | ~100 lines |
+| Method | Endpoint                                | Replacement                            | Lines Removed |
+| ------ | --------------------------------------- | -------------------------------------- | ------------- |
+| POST   | `/api/allocations/drag-assign`          | → `/api/allocation-suggestions/manual` | ~50 lines     |
+| POST   | `/api/allocations/preview`              | → `/api/allocation-suggestions/fefo`   | ~25 lines     |
+| POST   | `/api/allocations/orders/{id}/allocate` | → `/api/allocations/commit`            | ~30 lines     |
+| GET    | `/api/allocations/candidate-lots`       | → `/api/allocation-candidates`         | ~100 lines    |
 
 #### Cleaned Up Imports
 
 Removed unused imports from `allocations_router.py`:
+
 - `DragAssignRequest`
 - `FefoPreviewRequest`
 - `FefoCommitResponse`
@@ -134,6 +139,7 @@ Removed unused imports from `allocations_router.py`:
 - `preview_fefo_allocation` service function
 
 **Impact:**
+
 - ~200 lines removed from allocations_router.py
 - Only new v2.2 allocation endpoints remain
 - Frontend NOT using deprecated endpoints (verified)
@@ -145,6 +151,7 @@ Removed unused imports from `allocations_router.py`:
 #### `backend/app/main.py`
 
 **Changes:**
+
 - Removed `integration_router` import and registration
 - Removed `submissions_router` import and registration
 - Removed `masters_router` import and registration
@@ -163,6 +170,7 @@ Removed unused imports from `allocations_router.py`:
 #### `backend/app/api/routes/__init__.py`
 
 **Changes:**
+
 - Removed integration module imports
 - Removed legacy masters router imports
 - Updated `__all__` exports list
@@ -173,6 +181,7 @@ Removed unused imports from `allocations_router.py`:
 #### `backend/app/api/routes/masters/__init__.py`
 
 **Changes:**
+
 - Removed legacy masters router imports
 - Kept only new direct access routers
 - Updated `__all__` exports (11 → 5)
@@ -184,21 +193,25 @@ Removed unused imports from `allocations_router.py`:
 ### Remaining Endpoints by Category
 
 #### Core Endpoints (6 routers)
+
 - **Lots:** `/api/lots`
 - **Orders:** `/api/orders`
 - **Allocations:** `/api/allocations`, `/api/allocation-candidates`, `/api/allocation-suggestions`
 - **Warehouse Allocations:** `/api/warehouse-alloc`
 
 #### Forecast Endpoints (2 routers)
+
 - **Legacy Forecast:** `/api/forecast` (still in use by frontend)
 - **Forecasts v2.2:** `/api/forecasts/headers`, `/api/forecasts/lines`
 
 #### Inventory Endpoints (3 routers)
+
 - **Inbound Plans:** `/api/inbound-plans`
 - **Adjustments:** `/api/adjustments`
 - **Inventory Items:** `/api/inventory-items`
 
 #### Master Data Endpoints (5 routers)
+
 - **Warehouses:** `/api/warehouses`
 - **Suppliers:** `/api/suppliers`
 - **Customers:** `/api/customers`
@@ -206,15 +219,18 @@ Removed unused imports from `allocations_router.py`:
 - **Customer Items:** `/api/customer-items`
 
 #### User & Role Management (2 routers)
+
 - **Users:** `/api/users`
 - **Roles:** `/api/roles`
 
 #### Admin & System Endpoints (4 routers)
+
 - **Admin:** `/api/admin`
 - **Health:** `/api/admin/health`, `/api/health`
 - **Simulate:** `/api/admin/simulate-*`
 
 #### Operation Logs, Business Rules, Batch Jobs (3 routers)
+
 - **Operation Logs:** `/api/operation-logs`
 - **Business Rules:** `/api/business-rules`
 - **Batch Jobs:** `/api/batch-jobs`
@@ -230,6 +246,7 @@ Removed unused imports from `allocations_router.py`:
 **File:** `backend/app/api/routes/forecasts/forecast_router.py`
 
 **Endpoints:**
+
 - `GET /api/forecast/list` - Used by frontend
 - `GET /api/forecast` - Used by frontend
 - `POST /api/forecast/bulk` - Used by frontend
@@ -247,22 +264,26 @@ Removed unused imports from `allocations_router.py`:
 ### Frontend Impact
 
 **No Breaking Changes** - The frontend was already:
+
 1. ✅ Using new direct master endpoints (`/api/warehouses`, etc.)
 2. ✅ Using new allocation endpoints (`/api/allocation-candidates`, `/api/allocations/commit`)
 3. ✅ NOT calling integration endpoints (`/api/integration/*`)
 4. ✅ NOT calling deprecated allocation endpoints
 
 **Type Definition Update Required:**
+
 - Regenerate OpenAPI types to remove deleted endpoints from `api.d.ts`
 - Run: `cd frontend && npm run generate:api`
 
 ### Backend Impact
 
 **No Database Changes:**
+
 - Alembic migrations NOT affected
 - No schema changes required
 
 **No Service Layer Changes:**
+
 - Core service functions preserved
 - Only unused integration services removed
 
@@ -292,18 +313,21 @@ Removed unused imports from `allocations_router.py`:
 
 1. ✅ **Backend cleanup completed**
 2. ⏳ **Regenerate OpenAPI schema**
+
    ```bash
    cd backend
    # Generate new OpenAPI JSON
    ```
 
 3. ⏳ **Update frontend types**
+
    ```bash
    cd frontend
    npm run generate:api
    ```
 
 4. ⏳ **Run frontend type check**
+
    ```bash
    cd frontend
    npm run typecheck
@@ -311,6 +335,7 @@ Removed unused imports from `allocations_router.py`:
    ```
 
 5. ⏳ **Test backend starts successfully**
+
    ```bash
    cd backend
    uvicorn app.main:app --reload
@@ -325,11 +350,13 @@ Removed unused imports from `allocations_router.py`:
 ### Future Recommendations
 
 1. **Migrate Frontend Forecast Endpoints**
+
    - Remove dependency on legacy `/api/forecast/*` endpoints
    - Use only v2.2 `/api/forecasts/headers` endpoints
    - Then remove `forecast_router.py`
 
 2. **Clean Up Unused Schemas**
+
    - Review `backend/app/schemas/allocations/allocations_schema.py`
    - Remove unused schema classes:
      - `DragAssignRequest`
@@ -338,6 +365,7 @@ Removed unused imports from `allocations_router.py`:
      - `CandidateLotsResponse`
 
 3. **Service Layer Review**
+
    - Check if any service functions are no longer called
    - Consider removing unused allocation service helpers
 
@@ -396,12 +424,14 @@ All deleted code is preserved in git history and can be recovered if needed.
 ## Conclusion
 
 This cleanup successfully removed:
+
 - **12 files** completely deleted
 - **8 deprecated endpoints** removed
 - **~1,500+ lines** of unused code eliminated
 - **0 breaking changes** to active frontend functionality
 
 The backend codebase is now leaner, more focused, and easier to maintain. All removed features were either:
+
 1. Already marked as deprecated
 2. Not being used by the current frontend
 3. Referencing database tables that no longer exist (DDL v2.2)

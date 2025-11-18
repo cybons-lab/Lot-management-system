@@ -7,6 +7,7 @@
 A full-stack inventory management system for tracking materials by lot, with automated FEFO (First Expiry First Out) allocation, OCR order intake, and automatic purchase request generation for stock shortages.
 
 **Core Capabilities:**
+
 - Lot-based inventory tracking with expiry date management
 - Order processing with automated lot allocation
 - FEFO (First Expiry First Out) allocation algorithm
@@ -15,13 +16,14 @@ A full-stack inventory management system for tracking materials by lot, with aut
 - SAP integration support
 - Multi-warehouse management
 
-**Languages:** Japanese (主要UI/ドキュメント), English (technical docs)
+**Languages:** Japanese (主要 UI/ドキュメント), English (technical docs)
 
 ---
 
 ## Technology Stack
 
 ### Backend
+
 - **Framework:** FastAPI 0.115.5 (Python 3.12)
 - **ORM:** SQLAlchemy 2.0.36 with Alembic migrations
 - **Validation:** Pydantic 2.10.1 with pydantic-settings 2.6.1
@@ -32,6 +34,7 @@ A full-stack inventory management system for tracking materials by lot, with aut
 - **Code Quality:** docformatter v1.7.7, pre-commit hooks
 
 ### Frontend
+
 - **Framework:** React 19.2.0 with TypeScript 5.9.3 (strict mode)
 - **Build Tool:** Vite 7.2.0
 - **CSS:** Tailwind CSS 4.1.16
@@ -46,6 +49,7 @@ A full-stack inventory management system for tracking materials by lot, with aut
 - **Type Generation:** openapi-typescript 7.10.1
 
 ### DevOps
+
 - **Containerization:** Docker Compose with hot reload support
 - **CI/CD:** GitHub Actions (quality.yml workflow)
 - **Pre-commit:** docformatter, ruff (lint + format)
@@ -75,6 +79,7 @@ Schemas (I/O)          Database (PostgreSQL/SQLite)
 ```
 
 **Dependency Direction:** API → Services → Repositories → Models
+
 - **Circular dependencies are prohibited**
 - Schemas and domain layer are used by services
 - Core layer provides cross-cutting concerns (config, db, errors, logging)
@@ -106,6 +111,7 @@ src/
 **Pattern:** Event-sourced inventory with summary cache
 
 Key Tables:
+
 - **Masters:** warehouses, suppliers, customers, products, delivery_places
 - **Inventory:** lots, stock_movements (event log), lot_current_stock (summary)
 - **Orders:** orders, order_lines, allocations, shipping
@@ -262,26 +268,28 @@ select = ["E", "F", "I", "D", "UP", "B"]
 ```
 
 **Important Ignores:**
+
 - D100-D107: Docstring requirements relaxed (except Google style preferred)
 - B008: Function calls in default arguments (FastAPI Depends pattern)
 - E501: Line length (handled by formatter)
 
 #### Naming Conventions
 
-| Element | Convention | Example |
-|---------|-----------|---------|
-| **Files** | `*_suffix.py` | `orders_router.py`, `order_service.py` |
-| **Routers** | `*_router.py` | `masters_router.py`, `allocations_router.py` |
-| **Services** | `*_service.py` | `order_service.py`, `lot_service.py` |
-| **Repositories** | `*_repository.py` | `order_repository.py`, `stock_repository.py` |
-| **Schemas** | `*_schema.py` | `orders_schema.py`, `admin_schema.py` |
-| **Models** | `*_models.py` | `orders_models.py`, `inventory_models.py` |
-| **Classes** | PascalCase | `OrderService`, `LotRepository` |
-| **Functions/Variables** | snake_case | `create_order()`, `order_id` |
-| **Constants** | UPPER_SNAKE_CASE | `MAX_PAGE_SIZE`, `DEFAULT_PAGE_SIZE` |
-| **Private** | `_prefix` | `_internal_function()` |
+| Element                 | Convention        | Example                                      |
+| ----------------------- | ----------------- | -------------------------------------------- |
+| **Files**               | `*_suffix.py`     | `orders_router.py`, `order_service.py`       |
+| **Routers**             | `*_router.py`     | `allocations_router.py`                      |
+| **Services**            | `*_service.py`    | `order_service.py`, `lot_service.py`         |
+| **Repositories**        | `*_repository.py` | `order_repository.py`, `stock_repository.py` |
+| **Schemas**             | `*_schema.py`     | `orders_schema.py`, `admin_schema.py`        |
+| **Models**              | `*_models.py`     | `orders_models.py`, `inventory_models.py`    |
+| **Classes**             | PascalCase        | `OrderService`, `LotRepository`              |
+| **Functions/Variables** | snake_case        | `create_order()`, `order_id`                 |
+| **Constants**           | UPPER_SNAKE_CASE  | `MAX_PAGE_SIZE`, `DEFAULT_PAGE_SIZE`         |
+| **Private**             | `_prefix`         | `_internal_function()`                       |
 
 **Domain Prefixes:**
+
 - `admin_*`: Admin functions
 - `masters_*`: Master data management
 - `orders_*`: Order management
@@ -291,6 +299,7 @@ select = ["E", "F", "I", "D", "UP", "B"]
 #### Import Rules
 
 **ALWAYS use absolute imports:**
+
 ```python
 # ✅ Correct
 from app.services.order_service import OrderService
@@ -303,6 +312,7 @@ from .models import Order
 ```
 
 **Import Order (Ruff I001):**
+
 1. Standard library
 2. Third-party packages (FastAPI, SQLAlchemy, etc.)
 3. Application imports (`app.*`)
@@ -337,6 +347,7 @@ pytest -k "not integration"    # Skip integration tests
 #### TypeScript Configuration
 
 **Strict Mode Enabled:**
+
 - `strict: true`
 - `noUncheckedIndexedAccess: true`
 - `noImplicitAny: true`
@@ -344,19 +355,20 @@ pytest -k "not integration"    # Skip integration tests
 
 #### Naming Conventions
 
-| Element | Convention | Example |
-|---------|-----------|---------|
-| **Components** | PascalCase.tsx | `OrderCard.tsx`, `AllocationTable.tsx` |
-| **Other files** | kebab-case.ts | `order-service.ts`, `api-client.ts` |
-| **Components** | PascalCase | `OrderCard`, `PageHeader` |
-| **Hooks** | useCamelCase | `useOrders()`, `useOrderDetail()` |
-| **Functions/Variables** | camelCase | `createOrder()`, `orderId` |
-| **Types/Interfaces** | PascalCase | `OrderResponse`, `OrderFilters` |
-| **Constants** | UPPER_SNAKE_CASE | `MAX_ITEMS_PER_PAGE` |
+| Element                 | Convention       | Example                                |
+| ----------------------- | ---------------- | -------------------------------------- |
+| **Components**          | PascalCase.tsx   | `OrderCard.tsx`, `AllocationTable.tsx` |
+| **Other files**         | kebab-case.ts    | `order-service.ts`, `api-client.ts`    |
+| **Components**          | PascalCase       | `OrderCard`, `PageHeader`              |
+| **Hooks**               | useCamelCase     | `useOrders()`, `useOrderDetail()`      |
+| **Functions/Variables** | camelCase        | `createOrder()`, `orderId`             |
+| **Types/Interfaces**    | PascalCase       | `OrderResponse`, `OrderFilters`        |
+| **Constants**           | UPPER_SNAKE_CASE | `MAX_ITEMS_PER_PAGE`                   |
 
 #### Import Rules
 
 **Use `@/` alias for src:**
+
 ```typescript
 // ✅ Correct
 import type { OrderResponse } from "@/types/api";
@@ -364,10 +376,10 @@ import { useOrders } from "@/features/orders/hooks";
 import { Button } from "@/components/ui/button";
 
 // Import order
-import { useState } from "react";           // 1. React
-import { useQuery } from "@tanstack/react-query";  // 2. External libs
-import type { OrderResponse } from "@/types/api";  // 3. Internal (@/*)
-import { getOrders } from "../api";         // 4. Relative
+import { useState } from "react"; // 1. React
+import { useQuery } from "@tanstack/react-query"; // 2. External libs
+import type { OrderResponse } from "@/types/api"; // 3. Internal (@/*)
+import { getOrders } from "../api"; // 4. Relative
 ```
 
 #### Code Quality Checks
@@ -400,10 +412,12 @@ npm run typecheck && npm run lint && npm run format:check
 #### Barrel Exports
 
 **Allowed:**
+
 - `features/*/index.ts` - Public API for features
 - `components/ui/*/index.ts` - UI component exports
 
 **Discouraged (to avoid circular deps):**
+
 - `components/shared` - Use direct imports
 - `hooks/api` - Use direct imports
 
@@ -442,6 +456,7 @@ python -m app.main
 ```
 
 **Expected output:**
+
 ```
 🚀 ロット管理システム v2.0.0 を起動しています...
 📦 環境: development
@@ -451,6 +466,7 @@ INFO:     Uvicorn running on http://0.0.0.0:8000
 ```
 
 **Access points:**
+
 - API: http://localhost:8000/api
 - Swagger UI: http://localhost:8000/api/docs
 - ReDoc: http://localhost:8000/api/redoc
@@ -494,6 +510,7 @@ docker compose down -v
 ```
 
 **Services:**
+
 - Frontend: http://localhost:5173
 - Backend: http://localhost:8000
 - PostgreSQL: localhost:5432
@@ -523,6 +540,7 @@ alembic revision --autogenerate -m "description"
 ```
 
 **Current migrations:**
+
 1. `4b2a45018747` - Initial schema (base imported SQL)
 2. `add_seed_snapshots_table` - Add seed snapshots logging
 3. `update_order_status_constraint` - Update order status constraint
@@ -561,6 +579,7 @@ pre-commit run --all-files
 ```
 
 **Hooks configured:**
+
 - `docformatter` - Format docstrings (Google style)
 - `ruff` - Lint and format Python code
 
@@ -603,6 +622,7 @@ npm run generate:api
 ### Backend Testing (pytest)
 
 **Test Structure:**
+
 ```
 tests/
 ├── conftest.py              # Fixtures (db_session, etc.)
@@ -613,6 +633,7 @@ tests/
 ```
 
 **Key Fixtures (conftest.py):**
+
 ```python
 @pytest.fixture(scope="session", autouse=True)
 def setup_database():
@@ -624,6 +645,7 @@ def db_session() -> Session:
 ```
 
 **Running Tests:**
+
 ```bash
 cd backend
 
@@ -651,11 +673,13 @@ pytest --cov=app --cov-report=html
 ### Frontend Testing (MSW)
 
 **Mock Setup:**
+
 - Location: `frontend/src/mocks/`
 - MSW handlers for API mocking
 - Test data factories
 
 **Type Checking:**
+
 ```bash
 npm run typecheck  # Must pass with 0 errors
 ```
@@ -669,6 +693,7 @@ npm run typecheck  # Must pass with 0 errors
 #### Backend: Add New Router
 
 1. **Create router file:** `backend/app/api/routes/my_feature_router.py`
+
    ```python
    from fastapi import APIRouter, Depends
    from sqlalchemy.orm import Session
@@ -682,6 +707,7 @@ npm run typecheck  # Must pass with 0 errors
    ```
 
 2. **Create service:** `backend/app/services/my_feature_service.py`
+
    ```python
    from sqlalchemy.orm import Session
 
@@ -695,6 +721,7 @@ npm run typecheck  # Must pass with 0 errors
    ```
 
 3. **Create schemas:** `backend/app/schemas/my_feature_schema.py`
+
    ```python
    from pydantic import BaseModel
 
@@ -707,6 +734,7 @@ npm run typecheck  # Must pass with 0 errors
    ```
 
 4. **Register router in main.py:**
+
    ```python
    from app.api.routes import my_feature_router
 
@@ -718,6 +746,7 @@ npm run typecheck  # Must pass with 0 errors
 #### Frontend: Add New Feature
 
 1. **Create feature module:** `frontend/src/features/my-feature/`
+
    ```
    my-feature/
    ├── components/
@@ -730,6 +759,7 @@ npm run typecheck  # Must pass with 0 errors
    ```
 
 2. **API functions (api.ts):**
+
    ```typescript
    import { apiClient } from "@/services/api-client";
    import type { MyFeature } from "./types";
@@ -741,6 +771,7 @@ npm run typecheck  # Must pass with 0 errors
    ```
 
 3. **React Query hook (hooks/useMyFeatures.ts):**
+
    ```typescript
    import { useQuery } from "@tanstack/react-query";
    import { getMyFeatures } from "../api";
@@ -754,6 +785,7 @@ npm run typecheck  # Must pass with 0 errors
    ```
 
 4. **Component (components/MyFeatureList.tsx):**
+
    ```typescript
    import { useMyFeatures } from "../hooks/useMyFeatures";
 
@@ -817,6 +849,7 @@ SELECT * FROM lots;
 Location: `backend/app/domain/`
 
 **Algorithm:**
+
 1. Filter lots by product and warehouse
 2. Exclude lots with insufficient quantity
 3. Sort by expiry date (earliest first)
@@ -833,19 +866,20 @@ draft → open → part_allocated → allocated → shipped → closed
 ```
 
 **Constraints:**
+
 - Orders can only be allocated in `open` or `part_allocated` status
 - Cannot modify shipped/closed orders
 - Cancellation possible before shipping
 
 #### Stock Movement Types
 
-| Type | Direction | Purpose |
-|------|-----------|---------|
-| `receipt` | IN | Initial lot receipt |
-| `adjustment` | IN/OUT | Inventory adjustment |
-| `allocation` | OUT | Reserved for order |
-| `shipment` | OUT | Physical shipment |
-| `return` | IN | Customer return |
+| Type         | Direction | Purpose              |
+| ------------ | --------- | -------------------- |
+| `receipt`    | IN        | Initial lot receipt  |
+| `adjustment` | IN/OUT    | Inventory adjustment |
+| `allocation` | OUT       | Reserved for order   |
+| `shipment`   | OUT       | Physical shipment    |
+| `return`     | IN        | Customer return      |
 
 **Immutability:** Stock movements are append-only (event sourcing)
 
@@ -862,6 +896,7 @@ draft → open → part_allocated → allocated → shipped → closed
 See full API documentation: [API Reference](./docs/api_reference.md) | [Migration Guide](./docs/api_migration_guide_v2.2.md)
 
 #### Master Data
+
 - `GET /api/warehouses` - List warehouses (NEW: direct access)
 - `GET /api/products` - List products (NEW: direct access)
 - `GET /api/suppliers` - List suppliers (NEW: direct access)
@@ -870,6 +905,7 @@ See full API documentation: [API Reference](./docs/api_reference.md) | [Migratio
 - `GET /api/masters/*` - Legacy master endpoints (still supported for compatibility)
 
 #### Forecasts (ヘッダ・明細分離構造 - Phase 2 完了)
+
 - `GET /api/forecasts/headers` - List forecast headers
 - `POST /api/forecasts/headers` - Create forecast header (with lines)
 - `GET /api/forecasts/headers/{id}` - Get forecast header detail (with lines)
@@ -882,6 +918,7 @@ See full API documentation: [API Reference](./docs/api_reference.md) | [Migratio
 - `POST /api/forecasts/headers/bulk-import` - Bulk import forecasts
 
 #### Inbound Plans (入荷予定管理 - Phase 2 完了)
+
 - `GET /api/inbound-plans` - List inbound plans
 - `POST /api/inbound-plans` - Create inbound plan (with lines)
 - `GET /api/inbound-plans/{id}` - Get inbound plan detail
@@ -892,6 +929,7 @@ See full API documentation: [API Reference](./docs/api_reference.md) | [Migratio
 - `POST /api/inbound-plans/{id}/receive` - **Record inbound receipt (auto-generate lots)**
 
 #### Lots & Inventory
+
 - `GET /api/lots?with_stock=true` - List lots with current stock
 - `POST /api/lots` - Register new lot
 - `GET /api/lots/{id}` - Get lot detail
@@ -903,6 +941,7 @@ See full API documentation: [API Reference](./docs/api_reference.md) | [Migratio
 - `POST /api/adjustments` - **Record inventory adjustment (NEW - Phase 2)**
 
 #### Orders
+
 - `GET /api/orders` - List orders (supports filters)
 - `POST /api/orders` - Create order
 - `GET /api/orders/{id}` - Get order with lines
@@ -910,6 +949,7 @@ See full API documentation: [API Reference](./docs/api_reference.md) | [Migratio
 - `DELETE /api/orders/{id}` - Delete/cancel order
 
 #### Allocations (リファクタ版 - Phase 3 完了)
+
 - `POST /api/allocations/commit` - **Commit allocation (NEW - v2.2.1)**
 - `DELETE /api/allocations/{id}` - Cancel allocation
 - `GET /api/allocation-candidates` - **Get candidate lots (NEW - Phase 3)**
@@ -918,12 +958,14 @@ See full API documentation: [API Reference](./docs/api_reference.md) | [Migratio
 - `POST /api/allocation-suggestions/fefo` - **FEFO allocation preview (NEW - Phase 3)**
 
 **Deprecated** (移行期限: 2026-02-15):
+
 - `POST /api/allocations/drag-assign` → Use `/allocation-suggestions/manual`
 - `POST /api/allocations/preview` → Use `/allocation-suggestions/fefo`
 - `POST /api/allocations/orders/{id}/allocate` → Use `/allocations/commit`
 - `GET /api/allocations/candidate-lots` → Use `/allocation-candidates`
 
 #### Users & Roles (Phase 3 完了)
+
 - `GET /api/users` - List users (NEW)
 - `POST /api/users` - Create user (NEW)
 - `GET /api/users/{id}` - Get user detail (NEW)
@@ -934,6 +976,7 @@ See full API documentation: [API Reference](./docs/api_reference.md) | [Migratio
 - `POST /api/roles` - Create role (NEW)
 
 #### Admin & Logs (Phase 4 完了)
+
 - `GET /api/operation-logs` - **Get operation logs (NEW - Phase 4)**
 - `GET /api/business-rules` - **Get business rules (NEW - Phase 4)**
 - `PUT /api/business-rules/{code}` - **Update business rule (NEW - Phase 4)**
@@ -941,10 +984,12 @@ See full API documentation: [API Reference](./docs/api_reference.md) | [Migratio
 - `POST /api/batch-jobs/{id}/execute` - **Execute batch job (NEW - Phase 4)**
 
 #### Integration
+
 - `POST /api/integration/ai-ocr/submit` - Submit OCR order
 - `POST /api/integration/sap/register` - Register to SAP (mock)
 
 #### Admin
+
 - `GET /api/admin/health` - Health check with details
 - `POST /api/admin/reset-database` - Reset DB (dev only)
 - `POST /api/admin/init-sample-data` - Load sample data
@@ -956,6 +1001,7 @@ See full API documentation: [API Reference](./docs/api_reference.md) | [Migratio
 ### Backend Configuration
 
 **Settings:** `backend/app/core/config.py`
+
 ```python
 class Settings(BaseSettings):
     APP_NAME: str = "ロット管理システム"
@@ -976,6 +1022,7 @@ class Settings(BaseSettings):
 ```
 
 **Database Session:** `backend/app/core/database.py`
+
 ```python
 def get_db() -> Generator[Session, None, None]:
     """FastAPI dependency for database session"""
@@ -987,6 +1034,7 @@ def get_db() -> Generator[Session, None, None]:
 ```
 
 **Error Handlers:** `backend/app/core/errors.py`
+
 - HTTP exception handler
 - Validation exception handler
 - Domain exception handler
@@ -995,11 +1043,12 @@ def get_db() -> Generator[Session, None, None]:
 ### Frontend Configuration
 
 **Vite Config:** `frontend/vite.config.ts`
+
 ```typescript
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
-    alias: { "@": path.resolve(__dirname, "./src") }
+    alias: { "@": path.resolve(__dirname, "./src") },
   },
   server: {
     host: true,
@@ -1008,13 +1057,14 @@ export default defineConfig({
       "/api": {
         target: process.env.VITE_BACKEND_ORIGIN || "http://backend:8000",
         changeOrigin: true,
-      }
-    }
-  }
-})
+      },
+    },
+  },
+});
 ```
 
 **Environment Variables:** `frontend/.env`
+
 ```env
 VITE_API_BASE_URL=http://localhost:8000/api
 VITE_BACKEND_ORIGIN=http://localhost:8000
@@ -1025,18 +1075,21 @@ VITE_BACKEND_ORIGIN=http://localhost:8000
 **GitHub Actions:** `.github/workflows/quality.yml`
 
 **Backend Quality Checks:**
+
 - ✅ Ruff lint check
 - ✅ Ruff format check
 - ✅ Max lines check (300 lines per file)
 - ✅ pytest smoke tests (non-integration)
 
 **Frontend Quality Checks:**
+
 - ✅ TypeScript type check
 - ✅ ESLint check (max-warnings=0)
 - ✅ Prettier format check
 - ✅ Circular dependency detection (madge)
 
 **Triggers:**
+
 - Push to: `main`, `develop`, `claude/**`
 - Pull requests to: `main`, `develop`
 
@@ -1049,41 +1102,50 @@ VITE_BACKEND_ORIGIN=http://localhost:8000
 #### DO:
 
 1. **Follow naming conventions strictly**
+
    - Backend: `*_router.py`, `*_service.py`, `*_repository.py`, `*_schema.py`, `*_models.py`
    - Use appropriate prefixes: `admin_*`, `masters_*`, `orders_*`, `allocations_*`
 
 2. **Maintain layered architecture**
+
    - API calls Services → Services call Repositories → Repositories use Models
    - Domain logic stays in `domain/` layer (pure functions, no DB access)
    - Avoid circular dependencies
 
 3. **Use absolute imports in backend**
+
    - Always: `from app.services.order_service import OrderService`
    - Never: `from ..services import OrderService`
 
 4. **Run code quality checks before committing**
+
    - Backend: `ruff check app/ && ruff format --check app/`
    - Frontend: `npm run typecheck && npm run lint && npm run format:check`
 
 5. **Write tests for new features**
+
    - Backend: Add to appropriate test directory (api/, services/, unit/)
    - Use existing fixtures from `conftest.py`
    - Run `pytest -k "not integration"` before committing
 
 6. **Update OpenAPI types after backend changes**
+
    - Run `npm run generate:api` in frontend after backend schema changes
 
 7. **Respect transaction boundaries**
+
    - Services handle transactions
    - Repositories perform data access only
    - Don't start transactions in API layer
 
 8. **Follow TypeScript strict mode**
+
    - All type errors must be resolved
    - Use proper type imports: `import type { ... }`
    - Leverage OpenAPI-generated types
 
 9. **Document domain logic**
+
    - Add docstrings to complex business rules
    - Explain FEFO, allocation, and inventory logic
    - Use Google style docstrings in Python
@@ -1096,38 +1158,47 @@ VITE_BACKEND_ORIGIN=http://localhost:8000
 #### DON'T:
 
 1. **Don't use relative imports in backend**
+
    - Breaks import organization
    - Confuses dependency direction
 
 2. **Don't bypass the service layer**
+
    - API routes should not directly access repositories
    - Business logic belongs in services, not routers
 
 3. **Don't mutate stock_movements**
+
    - This is an immutable event log
    - Always append new movements, never update
 
 4. **Don't skip type checking**
+
    - Frontend: Must pass `npm run typecheck`
    - Backend: Pydantic validates at runtime, but be explicit
 
 5. **Don't create circular dependencies**
+
    - Use madge to check: `npx madge src --circular`
    - Refactor if circles detected
 
 6. **Don't commit without running quality checks**
+
    - Use pre-commit hooks
    - CI will fail if checks don't pass
 
 7. **Don't mix concerns in components**
+
    - Keep business logic in services/hooks
    - Components should be presentational when possible
 
 8. **Don't ignore FEFO rules**
+
    - Understand the lot allocation algorithm
    - Respect expiry date ordering
 
 9. **Don't hardcode configuration**
+
    - Use Settings class (backend) or env vars (frontend)
    - Never commit secrets (.env files are gitignored)
 
@@ -1138,6 +1209,7 @@ VITE_BACKEND_ORIGIN=http://localhost:8000
 ### Understanding the Codebase
 
 **Start here when exploring:**
+
 1. **README.md** - High-level overview
 2. **SETUP_GUIDE.md** - Complete setup walkthrough
 3. **docs/architecture/codebase_structure.md** - Detailed architecture
@@ -1146,6 +1218,7 @@ VITE_BACKEND_ORIGIN=http://localhost:8000
 6. **API docs** - http://localhost:8000/api/docs (when server running)
 
 **Key concepts to understand:**
+
 - **Event sourcing:** `stock_movements` table logs all inventory events
 - **Summary table:** `lot_current_stock` caches current inventory for performance
 - **FEFO algorithm:** Allocates oldest expiring lots first
@@ -1156,21 +1229,25 @@ VITE_BACKEND_ORIGIN=http://localhost:8000
 ### Common Pitfalls
 
 1. **SQLite vs PostgreSQL differences**
+
    - SQLite is development default
    - PostgreSQL is production (use docker-compose)
    - Some date/time operations differ
 
 2. **Foreign key constraints**
+
    - SQLite requires `PRAGMA foreign_keys=ON` (see base_model.py)
    - Deleting referenced records will fail
    - Use cascade or set null appropriately
 
 3. **Async context**
+
    - FastAPI is async, but SQLAlchemy sessions are sync
    - Use `def` (sync) for route handlers with DB operations
    - Use `async def` only for truly async operations
 
 4. **React Query caching**
+
    - TanStack Query caches by queryKey
    - Invalidate queries after mutations
    - Use `useMutation` for POST/PATCH/DELETE
@@ -1226,6 +1303,7 @@ cd frontend && npm run typecheck && npm run lint && npm run format:check
 We have identified common type patterns that appear repeatedly across both backend and frontend codebases. These candidates are documented for future refactoring considerations to improve type safety, reduce code duplication, and maintain consistency between backend and frontend.
 
 **Documentation Location:**
+
 - Backend: `docs/architecture/common_type_candidates_backend.md`
 - Frontend: `docs/architecture/common_type_candidates_frontend.md`
 
@@ -1234,6 +1312,7 @@ We have identified common type patterns that appear repeatedly across both backe
 **High Priority:**
 
 1. **Master Data Summary Types** (`*Summary`)
+
    - `WarehouseSummary`: id + warehouse_code + warehouse_name
    - `SupplierSummary`: id + supplier_code + supplier_name
    - `CustomerSummary`: id + customer_code + customer_name
@@ -1243,6 +1322,7 @@ We have identified common type patterns that appear repeatedly across both backe
    - `RoleSummary`: id + role_code + role_name
 
 2. **ListResponse[T] Pattern**
+
    - Common pattern: `items: list[T]` + `total: int`
    - Used in 10+ schemas (WarehouseListResponse, CustomerListResponse, etc.)
    - Should be extracted as a generic type
@@ -1258,6 +1338,7 @@ We have identified common type patterns that appear repeatedly across both backe
    - `AllocationSummary`: Allocation information (duplicated in orders_schema and allocations_schema)
 
 **Already Well-Defined:**
+
 - `TimestampMixin`: Widely used, no issues
 - `Page[T]`: Defined but underutilized
 - Status Enums: Appropriately domain-specific
@@ -1267,6 +1348,7 @@ We have identified common type patterns that appear repeatedly across both backe
 **High Priority:**
 
 1. **Master Data Display Types** (corresponds to backend `*Summary`)
+
    - `CustomerDisplay`: customerId + customerCode + customerName
    - `ProductDisplay`: productId + productCode + productName + unit
    - `WarehouseDisplay`: warehouseId + warehouseCode + warehouseName
@@ -1276,6 +1358,7 @@ We have identified common type patterns that appear repeatedly across both backe
    **Location:** Should be defined in `frontend/src/shared/types/master-displays.ts`
 
 2. **Legacy Field Cleanup**
+
    - `allocations/types/index.ts` has mixed DDL v2.2 and legacy fields
    - `Order` type: Contains both `order_number` (v2.2) and `order_no` (legacy)
    - `OrderLine` type: Contains both `product_id` and `product_code` (legacy)
@@ -1289,6 +1372,7 @@ We have identified common type patterns that appear repeatedly across both backe
 **Medium Priority:**
 
 4. **Domain Type Embedding**
+
    - `OrderHeaderSummary`: Embed `CustomerDisplay` + `DeliveryPlaceDisplay`
    - Simplifies component code: `order.customer.customerName`
 
@@ -1297,6 +1381,7 @@ We have identified common type patterns that appear repeatedly across both backe
    - Should be promoted to shared types
 
 **Case Convention (snake_case vs camelCase):**
+
 - **Current:** API types use `snake_case` (OpenAPI generated)
 - **Recommendation:** Keep `snake_case` for consistency with backend
 - **Alternative:** Add conversion layer if TypeScript conventions are prioritized
@@ -1306,12 +1391,13 @@ We have identified common type patterns that appear repeatedly across both backe
 **When to use common types:**
 
 1. **Master Data Display** - When showing id + code + name combinations
+
    ```typescript
    // ✅ Good
    type OrderHeader = {
-     customer: CustomerDisplay;  // Common type
-     deliveryPlace: DeliveryPlaceDisplay;  // Common type
-   }
+     customer: CustomerDisplay; // Common type
+     deliveryPlace: DeliveryPlaceDisplay; // Common type
+   };
 
    // ❌ Avoid
    type OrderHeader = {
@@ -1320,10 +1406,11 @@ We have identified common type patterns that appear repeatedly across both backe
      customer_name: string;
      delivery_place_id: number;
      // ... repeated fields
-   }
+   };
    ```
 
 2. **List Responses** - When returning lists from API
+
    ```python
    # Backend
    class WarehouseListResponse(ListResponse[WarehouseSummary]):
@@ -1336,18 +1423,20 @@ We have identified common type patterns that appear repeatedly across both backe
    type LotSummary = {
      lotId: number;
      lotNumber: string;
-     product: ProductDisplay;  // Embedded common type
-     warehouse: WarehouseDisplay;  // Embedded common type
-   }
+     product: ProductDisplay; // Embedded common type
+     warehouse: WarehouseDisplay; // Embedded common type
+   };
    ```
 
 **When NOT to use common types:**
 
 1. **Full Entity Responses** - When all fields including timestamps are needed
+
    - Use: `CustomerResponse` (full)
    - Not: `CustomerSummary` (subset)
 
 2. **Create/Update Requests** - When different validation rules apply
+
    - Use: `CustomerCreate`, `CustomerUpdate`
    - Not: `CustomerSummary`
 
@@ -1355,37 +1444,34 @@ We have identified common type patterns that appear repeatedly across both backe
    ```typescript
    // UI Extension (separate type)
    type OrderCardData = OrderHeaderSummary & {
-     priority: PriorityLevel;  // UI-specific
-     unallocatedQty: number;   // Calculated field
-   }
+     priority: PriorityLevel; // UI-specific
+     unallocatedQty: number; // Calculated field
+   };
    ```
 
 ### Migration Strategy
 
 **Phase 1: High Priority (Immediate)**
+
 1. Define master data summary types (backend + frontend)
 2. Fix duplicate definitions (ProductBase, WarehouseOut)
 3. Define ListResponse/PageResponse generics
 
-**Phase 2: Medium Priority (Within 3 months)**
-4. Migrate existing code to use common types
-5. Clean up legacy fields (frontend)
-6. Promote existing WarehouseSummary to shared types
+**Phase 2: Medium Priority (Within 3 months)** 4. Migrate existing code to use common types 5. Clean up legacy fields (frontend) 6. Promote existing WarehouseSummary to shared types
 
-**Phase 3: Low Priority (As needed)**
-7. Add embedded references to domain types
-8. Standardize UI extension patterns
-9. Consider case conversion strategy
+**Phase 3: Low Priority (As needed)** 7. Add embedded references to domain types 8. Standardize UI extension patterns 9. Consider case conversion strategy
 
 ### Review Process
 
 Before implementing common types:
+
 1. Review candidate documentation with team
 2. Agree on naming conventions (snake_case vs camelCase)
 3. Define migration timeline and backward compatibility strategy
 4. Update this guide with final decisions
 
 For detailed analysis, see:
+
 - `docs/architecture/common_type_candidates_backend.md`
 - `docs/architecture/common_type_candidates_frontend.md`
 
@@ -1394,6 +1480,7 @@ For detailed analysis, see:
 ## Additional Resources
 
 ### Documentation Files
+
 - **SETUP_GUIDE.md** - Complete setup instructions with troubleshooting
 - **README.md** - Project overview and quick start
 - **CHANGELOG_v2.0.md** - Version 2.0 changes and improvements
@@ -1404,11 +1491,13 @@ For detailed analysis, see:
 - **docs/troubleshooting/** - Common issues and solutions
 
 ### API Documentation
+
 - **Swagger UI:** http://localhost:8000/api/docs
 - **ReDoc:** http://localhost:8000/api/redoc
 - **OpenAPI JSON:** http://localhost:8000/api/openapi.json
 
 ### Type Documentation (Frontend)
+
 - **TypeDoc:** Run `npm run docs` in frontend/
 - **Generated Types:** `frontend/src/@types/api.d.ts`
 
@@ -1426,6 +1515,7 @@ For detailed analysis, see:
 ## Contact & Support
 
 For questions or issues:
+
 1. Check existing documentation in `docs/`
 2. Review troubleshooting guides
 3. Inspect API documentation at `/api/docs`
@@ -1435,6 +1525,7 @@ For questions or issues:
 ---
 
 **This CLAUDE.md file should be updated when:**
+
 - Major architectural changes occur
 - New conventions or patterns are adopted
 - Significant features are added
