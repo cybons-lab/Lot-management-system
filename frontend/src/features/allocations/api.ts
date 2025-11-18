@@ -84,9 +84,9 @@ export interface FefoPreviewRequest {
 export interface FefoLotAllocation {
   lot_id: number;
   lot_number: string;
-  allocate_qty: number;
+  allocated_quantity: string; // Backend uses string (DECIMAL)
   expiry_date?: string;
-  receipt_date?: string;
+  received_date?: string; // Backend uses received_date, not receipt_date
 }
 
 export interface FefoLineAllocation {
@@ -178,25 +178,27 @@ export const cancelAllocation = (allocationId: number) => {
 
 /**
  * Drag-assign allocation (manual allocation)
- * @deprecated Use manual allocation suggestions + commit in v3.0
- * @endpoint POST /allocations/drag-assign
+ * @deprecated Use createManualAllocationSuggestion + commitAllocation instead
+ * @endpoint POST /allocation-suggestions/manual (updated from /allocations/drag-assign)
  */
 export interface DragAssignRequest {
   order_line_id: number;
   lot_id: number;
-  allocate_qty: number;
+  allocated_quantity: number; // Note: allocate_qty is deprecated, use allocated_quantity
 }
 
 export interface DragAssignResponse {
-  success: boolean;
-  message: string;
-  allocation_id: number;
-  allocated_id: number;
-  remaining_lot_qty: number;
+  order_line_id: number;
+  lot_id: number;
+  lot_number: string;
+  suggested_quantity: number;
+  available_quantity: number;
+  status: string;
+  message?: string;
 }
 
 export const dragAssignAllocation = (data: DragAssignRequest) => {
-  return fetchApi.post<DragAssignResponse>("/allocations/drag-assign", data);
+  return fetchApi.post<DragAssignResponse>("/allocation-suggestions/manual", data);
 };
 
 // ===== Legacy API Functions (for backward compatibility) =====

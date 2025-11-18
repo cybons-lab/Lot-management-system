@@ -2,7 +2,6 @@
 
 from pydantic import BaseModel
 
-from app.schemas.integration.integration_schema import OcrOrderRecord
 from app.schemas.inventory.inventory_schema import LotCreate
 from app.schemas.masters.masters_schema import MasterBulkLoadResponse, ProductCreate
 
@@ -16,7 +15,6 @@ class FullSampleDataRequest(BaseModel):
 
     products: list[ProductCreate] | None = None
     lots: list[LotCreate] | None = None
-    orders: list[OcrOrderRecord] | None = None
 
 
 class DashboardStatsResponse(BaseModel):

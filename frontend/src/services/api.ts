@@ -17,11 +17,9 @@ type Order = components["schemas"]["OrderResponse"];
 type OrderDetail = components["schemas"]["OrderWithLinesResponse"];
 
 // 引当関連の型
-type DragAssignRequest = components["schemas"]["DragAssignRequest"];
-type DragAssignResponse = {
-  success: boolean;
-  message?: string;
-};
+// Note: DragAssignRequest is deprecated, use AllocationSuggestionManualRequest for new code
+type DragAssignRequest = components["schemas"]["AllocationSuggestionManualRequest"];
+type DragAssignResponse = components["schemas"]["AllocationSuggestionManualResponse"];
 
 // ロット関連の型
 type Lot = components["schemas"]["LotResponse"];
@@ -70,12 +68,13 @@ export const api = {
 
   // ===== 引当 =====
   /**
-   * ドラッグ&ドロップによる引当実行
+   * ドラッグ&ドロップによる引当実行（手動引当）
+   * @description 旧: POST /allocations/drag-assign（非推奨）→ 新: POST /allocation-suggestions/manual
    * @param body 引当リクエストデータ
    * @returns 引当結果
    */
   dragAssignAllocation: (body: DragAssignRequest) =>
-    http.post<DragAssignResponse>("/allocations/drag-assign", body).then((r) => r.data),
+    http.post<DragAssignResponse>("/allocation-suggestions/manual", body).then((r) => r.data),
 
   // ===== Forecast =====
   /**

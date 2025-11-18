@@ -238,7 +238,7 @@ export function LotAllocationPage() {
         return dragAssignAllocation({
           order_line_id: selectedOrderLineId,
           lot_id: lotId,
-          allocate_qty: quantity,
+          allocated_quantity: quantity,
         });
       });
 
