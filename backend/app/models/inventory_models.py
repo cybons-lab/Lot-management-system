@@ -239,49 +239,7 @@ class Adjustment(Base):
     lot: Mapped[Lot] = relationship("Lot", back_populates="adjustments")
 
 
-class InventoryItem(Base):
-    """Inventory summary by product and warehouse (在庫アイテム).
 
-    DDL: inventory_items
-    Primary key: id (BIGSERIAL)
-    Foreign keys: product_id -> products(id), warehouse_id -> warehouses(id)
-    """
-
-    __tablename__ = "inventory_items"
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    product_id: Mapped[int] = mapped_column(
-        BigInteger,
-        ForeignKey("products.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    warehouse_id: Mapped[int] = mapped_column(
-        BigInteger,
-        ForeignKey("warehouses.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    total_quantity: Mapped[Decimal] = mapped_column(
-        Numeric(15, 3), nullable=False, server_default=text("0")
-    )
-    allocated_quantity: Mapped[Decimal] = mapped_column(
-        Numeric(15, 3), nullable=False, server_default=text("0")
-    )
-    available_quantity: Mapped[Decimal] = mapped_column(
-        Numeric(15, 3), nullable=False, server_default=text("0")
-    )
-    last_updated: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.current_timestamp()
-    )
-
-    __table_args__ = (
-        UniqueConstraint("product_id", "warehouse_id", name="uq_inventory_items_product_warehouse"),
-        Index("idx_inventory_items_product", "product_id"),
-        Index("idx_inventory_items_warehouse", "warehouse_id"),
-    )
-
-    # Relationships
-    product: Mapped[Product] = relationship("Product")
-    warehouse: Mapped[Warehouse] = relationship("Warehouse")
 
 
 class AllocationSuggestion(Base):
@@ -327,4 +285,4 @@ StockMovement = StockHistory
 StockMovementReason = StockTransactionType
 
 # LotCurrentStock alias for backward compatibility if needed, though InventoryItem is preferred.
-LotCurrentStock = InventoryItem
+# LotCurrentStock = InventoryItem
