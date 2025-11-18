@@ -127,7 +127,9 @@ export function TopNavLayout({ children }: TopNavLayoutProps) {
                 <h1 className="text-base font-bold tracking-tight text-gray-900">
                   ロット管理システム
                 </h1>
-                <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">Smart Inventory Manager</p>
+                <p className="text-[10px] font-medium tracking-wider text-gray-500 uppercase">
+                  Smart Inventory Manager
+                </p>
               </div>
             </div>
 
@@ -150,7 +152,12 @@ export function TopNavLayout({ children }: TopNavLayoutProps) {
                         : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
                     )}
                   >
-                    <Icon className={cn("h-4 w-4 transition-colors", isActive ? "text-gray-900" : "text-gray-500 group-hover:text-gray-900")} />
+                    <Icon
+                      className={cn(
+                        "h-4 w-4 transition-colors",
+                        isActive ? "text-gray-900" : "text-gray-500 group-hover:text-gray-900",
+                      )}
+                    />
                     <span className="hidden lg:inline">{item.title}</span>
                   </Link>
                 );

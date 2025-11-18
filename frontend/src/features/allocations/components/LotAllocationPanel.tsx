@@ -274,7 +274,7 @@ export function LotAllocationPanel({
                         onChange={(event) => {
                           const inputValue = event.target.value;
                           const parsed = Number(inputValue);
-                          
+
                           // Check if input exceeds available quantity
                           // Note: We don't know the exact "remaining needed" limit here easily without prop drilling or calculation duplication.
                           // However, the parent component clamps the value. We can detect if the value didn't update as expected or if it exceeds availableQty.
@@ -283,17 +283,17 @@ export function LotAllocationPanel({
                           // If we want to shake on "remaining needed" limit, we'd need to know that limit here.
                           // For now, let's shake if the user tries to input more than availableQty, which is a hard limit known here.
                           // AND check if the parent clamped it (by comparing next render, but that's hard in onChange).
-                          
+
                           // Better approach: Check if the input value is greater than availableQty
                           if (parsed > availableQty) {
-                             setShakingLotId(lotId);
+                            setShakingLotId(lotId);
                           }
-                          
+
                           onLotAllocationChange(lotId, Number.isFinite(parsed) ? parsed : 0);
                         }}
                         className={cn(
                           "flex-1 rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none",
-                          shakingLotId === lotId && "animate-shake border-red-500 ring-red-500"
+                          shakingLotId === lotId && "animate-shake border-red-500 ring-red-500",
                         )}
                       />
                       <Button
@@ -335,15 +335,15 @@ export function LotAllocationPanel({
           <span>配分合計</span>
           <span className="font-semibold">{uiAllocatedTotal.toLocaleString()}</span>
         </div>
-          <Button
-            type="button"
-            size="sm"
-            onClick={onSaveAllocations}
-            disabled={!effectiveCanSave}
-            className="flex-1"
-          >
-            {isSaving ? "保存中..." : "保存"}
-          </Button>
+        <Button
+          type="button"
+          size="sm"
+          onClick={onSaveAllocations}
+          disabled={!effectiveCanSave}
+          className="flex-1"
+        >
+          {isSaving ? "保存中..." : "保存"}
+        </Button>
       </div>
     </div>
   );

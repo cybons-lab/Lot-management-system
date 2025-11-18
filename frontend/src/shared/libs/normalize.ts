@@ -138,8 +138,8 @@ export function normalizeOrder(order: OrderResponse): OrderUI {
     delivery_place: (order as Record<string, unknown>).delivery_place ?? null,
     delivery_place_code: (order as Record<string, unknown>).delivery_place_code ?? null,
     delivery_place_name: (order as Record<string, unknown>).delivery_place_name ?? null,
-    total_quantity: (order as Record<string, unknown>).total_quantity ?? null,
-    lines: order.lines,
+    total_quantity: ((order as Record<string, unknown>).total_quantity as number | null) ?? null,
+    lines: [], // OrderResponse no longer has lines
   };
 }
 

@@ -98,10 +98,13 @@ export function LotAllocationPage() {
   // 得意先マップ (code -> name)
   const customerMap = useMemo(() => {
     if (!customersQuery.data) return {};
-    return customersQuery.data.reduce((acc, customer) => {
-      acc[customer.customer_code] = customer.customer_name ?? "";
-      return acc;
-    }, {} as Record<string, string>);
+    return customersQuery.data.reduce(
+      (acc, customer) => {
+        acc[customer.customer_code] = customer.customer_name ?? "";
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
   }, [customersQuery.data]);
 
   // ロット候補リスト
@@ -248,9 +251,9 @@ export function LotAllocationPage() {
       const otherLotsAllocated = Object.entries(lotAllocations).reduce((sum, [id, qty]) => {
         return Number(id) === lotId ? sum : sum + qty;
       }, 0);
-      
+
       const remainingNeeded = Math.max(0, requiredQty - dbAllocated - otherLotsAllocated);
-      
+
       // Clamp to min(Stock, RemainingNeeded)
       // User cannot enter more than what is needed for the order line
       const maxAllowed = Math.min(maxStock, remainingNeeded);

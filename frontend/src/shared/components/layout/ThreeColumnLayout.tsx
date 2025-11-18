@@ -46,7 +46,7 @@ export function ThreeColumnLayout({
           className={cn(
             "hidden border-r border-gray-200 bg-white xl:block",
             leftWidth,
-            "flex flex-col overflow-hidden"
+            "flex flex-col overflow-hidden",
           )}
         >
           {leftContent}
@@ -54,9 +54,7 @@ export function ThreeColumnLayout({
       )}
 
       {/* メインコンテンツ (常に表示) */}
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
-        {centerContent}
-      </main>
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-white">{centerContent}</main>
 
       {/* 右カラム (XL以上で表示) */}
       {rightContent && (
@@ -64,7 +62,7 @@ export function ThreeColumnLayout({
           className={cn(
             "hidden border-l border-gray-200 bg-white xl:block",
             rightWidth,
-            "flex flex-col overflow-hidden"
+            "flex flex-col overflow-hidden",
           )}
         >
           {rightContent}

@@ -92,6 +92,8 @@ export function createOrderLine(
     id: overrides?.id ?? faker.number.int({ min: 1, max: 10000 }),
     order_id: overrides?.order_id ?? faker.number.int({ min: 1, max: 10000 }), // DDL v2.2
     product_id: overrides?.product_id ?? faker.number.int({ min: 1, max: 100 }), // DDL v2.2
+    delivery_place_id:
+      (overrides as any)?.delivery_place_id ?? faker.number.int({ min: 1, max: 10 }), // DDL v2.2
     order_quantity: String(orderQuantity), // DDL v2.2: DECIMAL as string
     unit,
     delivery_date: deliveryDate ?? faker.date.soon({ days: 30 }).toISOString().split("T")[0], // DDL v2.2

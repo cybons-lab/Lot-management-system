@@ -42,16 +42,14 @@ export function OrdersPane({
     const lineCode = firstLine?.customer_code ?? null;
     const lineName = firstLine?.customer_name ?? null;
     if (lineCode) {
-       const name = lineName || customerMap[lineCode];
-       if (name) return `${lineCode} ${name}`;
-       return lineCode;
+      const name = lineName || customerMap[lineCode];
+      if (name) return `${lineCode} ${name}`;
+      return lineCode;
     }
     if (lineName) return lineName;
 
     return "未設定";
   };
-
-
 
   const getReceivedDate = (order: OrderWithLinesResponse) => {
     return (
@@ -175,7 +173,6 @@ export function OrdersPane({
                     {formatDate(receivedDate, { fallback: "未設定" })}
                   </span>
                 </p>
-
               </div>
               <Badge variant={getStatusBadgeVariant(order.status)}>
                 {getStatusLabel(order.status)}

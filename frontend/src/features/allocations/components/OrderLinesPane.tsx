@@ -87,8 +87,6 @@ export function OrderLinesPane({
     return "未設定";
   };
 
-
-
   const handleLineClick = (line: OrderLine) => {
     if (!line.id) return;
 
