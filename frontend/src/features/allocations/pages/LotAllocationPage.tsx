@@ -29,7 +29,7 @@ import { useOrderDetailForAllocation } from "../hooks/useOrderDetailForAllocatio
 import { useAllocationCandidates } from "../hooks/useAllocationCandidates";
 import { dragAssignAllocation } from "../api";
 import { OrdersPane } from "../components/OrdersPane";
-import { OrderLinesPane } from "../components/OrderLinesPane";
+import { OrderLinesPane, type OrderLineStockStatus } from "../components/OrderLinesPane";
 import { LotAllocationPanel } from "../components/LotAllocationPanel";
 import type { CandidateLotItem } from "../api";
 import type { OrderLine } from "@/shared/types/aliases";
@@ -85,6 +85,11 @@ export function LotAllocationPage() {
     [candidatesQuery.data?.items],
   );
 
+  const uiAllocatedSum = useMemo(
+    () => Object.values(lotAllocations).reduce((sum, qty) => sum + qty, 0),
+    [lotAllocations],
+  );
+
   // 選択中の受注明細
   const selectedOrderLine = useMemo<OrderLine | null>(() => {
     if (!selectedOrderLineId || !orderDetailQuery.data) return null;
@@ -112,7 +117,7 @@ export function LotAllocationPage() {
 
       for (const lot of candidateLots) {
         const lotId = lot.lot_id;
-        const maxQty = lot.free_qty ?? 0;
+        const maxQty = Number(lot.free_qty ?? lot.current_quantity ?? 0);
         const prevQty = prev[lotId] ?? 0;
         const clampedQty = Math.min(Math.max(prevQty, 0), maxQty);
 
@@ -173,7 +178,9 @@ export function LotAllocationPage() {
   const handleLotAllocationChange = useCallback(
     (lotId: number, value: number) => {
       const targetLot = candidateLots.find((lot) => lot.lot_id === lotId);
-      const maxQty = targetLot ? (targetLot.free_qty ?? 0) : Number.POSITIVE_INFINITY;
+      const maxQty = targetLot
+        ? Number(targetLot.free_qty ?? targetLot.current_quantity ?? Number.POSITIVE_INFINITY)
+        : Number.POSITIVE_INFINITY;
 
       const clampedValue = Math.max(0, Math.min(maxQty, Number.isFinite(value) ? value : 0));
 
@@ -209,7 +216,7 @@ export function LotAllocationPage() {
       if (remaining <= 0) break;
 
       const lotId = lot.lot_id;
-      const freeQty = lot.free_qty ?? 0;
+      const freeQty = Number(lot.free_qty ?? lot.current_quantity ?? 0);
       const allocateQty = Math.min(remaining, freeQty);
 
       if (allocateQty > 0) {
@@ -266,47 +273,50 @@ export function LotAllocationPage() {
   }, [selectedOrderLineId, lotAllocations, orderDetailQuery, candidatesQuery]);
 
   // 各明細の在庫状態を計算（在庫不足判定用）
-  const lineStockStatus = useMemo(() => {
-    const statusMap: Record<
-      number,
-      { hasShortage: boolean; totalAvailable: number; requiredQty: number }
-    > = {};
-
+  const lineStockStatus = useMemo<Record<number, OrderLineStockStatus>>(() => {
     const lines = orderDetailQuery.data?.lines ?? [];
+    if (!lines.length) return {};
+
+    const statusMap: Record<number, OrderLineStockStatus> = {};
+    const canEvaluateSelected = selectedOrderLineId !== null && candidatesQuery.isSuccess;
+    const totalAvailableForSelectedLine = canEvaluateSelected
+      ? candidateLots.reduce((sum, lot) => {
+          const freeQty = Number(lot.free_qty ?? lot.current_quantity ?? 0);
+          return sum + Math.max(0, freeQty);
+        }, 0)
+      : null;
+
     for (const line of lines) {
       if (!line.id) continue;
-
-      const requiredQty = Number(line.order_quantity ?? 0);
-      // allocated_qty might not be in the type yet, use optional chaining
-      const allocatedQty = Number((line as any).allocated_qty ?? 0);
-      const remainingNeeded = Math.max(0, requiredQty - allocatedQty);
-
-      // この明細の候補ロット合計在庫を計算
-      // 注: 現在はselectedOrderLineIdの候補ロットしか取得していないため、
-      // 他の明細の候補ロットは取得できない。
-      // 暫定的に、選択中の明細のみ正確に判定し、他は allocated_qty で判定
-      let totalAvailable = 0;
-      if (line.id === selectedOrderLineId && candidateLots.length > 0) {
-        totalAvailable = candidateLots.reduce((sum, lot) => {
-          const freeQty = Number(lot.free_qty ?? 0);
-          return sum + Math.max(0, freeQty);
-        }, 0);
-      }
-
+      const requiredQty = Number(line.order_quantity ?? line.quantity ?? 0);
+      const dbAllocated = Number(line.allocated_qty ?? line.allocated_quantity ?? 0);
+      const uiAllocated = line.id === selectedOrderLineId ? uiAllocatedSum : 0;
+      const totalAllocated = dbAllocated + uiAllocated;
+      const remainingQty = Math.max(0, requiredQty - totalAllocated);
+      const progress = requiredQty > 0 ? Math.min(100, (totalAllocated / requiredQty) * 100) : 0;
+      const totalAvailable = line.id === selectedOrderLineId ? totalAvailableForSelectedLine : null;
       const hasShortage =
-        line.id === selectedOrderLineId
-          ? totalAvailable < remainingNeeded
-          : allocatedQty < requiredQty;
+        totalAvailable !== null ? totalAvailable < requiredQty : false;
 
       statusMap[line.id] = {
         hasShortage,
         totalAvailable,
         requiredQty,
+        dbAllocated,
+        uiAllocated,
+        remainingQty,
+        progress,
       };
     }
 
     return statusMap;
-  }, [orderDetailQuery.data, selectedOrderLineId, candidateLots]);
+  }, [
+    orderDetailQuery.data,
+    selectedOrderLineId,
+    candidateLots,
+    uiAllocatedSum,
+    candidatesQuery.isSuccess,
+  ]);
 
   // トースト自動非表示
   useEffect(() => {

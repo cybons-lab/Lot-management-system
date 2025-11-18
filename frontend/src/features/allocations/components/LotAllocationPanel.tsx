@@ -12,6 +12,7 @@
  */
 
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { formatDate } from "@/shared/utils/date";
 import { cn } from "@/shared/libs/utils";
 import type { CandidateLotItem } from "../api";
@@ -71,13 +72,17 @@ export function LotAllocationPanel({
   const footerClasses = cn("border-t bg-white px-4 py-3", layout === "inline" && "rounded-b-lg");
 
   // 必要数量・引当済み・残り
-  const requiredQty = orderLine ? Number(orderLine.order_quantity || orderLine.quantity || 0) : 0;
-  const allocatedQty = orderLine ? Number(orderLine.allocated_qty || 0) : 0;
-  const currentAllocationTotal = Object.values(lotAllocations).reduce((sum, qty) => sum + qty, 0);
-  const remainingQty = Math.max(0, requiredQty - allocatedQty - currentAllocationTotal);
+  const requiredQty = orderLine ? Number(orderLine.order_quantity ?? orderLine.quantity ?? 0) : 0;
+  const dbAllocated = orderLine
+    ? Number(orderLine.allocated_qty ?? orderLine.allocated_quantity ?? 0)
+    : 0;
+  const uiAllocatedTotal = Object.values(lotAllocations).reduce((sum, qty) => sum + qty, 0);
+  const totalAllocated = dbAllocated + uiAllocatedTotal;
+  const remainingQty = Math.max(0, requiredQty - totalAllocated);
+  const progressPercent = requiredQty > 0 ? Math.min(100, (totalAllocated / requiredQty) * 100) : 0;
 
   // 保存可能判定
-  const canSave = currentAllocationTotal > 0 && !isSaving;
+  const canSave = uiAllocatedTotal > 0 && !isSaving;
 
   if (!orderLine) {
     return (
@@ -113,8 +118,14 @@ export function LotAllocationPanel({
             <div>
               <div className="text-gray-500">既引当</div>
               <div className="mt-1 font-semibold text-blue-600">
-                {allocatedQty.toLocaleString()}
+                {totalAllocated.toLocaleString()}
               </div>
+              <p className="text-[11px] text-gray-500">
+                DB: {dbAllocated.toLocaleString()}
+                {uiAllocatedTotal > 0 && (
+                  <> / 入力: {uiAllocatedTotal.toLocaleString()}</>
+                )}
+              </p>
             </div>
             <div>
               <div className="text-gray-500">残り</div>
@@ -147,10 +158,18 @@ export function LotAllocationPanel({
             variant="ghost"
             size="sm"
             onClick={onClearAllocations}
-            disabled={currentAllocationTotal === 0}
+            disabled={uiAllocatedTotal === 0}
           >
             クリア
           </Button>
+        </div>
+
+        <div className="mt-3">
+          <div className="mb-1 flex items-center justify-between text-xs text-gray-500">
+            <span>引当進捗</span>
+            <span className="font-semibold text-gray-700">{Math.round(progressPercent)}%</span>
+          </div>
+          <Progress value={progressPercent} className="h-2" />
         </div>
       </div>
 
@@ -178,7 +197,7 @@ export function LotAllocationPanel({
           <div className="space-y-3">
             {candidateLots.map((lot) => {
               const lotId = lot.lot_id;
-              const availableQty = lot.free_qty ?? lot.current_quantity ?? 0;
+              const availableQty = Number(lot.free_qty ?? lot.current_quantity ?? 0);
               const allocatedQty = lotAllocations[lotId] ?? 0;
               const lotLabel = lot.lot_number ?? `LOT-${lotId}`;
 
@@ -245,9 +264,11 @@ export function LotAllocationPanel({
                         size="sm"
                         onClick={() => {
                           // このロット以外の現在入力数
-                          const otherLotsCurrentInput = currentAllocationTotal - allocatedQty;
+                          const otherLotsCurrentInput = uiAllocatedTotal - allocatedQty;
                           // DBに保存済みの引当数量
-                          const dbAllocated = Number(orderLine?.allocated_qty ?? 0);
+                          const dbAllocated = Number(
+                            orderLine?.allocated_qty ?? orderLine?.allocated_quantity ?? 0,
+                          );
                           // このロット以外の合計引当（DB保存済み + 他ロットの現在入力）
                           const totalOtherAllocation = dbAllocated + otherLotsCurrentInput;
                           // 残り必要数量
@@ -273,7 +294,7 @@ export function LotAllocationPanel({
       <div className={footerClasses}>
         <div className="flex items-center justify-between text-sm text-gray-700">
           <span>配分合計</span>
-          <span className="font-semibold">{currentAllocationTotal.toLocaleString()}</span>
+          <span className="font-semibold">{uiAllocatedTotal.toLocaleString()}</span>
         </div>
         {onSaveAllocations && (
           <Button
