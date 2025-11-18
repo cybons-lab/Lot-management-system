@@ -1,26 +1,34 @@
 /**
  * ドラッグ引当用のカスタムフック
+ * @description 新v2.2 API: POST /allocation-suggestions/manual を使用
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 
 // ドラッグ引当リクエストの型定義
+// Note: allocated_quantity フィールド名に統一（allocate_qty は deprecated）
 export interface DragAssignRequest {
   order_line_id: number;
   lot_id: number;
-  allocate_qty: number;
+  allocated_quantity: number; // was: allocate_qty
 }
 
 // ドラッグ引当レスポンスの型定義
 export interface DragAssignResponse {
-  success: boolean;
-  message: string;
-  allocation_id?: number;
+  success?: boolean;
+  message?: string;
+  order_line_id: number;
+  lot_id: number;
+  lot_number: string;
+  suggested_quantity: number;
+  available_quantity: number;
+  status: string;
 }
 
 /**
- * ドラッグ引当を実行
+ * ドラッグ引当を実行（手動引当サジェスション）
+ * @description 旧: POST /allocations/drag-assign → 新: POST /allocation-suggestions/manual
  */
 export const useDragAssign = () => {
   const queryClient = useQueryClient();
@@ -28,7 +36,7 @@ export const useDragAssign = () => {
   return useMutation({
     mutationFn: async (request: DragAssignRequest) => {
       const response = await axios.post<DragAssignResponse>(
-        "/api/allocations/drag-assign",
+        "/api/allocation-suggestions/manual",
         request,
       );
       return response.data;

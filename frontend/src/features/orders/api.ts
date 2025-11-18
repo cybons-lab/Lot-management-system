@@ -43,9 +43,10 @@ export const getOrder = (orderId: number) => fetchApi.get<OrderGetResponse>(`/or
 
 /**
  * FEFO再マッチング実行
+ * @description 新しいAllocationCommitResponseを使用（FefoCommitResponseは非推奨）
  */
 export const reMatchOrder = (orderId: number) =>
-  fetchApi.post<components["schemas"]["FefoCommitResponse"]>(`/orders/${orderId}/re-match`);
+  fetchApi.post<components["schemas"]["AllocationCommitResponse"]>(`/orders/${orderId}/re-match`);
 
 /**
  * 引当情報付き受注一覧取得
