@@ -50,9 +50,9 @@ class InventoryService:
             Lot.warehouse_id,
             func.sum(Lot.current_quantity).label("total_quantity"),
             func.sum(Lot.allocated_quantity).label("allocated_quantity"),
-            func.sum(
-                func.greatest(Lot.current_quantity - Lot.allocated_quantity, 0)
-            ).label("available_quantity"),
+            func.sum(func.greatest(Lot.current_quantity - Lot.allocated_quantity, 0)).label(
+                "available_quantity"
+            ),
             func.max(Lot.updated_at).label("last_updated"),
         ).filter(Lot.status == "active")
 
@@ -103,9 +103,9 @@ class InventoryService:
                 Lot.warehouse_id,
                 func.sum(Lot.current_quantity).label("total_quantity"),
                 func.sum(Lot.allocated_quantity).label("allocated_quantity"),
-                func.sum(
-                    func.greatest(Lot.current_quantity - Lot.allocated_quantity, 0)
-                ).label("available_quantity"),
+                func.sum(func.greatest(Lot.current_quantity - Lot.allocated_quantity, 0)).label(
+                    "available_quantity"
+                ),
                 func.max(Lot.updated_at).label("last_updated"),
             )
             .filter(
