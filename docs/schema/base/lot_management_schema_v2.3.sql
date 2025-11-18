@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict yPod75LHdZFnf3J3sf2sYDXeIeNY3UMYV8ckTIzmid1bg126nxtABqDrhtYUPbf
+\restrict fJdbPDX7P6CBDE5c8kCroDJlnLuImOykEYxMPh6EnYjcPjzLpF9oflpv40Qx3IJ
 
 -- Dumped from database version 15.15
 -- Dumped by pg_dump version 15.15
@@ -665,10 +665,8 @@ CREATE TABLE public.orders (
     order_number character varying(50) NOT NULL,
     customer_id bigint NOT NULL,
     order_date date NOT NULL,
-    status character varying(20) DEFAULT 'pending'::character varying NOT NULL,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    CONSTRAINT chk_orders_status CHECK (((status)::text = ANY ((ARRAY['pending'::character varying, 'allocated'::character varying, 'shipped'::character varying, 'completed'::character varying, 'cancelled'::character varying])::text[])))
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 
@@ -1851,13 +1849,6 @@ CREATE INDEX idx_orders_date ON public.orders USING btree (order_date);
 
 
 --
--- Name: idx_orders_status; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_orders_status ON public.orders USING btree (status);
-
-
---
 -- Name: idx_products_code; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2230,5 +2221,5 @@ ALTER TABLE ONLY public.user_roles
 -- PostgreSQL database dump complete
 --
 
-\unrestrict yPod75LHdZFnf3J3sf2sYDXeIeNY3UMYV8ckTIzmid1bg126nxtABqDrhtYUPbf
+\unrestrict fJdbPDX7P6CBDE5c8kCroDJlnLuImOykEYxMPh6EnYjcPjzLpF9oflpv40Qx3IJ
 
