@@ -252,8 +252,15 @@ export function LotAllocationPanel({
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          const otherLotsTotal = currentAllocationTotal - allocatedQty;
-                          const remainingNeeded = Math.max(0, requiredQty - allocatedQty - otherLotsTotal);
+                          // このロット以外の現在入力数
+                          const otherLotsCurrentInput = currentAllocationTotal - allocatedQty;
+                          // DBに保存済みの引当数量
+                          const dbAllocated = Number(orderLine?.allocated_qty ?? 0);
+                          // このロット以外の合計引当（DB保存済み + 他ロットの現在入力）
+                          const totalOtherAllocation = dbAllocated + otherLotsCurrentInput;
+                          // 残り必要数量
+                          const remainingNeeded = Math.max(0, requiredQty - totalOtherAllocation);
+                          // 最大引当可能数（残り必要数 と 在庫数 の小さい方）
                           const maxAllocation = Math.min(remainingNeeded, availableQty);
                           onLotAllocationChange(lotId, maxAllocation);
                         }}

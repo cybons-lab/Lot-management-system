@@ -176,6 +176,29 @@ export const cancelAllocation = (allocationId: number) => {
   return fetchApi.delete<void>(`/allocations/${allocationId}`);
 };
 
+/**
+ * Drag-assign allocation (manual allocation)
+ * @deprecated Use manual allocation suggestions + commit in v3.0
+ * @endpoint POST /allocations/drag-assign
+ */
+export interface DragAssignRequest {
+  order_line_id: number;
+  lot_id: number;
+  allocate_qty: number;
+}
+
+export interface DragAssignResponse {
+  success: boolean;
+  message: string;
+  allocation_id: number;
+  allocated_id: number;
+  remaining_lot_qty: number;
+}
+
+export const dragAssignAllocation = (data: DragAssignRequest) => {
+  return fetchApi.post<DragAssignResponse>("/allocations/drag-assign", data);
+};
+
 // ===== Legacy API Functions (for backward compatibility) =====
 
 /**

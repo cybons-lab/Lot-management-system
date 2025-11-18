@@ -10,6 +10,7 @@
 
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/shared/libs/utils";
 import type { OrderLine } from "@/shared/types/aliases";
 
@@ -18,6 +19,10 @@ interface OrderLinesPaneProps {
   selectedOrderLineId: number | null;
   onSelectOrderLine: (lineId: number) => void;
   renderInlineLots?: boolean;
+  lineStockStatus?: Record<
+    number,
+    { hasShortage: boolean; totalAvailable: number; requiredQty: number }
+  >;
   inlineLotContent?: (line: OrderLine) => React.ReactNode;
   isLoading?: boolean;
   error?: Error | null;
@@ -28,6 +33,7 @@ export function OrderLinesPane({
   selectedOrderLineId,
   onSelectOrderLine,
   renderInlineLots = false,
+  lineStockStatus = {},
   inlineLotContent,
   isLoading = false,
   error = null,
@@ -35,11 +41,15 @@ export function OrderLinesPane({
   // インライン展開状態（renderInlineLots が true の場合のみ使用）
   const [expandedLineId, setExpandedLineId] = useState<number | null>(null);
 
-  // 在庫不足判定（簡易版：allocatedQty < requiredQty）
+  // 在庫不足判定（lineStockStatusマップを使用）
   const isLowStock = (line: OrderLine) => {
-    const required = Number(line.order_quantity || line.quantity || 0);
-    const allocated = Number(line.allocated_qty || 0);
-    return allocated < required;
+    if (!line.id || !lineStockStatus[line.id]) {
+      // フォールバック: lineStockStatusがない場合は簡易判定
+      const required = Number(line.order_quantity || line.quantity || 0);
+      const allocated = Number(line.allocated_qty || 0);
+      return allocated < required;
+    }
+    return lineStockStatus[line.id].hasShortage;
   };
 
   const handleLineClick = (line: OrderLine) => {
@@ -172,6 +182,21 @@ export function OrderLinesPane({
                       {remainingQty.toLocaleString()}
                     </div>
                   </div>
+                </div>
+
+                {/* 進捗バー */}
+                <div className="mt-3">
+                  <div className="mb-1 flex items-center justify-between text-xs text-gray-500">
+                    <span>引当進捗</span>
+                    <span className="font-medium">{Math.round((allocatedQty / requiredQty) * 100)}%</span>
+                  </div>
+                  <Progress
+                    value={(allocatedQty / requiredQty) * 100}
+                    className={cn(
+                      "h-2",
+                      allocatedQty >= requiredQty ? "bg-green-200" : "bg-gray-200",
+                    )}
+                  />
                 </div>
 
                 {/* 選択インジケーター */}
