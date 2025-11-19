@@ -402,8 +402,12 @@ export function ForecastDetailCard({ forecast }: ForecastDetailCardProps) {
                   <div className="flex flex-1 items-stretch">
                     {monthlyData ? (
                       <div className="flex w-full flex-col justify-center rounded-lg border-2 border-purple-300 bg-purple-50 px-4 py-3 text-center">
-                        <div className="text-sm font-medium text-purple-700">{monthlyData.label}</div>
-                        <div className="mt-1 text-2xl font-bold text-purple-900">{monthlyData.total}</div>
+                        <div className="text-sm font-medium text-purple-700">
+                          {monthlyData.label}
+                        </div>
+                        <div className="mt-1 text-2xl font-bold text-purple-900">
+                          {monthlyData.total}
+                        </div>
                       </div>
                     ) : (
                       <div className="flex w-full items-center justify-center rounded-lg border border-dashed border-gray-200 text-sm text-gray-400">
