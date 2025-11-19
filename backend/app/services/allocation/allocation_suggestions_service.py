@@ -129,9 +129,7 @@ class AllocationSuggestionService:
         """
         # Get forecast entry
         forecast = (
-            self.db.query(ForecastCurrent)
-            .filter(ForecastCurrent.id == forecast_line_id)
-            .first()
+            self.db.query(ForecastCurrent).filter(ForecastCurrent.id == forecast_line_id).first()
         )
 
         if not forecast:

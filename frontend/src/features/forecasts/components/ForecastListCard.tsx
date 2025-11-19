@@ -1,4 +1,5 @@
 import { forwardRef } from "react";
+
 import type { ForecastGroup } from "../api";
 
 import { ForecastDetailCard } from "./ForecastDetailCard";

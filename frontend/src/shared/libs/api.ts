@@ -1,5 +1,4 @@
 // frontend/src/shared/libs/api.ts
-import * as forecast from "@/features/forecast/api";
 import * as inventory from "@/features/inventory/api";
 import * as orders from "@/features/orders/api";
 import * as admin from "@/shared/libs/admin-api"; // ← lib配下のadminを集約
@@ -7,6 +6,5 @@ import * as admin from "@/shared/libs/admin-api"; // ← lib配下のadminを集
 export const api = {
   ...orders,
   ...inventory,
-  ...forecast,
   ...admin, // ← 追加
 };

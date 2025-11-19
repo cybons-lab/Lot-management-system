@@ -17,6 +17,7 @@ import type {
   OrderResponse as Order,
   OrderWithLinesResponse as OrderDetail,
 } from "@/shared/types/aliases";
+import { ForecastResponse } from "../shared/types/forecast";
 
 // 引当関連の型
 // Note: DragAssignRequest is deprecated, use AllocationSuggestionManualRequest for new code
@@ -28,7 +29,6 @@ type Lot = components["schemas"]["LotResponse"];
 
 // Forecast関連の型（存在する型を使用）
 // Note: ForecastResponse does not exist in OpenAPI, using LegacyForecastResponse
-type ForecastResponse = components["schemas"]["LegacyForecastResponse"];
 
 // ========================================
 // APIクライアント

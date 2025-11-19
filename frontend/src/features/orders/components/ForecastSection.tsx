@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import * as React from "react";
 // frontend/src/features/orders/components/ForecastSection.tsx
 
-import { getForecastByCodes, type ForecastResponse } from "@/features/forecast/api";
+import { getForecasts, type ForecastListResponse } from "@/features/forecasts/api";
 
 type Props = {
   productCode?: string;
@@ -13,9 +13,9 @@ type Props = {
 export function ForecastSection({ productCode, customerCode, fullWidth = false }: Props) {
   const [isOpen, setIsOpen] = React.useState(false);
 
-  const forecastQ = useQuery<ForecastResponse[]>({
+  const forecastQ = useQuery<ForecastListResponse[]>({
     queryKey: ["forecast", productCode, customerCode],
-    queryFn: () => getForecastByCodes(productCode as string, customerCode as string),
+    queryFn: () => getForecasts({ product_id: productCode!, customer_id: customerCode! }),
     enabled: isOpen && !!productCode && !!customerCode,
     staleTime: 1000 * 60,
   });
@@ -25,7 +25,7 @@ export function ForecastSection({ productCode, customerCode, fullWidth = false }
   const forecasts = forecastQ.data ?? [];
   const hasForecast = forecasts.length > 0;
 
-  const renderPeriod = (forecast: ForecastResponse) => {
+  const renderPeriod = (forecast: ForecastListResponse) => {
     // granularity can be string in legacy forecasts
     const granularity = forecast.granularity as string | undefined;
     switch (granularity) {

@@ -7,9 +7,8 @@
  * - Section 3: Dekad (left) and Monthly (right) aggregations beneath the grid
  */
 
-import { useMemo } from "react";
-
 import { ChevronDown } from "lucide-react";
+import { useMemo } from "react";
 
 import type { ForecastGroup } from "../api";
 
