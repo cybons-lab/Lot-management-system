@@ -128,57 +128,61 @@ class InvalidForecastError(ForecastDomainError):
 
 @dataclass
 class ForecastMatch:
-    """フォーキャストマッチング結果."""
+    """フォーキャストマッチング結果 (v2.4 schema).
+
+    v2.4では粒度(granularity)は廃止され、forecast_dateで直接日付マッチングを行う。
+    """
 
     forecast_id: int
-    product_code: str
-    month: str
-    forecasted_demand: float
+    customer_id: int
+    delivery_place_id: int
+    product_id: int
+    forecast_date: date
+    forecast_quantity: float
     match_confidence: float  # 0.0 ~ 1.0
-    granularity: str  # "exact", "monthly", "quarterly"
 
 
-class ForecastService:
-    """フォーキャストマッチングロジック."""
+class ForecastDomainService:
+    """フォーキャストマッチングロジック (v2.4 schema)."""
 
     @staticmethod
-    def calculate_month_key(target_date: date) -> str:
+    def calculate_date_key(target_date: date) -> str:
         """
-        日付から月キーを生成.
+        日付からキーを生成.
 
         Args:
             target_date: 対象日付
 
         Returns:
-            月キー（例: "2024-11"）
+            日付キー（例: "2024-11-19"）
         """
-        return target_date.strftime("%Y-%m")
+        return target_date.strftime("%Y-%m-%d")
 
     @staticmethod
-    def calculate_match_confidence(
-        order_date: date, forecast_month: str, granularity: str
-    ) -> float:
+    def calculate_match_confidence(order_date: date, forecast_date: date) -> float:
         """
         マッチングの信頼度を計算.
 
         Args:
             order_date: 受注日
-            forecast_month: フォーキャスト月
-            granularity: 粒度
+            forecast_date: フォーキャスト日
 
         Returns:
             信頼度（0.0 ~ 1.0）
         """
-        order_month = ForecastService.calculate_month_key(order_date)
-
-        if order_month == forecast_month:
+        if order_date == forecast_date:
             return 1.0  # 完全一致
-        elif granularity == "monthly":
-            return 0.8  # 月単位での近似
-        elif granularity == "quarterly":
-            return 0.6  # 四半期単位での近似
+
+        # 日数差に基づく信頼度計算
+        diff_days = abs((order_date - forecast_date).days)
+        if diff_days <= 3:
+            return 0.9  # 3日以内
+        elif diff_days <= 7:
+            return 0.7  # 1週間以内
+        elif diff_days <= 30:
+            return 0.5  # 1ヶ月以内
         else:
-            return 0.3  # 弱い関連
+            return 0.2  # それ以上
 
 
 class ForecastValidator:
@@ -204,6 +208,6 @@ __all__ = [
     "ForecastNotFoundError",
     "InvalidForecastError",
     "ForecastMatch",
-    "ForecastService",
+    "ForecastDomainService",
     "ForecastValidator",
 ]
