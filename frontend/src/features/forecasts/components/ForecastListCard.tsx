@@ -24,7 +24,7 @@ export function ForecastListCard({ header, onDelete, isDeleting }: ForecastListC
 
   // Fetch full header with lines only when expanded
   const { data: fullForecast, isLoading: isLoadingDetail } = useForecastHeader(
-    isExpanded ? header.id : 0
+    isExpanded ? header.forecast_id : 0
   );
 
   return (
@@ -104,7 +104,7 @@ export function ForecastListCard({ header, onDelete, isDeleting }: ForecastListC
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
-                onDelete(header.id);
+                onDelete(header.forecast_id);
               }}
               disabled={isDeleting}
             >

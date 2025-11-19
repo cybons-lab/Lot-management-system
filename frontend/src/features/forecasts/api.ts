@@ -9,9 +9,10 @@ import { fetchApi } from "@/shared/libs/http";
 
 /**
  * Forecast Header
+ * Note: Backend uses serialization_alias, so id becomes forecast_id
  */
 export interface ForecastHeader {
-  id: number;
+  forecast_id: number;
   forecast_number: string;
   customer_id: number;
   delivery_place_id: number;
@@ -28,14 +29,16 @@ export interface ForecastHeader {
 
 /**
  * Forecast Line
- * Aligned with backend ForecastLineResponse schema
+ * Note: Backend uses serialization_alias:
+ * - id -> forecast_line_id
+ * - forecast_quantity -> quantity
  */
 export interface ForecastLine {
-  id: number;
+  forecast_line_id: number;
   forecast_id: number;
   product_id: number;
   delivery_date: string;
-  forecast_quantity: number;
+  quantity: number;
   unit: string;
   created_at: string;
   updated_at: string;

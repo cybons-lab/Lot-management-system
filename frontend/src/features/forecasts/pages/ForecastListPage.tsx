@@ -124,7 +124,7 @@ export function ForecastListPage() {
           <div className="space-y-3">
             {headers.map((header) => (
               <ForecastListCard
-                key={header.id}
+                key={header.forecast_id}
                 header={header}
                 onDelete={handleDelete}
                 isDeleting={deleteMutation.isPending}

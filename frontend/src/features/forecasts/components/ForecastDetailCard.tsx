@@ -88,7 +88,7 @@ export function ForecastDetailCard({ forecast }: ForecastDetailCardProps) {
       }
 
       const data = productMap.get(line.product_id)!;
-      data.dailyData.set(line.delivery_date, line.forecast_quantity);
+      data.dailyData.set(line.delivery_date, line.quantity);
     }
 
     return Array.from(productMap.values());
