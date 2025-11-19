@@ -159,9 +159,7 @@ class ForecastDomainService:
         return target_date.strftime("%Y-%m-%d")
 
     @staticmethod
-    def calculate_match_confidence(
-        order_date: date, forecast_date: date
-    ) -> float:
+    def calculate_match_confidence(order_date: date, forecast_date: date) -> float:
         """
         マッチングの信頼度を計算.
 
