@@ -16,6 +16,8 @@ import { useMemo } from "react";
 // バッチ3で作成したフック
 
 // バッチ3で作成した共通コンポーネント
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +30,7 @@ import {
 } from "@/components/ui/select";
 import { useLotsQuery } from "@/hooks/api";
 import { useCreateLot } from "@/hooks/mutations";
-import { useDialog, useToast, useTable, useFilters } from "@/hooks/ui";
+import { useDialog, useTable, useFilters } from "@/hooks/ui";
 import { DataTable, type Column } from "@/shared/components/data/DataTable";
 import { FilterField } from "@/shared/components/data/FilterField";
 import { FilterPanel } from "@/shared/components/data/FilterPanel";
@@ -39,14 +41,13 @@ import { FormDialog } from "@/shared/components/form";
 import { PageHeader, PageContainer, Section } from "@/shared/components/layout";
 import type { LotUI } from "@/shared/libs/normalize";
 import { formatCodeAndName } from "@/shared/libs/utils";
-
 /**
  * メインコンポーネント
  */
 export function InventoryPage() {
   // UI状態管理
   const createDialog = useDialog();
-  const toast = useToast();
+
   const table = useTable({
     initialPageSize: 25,
     initialSort: { column: "receipt_date", direction: "desc" },

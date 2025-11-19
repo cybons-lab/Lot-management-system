@@ -14,6 +14,8 @@ import { useMemo } from "react";
 // バッチ3で作成したフック
 
 // バッチ3で作成した共通コンポーネント
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { useOrdersQuery } from "@/hooks/api";
 import { useCreateOrder } from "@/hooks/mutations";
-import { useDialog, useToast, useTable, useFilters } from "@/hooks/ui";
+import { useDialog, useTable, useFilters } from "@/hooks/ui";
 import { DataTable, type Column } from "@/shared/components/data/DataTable";
 import { FilterField } from "@/shared/components/data/FilterField";
 import { FilterPanel } from "@/shared/components/data/FilterPanel";
@@ -41,14 +43,13 @@ import type { OrderUI } from "@/shared/libs/normalize";
 import type { OrderLine } from "@/shared/types/aliases";
 import { formatDate } from "@/shared/utils/date";
 import type { OrderCreate } from "@/utils/validators";
-
 /**
  * メインコンポーネント
  */
 export function OrdersListPage() {
   // UI状態管理
   const createDialog = useDialog();
-  const toast = useToast();
+
   const table = useTable({
     initialPageSize: 25,
     initialSort: { column: "due_date", direction: "asc" },

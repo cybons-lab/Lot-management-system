@@ -1,16 +1,15 @@
 // frontend/src/pages/SeedDataPage.tsx
 import { useMutation } from "@tanstack/react-query";
 import * as React from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { postSeeds, type SeedRequest, type SeedResponse } from "@/features/admin/api/admin-seeds";
-import { useToast } from "@/hooks/ui";
 
 export function SeedDataPage() {
-  const toast = useToast();
   const [form, setForm] = React.useState<SeedRequest>({
     seed: 42,
     dry_run: true,

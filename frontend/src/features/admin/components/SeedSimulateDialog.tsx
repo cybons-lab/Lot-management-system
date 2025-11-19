@@ -6,6 +6,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import * as React from "react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,6 @@ import {
   type SimulateResultResponse,
   type SimulateSeedRequest,
 } from "@/features/admin/api/admin-simulate";
-import { useToast } from "@/hooks/ui";
 
 type Props = {
   open: boolean;
@@ -62,7 +62,6 @@ const DEFAULT_FORM: SimulateSeedRequest = {
 };
 
 export function SeedSimulateDialog({ open, onOpenChange }: Props) {
-  const toast = useToast();
   const [taskId, setTaskId] = React.useState<string | null>(null);
   const [progress, setProgress] = React.useState<SimulateProgressResponse | null>(null);
   const [result, setResult] = React.useState<SimulateResultResponse | null>(null);

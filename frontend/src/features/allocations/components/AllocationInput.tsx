@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/shared/libs/utils";
-import { useToast } from "@/hooks/use-toast"; // Toastを使う場合
+import { toast } from "sonner";
 
+import { Input } from "@/components/ui/input";
+// Toastを使う場合
+import { cn } from "@/shared/libs/utils";
 interface AllocationInputProps {
   value: number;
   max: number;
@@ -13,7 +14,6 @@ interface AllocationInputProps {
 export function AllocationInput({ value, max, onChange, disabled = false }: AllocationInputProps) {
   const [inputValue, setInputValue] = useState(value.toString());
   const [isShaking, setIsShaking] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => {
     if (Number(inputValue) !== value) {

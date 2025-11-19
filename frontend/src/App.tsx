@@ -42,6 +42,7 @@ import { RolesListPage } from "@/features/roles/pages/RolesListPage";
 import { UsersListPage } from "@/features/users/pages/UsersListPage";
 import { UserDetailPage } from "@/features/users/pages/UserDetailPage";
 import { TopNavLayout } from "@/layouts/TopNavLayout";
+import { Toaster } from "sonner";
 
 function App() {
   return (
@@ -123,6 +124,7 @@ function App() {
         {/* Catch all - redirect to dashboard */}
         <Route path="*" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
       </Routes>
+      <Toaster position="top-right" richColors closeButton />
     </TopNavLayout>
   );
 }

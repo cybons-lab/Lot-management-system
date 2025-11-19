@@ -1,5 +1,6 @@
 import { RefreshCcw } from "lucide-react";
 import * as React from "react";
+import { toast } from "sonner";
 
 import { InfoRow } from "@/components/common/InfoRow";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,6 @@ import {
   type OrderLineSource,
   type OrderSource,
 } from "@/features/orders/hooks/useOrderLineComputed";
-import { useToast } from "@/hooks/use-toast";
 import { coerceAllocatedLots } from "@/shared/libs/allocations";
 import { formatCodeAndName } from "@/shared/libs/utils";
 import { formatYmd } from "@/shared/libs/utils/date";
@@ -27,7 +27,6 @@ type Props = {
 
 export function OrderLineCard({ order, line, onRematch }: Props) {
   const computed = useOrderLineComputed(line, order ?? undefined);
-  const { toast } = useToast();
 
   const lineId = computed.lineId;
   const { candidatesQ, createAlloc, cancelAlloc } = useAllocationActions(
