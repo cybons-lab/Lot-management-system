@@ -53,6 +53,8 @@ class ForecastHeaderResponse(ForecastHeaderBase, TimestampMixin):
     """API response model for forecast headers."""
 
     id: int = Field(serialization_alias="forecast_id")
+    customer_name: str | None = None
+    delivery_place_name: str | None = None
 
 
 class ForecastHeaderDetailResponse(ForecastHeaderResponse):
@@ -89,6 +91,8 @@ class ForecastLineResponse(ForecastLineBase, TimestampMixin):
 
     id: int = Field(serialization_alias="forecast_line_id")
     forecast_id: int
+    product_code: str | None = None
+    product_name: str | None = None
 
 
 class ForecastBulkImportResult(BaseSchema):

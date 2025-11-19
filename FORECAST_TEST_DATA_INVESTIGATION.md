@@ -368,3 +368,9 @@ Example (5 delivery places, 40 products):
 | **Monthly Range** | Current month to +3 months |
 | **Products** | All products (全件) |
 | **Default Enabled** | No (requires `forecasts=1`) |
+
+## TODO: Historical Daily Forecast Archive
+
+- **Context:** The UI now prefers to render the daily grid for the "current" planning month. When older months are still present in `forecast_lines`, the component falls back to the latest month that contains data (see `frontend/src/features/forecasts/components/ForecastDetailCard.tsx`).
+- **Next Step:** Move past-month daily rows into a dedicated archive table so that the active table contains future months only.
+- **Follow-up:** Once the archive migration is complete, remove the fallback logic noted in the component and always rely on the active dataset for determining the display month.
