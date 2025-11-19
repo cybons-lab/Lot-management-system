@@ -3,7 +3,7 @@
  * Forecast headers list page with header/lines separation
  */
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { ForecastListCard } from "../components";
@@ -31,6 +31,23 @@ export function ForecastListPage() {
 
   // Fetch forecast headers
   const { data: headers, isLoading, isError, refetch } = useForecastHeaders(queryParams);
+
+  const [selectedForecastId, setSelectedForecastId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (headers && headers.length > 0) {
+      setSelectedForecastId((prev) => {
+        if (prev && headers.some((header) => header.forecast_id === prev)) {
+          return prev;
+        }
+        return headers[0]?.forecast_id ?? null;
+      });
+    } else {
+      setSelectedForecastId(null);
+    }
+  }, [headers]);
+
+  const displayedHeaders = useMemo(() => headers ?? [], [headers]);
 
   // Delete mutation
   const deleteMutation = useDeleteForecastHeader();
@@ -119,17 +136,20 @@ export function ForecastListPage() {
       ) : (
         <div className="space-y-4">
           <div className="text-sm text-gray-600">
-            {headers.length}件のフォーキャストが見つかりました
+            {displayedHeaders.length}件のフォーキャストが見つかりました
           </div>
 
           {/* Collapsible Cards */}
           <div className="space-y-3">
-            {headers.map((header) => (
+            {displayedHeaders.map((header) => (
               <ForecastListCard
                 key={header.forecast_id}
                 header={header}
                 onDelete={handleDelete}
                 isDeleting={deleteMutation.isPending}
+                isOpen={header.forecast_id === selectedForecastId}
+                isActive={header.forecast_id === selectedForecastId}
+                onToggle={(id) => setSelectedForecastId(id)}
               />
             ))}
           </div>

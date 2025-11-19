@@ -9,9 +9,19 @@ interface ForecastListCardProps {
   header: ForecastHeader;
   onDelete: (id: number) => void;
   isDeleting: boolean;
+  isOpen: boolean;
+  isActive: boolean;
+  onToggle: (id: number) => void;
 }
 
-export function ForecastListCard({ header, onDelete, isDeleting }: ForecastListCardProps) {
+export function ForecastListCard({
+  header,
+  onDelete,
+  isDeleting,
+  isOpen,
+  isActive,
+  onToggle,
+}: ForecastListCardProps) {
   const { data: fullForecast, isLoading: isLoadingDetail } = useForecastHeader(header.forecast_id);
   if (isLoadingDetail) {
     return (
@@ -34,6 +44,9 @@ export function ForecastListCard({ header, onDelete, isDeleting }: ForecastListC
       forecast={fullForecast}
       onDelete={onDelete}
       isDeleting={isDeleting}
+      isOpen={isOpen}
+      isActive={isActive}
+      onToggle={onToggle}
     />
   );
 }
