@@ -98,7 +98,7 @@ def main():
     run_test(
         "3. テスト用製品の登録 (PRD-999)",
         "POST",
-        "/masters/products",
+        "/products",
         payload=product_payload,
     )
 

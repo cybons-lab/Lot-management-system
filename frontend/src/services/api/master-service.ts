@@ -9,7 +9,7 @@ import type { Supplier } from "@/features/suppliers/validators/supplier-schema";
 import type { Warehouse } from "@/features/warehouses/validators/warehouse-schema";
 import { http } from "@/services/http";
 
-const BASE_PATH = "/masters";
+const BASE_PATH = "";
 
 /**
  * 製品マスタ一覧を取得
