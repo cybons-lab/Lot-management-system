@@ -118,7 +118,9 @@ export function ForecastListPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="text-sm text-gray-600">{headers.length} 件のフォーキャストが見つかりました</div>
+          <div className="text-sm text-gray-600">
+            {headers.length}件のフォーキャストが見つかりました
+          </div>
 
           {/* Collapsible Cards */}
           <div className="space-y-3">

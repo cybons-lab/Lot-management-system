@@ -60,10 +60,12 @@ function DayCell({
   date,
   quantity,
   isToday,
+  isPast,
 }: {
   date: Date;
   quantity: number | undefined;
   isToday: boolean;
+  isPast: boolean;
 }) {
   const hasValue = quantity !== undefined && quantity !== null;
   const roundedQty = hasValue ? Math.round(Number(quantity)) : null;
@@ -72,16 +74,23 @@ function DayCell({
 
   return (
     <div
-      className={`flex min-h-[70px] flex-col overflow-hidden rounded-md border bg-white ${
+      className={`flex flex-col gap-0.5 rounded-md border bg-white px-1 py-0.5 text-[11px] leading-tight ${
         isToday ? "border-blue-400 ring-1 ring-blue-100" : "border-gray-200"
-      }`}
+      } ${isPast ? "opacity-80" : ""}`}
+      aria-disabled={isPast}
+      data-locked={isPast ? "true" : undefined}
     >
-      <div className="bg-gray-50 px-1 py-0.5 text-[11px] font-medium text-gray-600">
-        {date.getDate()}
+      <div className="flex items-center justify-between text-[10px] text-gray-500">
+        <span>{date.getDate()}</span>
+        {isPast ? <span className="text-[9px] text-gray-400">LOCK</span> : null}
       </div>
       <div
-        className={`flex flex-1 items-end justify-end px-1 py-1 text-sm tabular-nums ${
-          !hasValue || isZero ? "text-gray-400" : "font-semibold text-gray-900"
+        className={`text-right tabular-nums ${
+          !hasValue || isZero
+            ? "text-gray-400"
+            : isPast
+              ? "text-gray-400"
+              : "font-semibold text-gray-900"
         }`}
       >
         {displayValue}
@@ -215,7 +224,9 @@ export function ForecastDetailCard({ forecast, onDelete, isDeleting }: ForecastD
     );
   }
 
-  const todayKey = formatDateKey(new Date());
+  const now = new Date();
+  const todayKey = formatDateKey(now);
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const targetMonthLabel = `${targetMonthStartDate.getFullYear()}年${
     targetMonthStartDate.getMonth() + 1
   }月`;
@@ -243,22 +254,22 @@ export function ForecastDetailCard({ forecast, onDelete, isDeleting }: ForecastD
         return (
           <Card
             key={`${forecast.forecast_id}-${product.productId}`}
-            className="shadow-sm"
+            className="overflow-hidden border border-slate-200 shadow-sm"
             data-forecast-number={forecast.forecast_number}
           >
-            <CardContent className="space-y-4 p-4">
-              <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                <p className="line-clamp-2 text-sm leading-relaxed text-gray-600">
-                  <span className="font-medium text-gray-700">{customerDisplay}</span>
+            <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <p className="line-clamp-2 text-sm leading-relaxed text-gray-500">
+                  <span className="text-sm text-gray-500">{customerDisplay}</span>
                   <span className="mx-1 text-gray-400">/</span>
-                  <span className="font-semibold text-gray-900">
+                  <span className="text-base font-semibold text-gray-900">
                     {product.productName}
                     {product.productCode ? (
-                      <span className="font-semibold text-gray-700"> ({product.productCode})</span>
+                      <span className="text-sm font-semibold text-gray-700"> ({product.productCode})</span>
                     ) : null}
                   </span>
                   <span className="mx-1 text-gray-400">/</span>
-                  <span className="font-medium text-gray-700">{deliveryPlaceDisplay}</span>
+                  <span className="text-sm text-gray-500">{deliveryPlaceDisplay}</span>
                 </p>
 
                 <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
@@ -279,63 +290,75 @@ export function ForecastDetailCard({ forecast, onDelete, isDeleting }: ForecastD
                   ) : null}
                 </div>
               </div>
+            </div>
 
+            <CardContent className="space-y-4 p-4">
               <div className="text-xs text-gray-500">単位: {product.unit}</div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs font-semibold text-gray-500">
-                  <span>日次予測</span>
-                  <span>{targetMonthLabel}</span>
-                </div>
-                <div className="grid grid-cols-10 gap-1">
-                  {dates.map((date) => {
-                    const dateKey = formatDateKey(date);
-                    return (
-                      <DayCell
-                        key={dateKey}
-                        date={date}
-                        quantity={product.dailyData.get(dateKey)}
-                        isToday={todayKey === dateKey}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
+              <div className="grid gap-6 md:grid-cols-12">
+                <div className="space-y-4 md:col-span-7">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs font-semibold text-gray-500">
+                      <span>日次予測</span>
+                      <span>{targetMonthLabel}</span>
+                    </div>
+                    <div className="grid grid-cols-10 gap-1 text-[11px]">
+                      {dates.map((date) => {
+                        const dateKey = formatDateKey(date);
+                        const isPastDate = date < todayStart;
+                        return (
+                          <DayCell
+                            key={dateKey}
+                            date={date}
+                            quantity={product.dailyData.get(dateKey)}
+                            isToday={todayKey === dateKey}
+                            isPast={isPastDate}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
 
-              <div className="grid gap-6 border-t pt-4 md:grid-cols-2">
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-gray-700">旬別予測</h4>
-                  {dekadData.length > 0 ? (
-                    <div className="grid grid-cols-3 gap-3">
-                      {dekadData.map((dekad) => (
-                        <div
-                          key={dekad.label}
-                          className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-center"
-                        >
-                          <div className="text-xs font-medium text-green-700">{dekad.label}</div>
-                          <div className="text-lg font-bold text-green-900">{dekad.total}</div>
+                  <div className="grid gap-6 border-t pt-4 md:grid-cols-2">
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-semibold text-gray-700">旬別予測</h4>
+                      {dekadData.length > 0 ? (
+                        <div className="grid grid-cols-3 gap-3">
+                          {dekadData.map((dekad) => (
+                            <div
+                              key={dekad.label}
+                              className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-center"
+                            >
+                              <div className="text-xs font-medium text-green-700">{dekad.label}</div>
+                              <div className="text-lg font-bold text-green-900">{dekad.total}</div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      ) : (
+                        <div className="rounded-lg border border-dashed border-gray-200 px-4 py-6 text-center text-sm text-gray-400">
+                          データなし
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="rounded-lg border border-dashed border-gray-200 px-4 py-6 text-center text-sm text-gray-400">
-                      データなし
+
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-semibold text-gray-700">月別予測</h4>
+                      {monthlyData ? (
+                        <div className="rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 text-center">
+                          <div className="text-xs font-medium text-purple-700">{monthlyData.label}</div>
+                          <div className="text-2xl font-bold text-purple-900">{monthlyData.total}</div>
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border border-dashed border-gray-200 px-4 py-6 text-center text-sm text-gray-400">
+                          データなし
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-gray-700">月別予測</h4>
-                  {monthlyData ? (
-                    <div className="rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 text-center">
-                      <div className="text-xs font-medium text-purple-700">{monthlyData.label}</div>
-                      <div className="text-2xl font-bold text-purple-900">{monthlyData.total}</div>
-                    </div>
-                  ) : (
-                    <div className="rounded-lg border border-dashed border-gray-200 px-4 py-6 text-center text-sm text-gray-400">
-                      データなし
-                    </div>
-                  )}
+                <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 p-4 text-sm text-gray-400 md:col-span-5">
+                  TODO: graphs or indicators
                 </div>
               </div>
             </CardContent>
