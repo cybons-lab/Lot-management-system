@@ -12,18 +12,11 @@
  * - Tier 3 (Monthly): Month after dekad period (1 month only)
  */
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import type { ForecastHeaderWithLines } from "../api";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface ForecastDetailCardProps {
   forecast: ForecastHeaderWithLines;
@@ -37,17 +30,22 @@ interface ProductForecastData {
   dailyData: Map<string, number>; // date string -> quantity
 }
 
+interface AggregationMonth {
+  year: number;
+  month: number; // 0-indexed
+}
+
 /**
- * Get dates for a 31-day window centered around today
+ * Get dates for a 31-day window starting from the first day of the target month
  */
-function get31DayDates(): Date[] {
-  const today = new Date();
+function getFixedMonthDates(startDate?: string): Date[] {
+  const baseDate = startDate ? new Date(startDate) : new Date();
+  const firstDay = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
   const dates: Date[] = [];
 
-  // Start from 15 days before today, go to 15 days after
-  for (let i = -15; i <= 15; i++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + i);
+  for (let i = 0; i < 31; i++) {
+    const date = new Date(firstDay);
+    date.setDate(firstDay.getDate() + i);
     dates.push(date);
   }
 
@@ -104,6 +102,62 @@ function DayCell({
   );
 }
 
+function calculateDekadAggregations(
+  product: ProductForecastData,
+  dekadMonth: AggregationMonth | null,
+) {
+  if (!dekadMonth) return [];
+
+  let jouTotal = 0;
+  let chuTotal = 0;
+  let geTotal = 0;
+
+  for (const [dateStr, qty] of product.dailyData) {
+    const date = new Date(dateStr);
+    if (date.getFullYear() === dekadMonth.year && date.getMonth() === dekadMonth.month) {
+      const day = date.getDate();
+      const numQty = Number(qty) || 0;
+      if (day <= 10) {
+        jouTotal += numQty;
+      } else if (day <= 20) {
+        chuTotal += numQty;
+      } else {
+        geTotal += numQty;
+      }
+    }
+  }
+
+  const monthLabel = `${dekadMonth.month + 1}月`;
+
+  return [
+    { label: `${monthLabel} 上旬`, total: Math.round(jouTotal) },
+    { label: `${monthLabel} 中旬`, total: Math.round(chuTotal) },
+    { label: `${monthLabel} 下旬`, total: Math.round(geTotal) },
+  ];
+}
+
+function calculateMonthlyAggregation(
+  product: ProductForecastData,
+  monthlyMonth: AggregationMonth | null,
+) {
+  if (!monthlyMonth) return null;
+
+  let total = 0;
+
+  for (const [dateStr, qty] of product.dailyData) {
+    const date = new Date(dateStr);
+    if (date.getFullYear() === monthlyMonth.year && date.getMonth() === monthlyMonth.month) {
+      const numQty = Number(qty) || 0;
+      total += numQty;
+    }
+  }
+
+  return {
+    label: `${monthlyMonth.year}年${monthlyMonth.month + 1}月`,
+    total: Math.round(total),
+  };
+}
+
 export function ForecastDetailCard({ forecast }: ForecastDetailCardProps) {
   // Group lines by product with proper number conversion
   const productData = useMemo(() => {
@@ -114,7 +168,7 @@ export function ForecastDetailCard({ forecast }: ForecastDetailCardProps) {
         productMap.set(line.product_id, {
           productId: line.product_id,
           productCode: line.product_code ?? `P${line.product_id}`,
-          productName: line.product_name ?? "名称未定",
+          productName: line.product_name ?? `ID:${line.product_id}`,
           unit: line.unit,
           dailyData: new Map(),
         });
@@ -129,15 +183,11 @@ export function ForecastDetailCard({ forecast }: ForecastDetailCardProps) {
     return Array.from(productMap.values());
   }, [forecast.lines]);
 
-  // Selected product
-  const [selectedProductId, setSelectedProductId] = useState<number | null>(
-    productData[0]?.productId ?? null,
+  // Get 31-day dates starting from the first day of the forecast month
+  const dates = useMemo(
+    () => getFixedMonthDates(forecast.forecast_start_date),
+    [forecast.forecast_start_date],
   );
-
-  const selectedProduct = productData.find((p) => p.productId === selectedProductId);
-
-  // Get 31-day dates
-  const dates = useMemo(() => get31DayDates(), []);
 
   // Split into 3 rows for CSS Grid (10 columns each, last row has remainder)
   const row1 = dates.slice(0, 10);
@@ -168,60 +218,6 @@ export function ForecastDetailCard({ forecast }: ForecastDetailCardProps) {
   }, [dates]);
 
   // Calculate dekad aggregations for the target month
-  const dekadData = useMemo(() => {
-    if (!selectedProduct || !dekadMonth) return [];
-
-    // Sum quantities for each dekad period (1-10, 11-20, 21-end)
-    let jouTotal = 0;
-    let chuTotal = 0;
-    let geTotal = 0;
-
-    for (const [dateStr, qty] of selectedProduct.dailyData) {
-      const date = new Date(dateStr);
-      if (date.getFullYear() === dekadMonth.year && date.getMonth() === dekadMonth.month) {
-        const day = date.getDate();
-        // Ensure qty is a valid number
-        const numQty = Number(qty) || 0;
-        if (day <= 10) {
-          jouTotal += numQty;
-        } else if (day <= 20) {
-          chuTotal += numQty;
-        } else {
-          geTotal += numQty;
-        }
-      }
-    }
-
-    const monthLabel = `${dekadMonth.month + 1}月`;
-
-    return [
-      { label: `${monthLabel} 上旬`, total: Math.round(jouTotal) },
-      { label: `${monthLabel} 中旬`, total: Math.round(chuTotal) },
-      { label: `${monthLabel} 下旬`, total: Math.round(geTotal) },
-    ];
-  }, [selectedProduct, dekadMonth]);
-
-  // Calculate monthly aggregation for the target month (single month)
-  const monthlyData = useMemo(() => {
-    if (!selectedProduct || !monthlyMonth) return null;
-
-    let total = 0;
-
-    for (const [dateStr, qty] of selectedProduct.dailyData) {
-      const date = new Date(dateStr);
-      if (date.getFullYear() === monthlyMonth.year && date.getMonth() === monthlyMonth.month) {
-        // Ensure qty is a valid number
-        const numQty = Number(qty) || 0;
-        total += numQty;
-      }
-    }
-
-    return {
-      label: `${monthlyMonth.year}年${monthlyMonth.month + 1}月`,
-      total: Math.round(total),
-    };
-  }, [selectedProduct, monthlyMonth]);
-
   if (productData.length === 0) {
     return (
       <Card>
@@ -242,138 +238,135 @@ export function ForecastDetailCard({ forecast }: ForecastDetailCardProps) {
     : `ID: ${forecast.delivery_place_id} : 名称未定`;
 
   return (
-    <Card>
-      {/* Section 1: Header Info */}
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg">フォーキャスト詳細</CardTitle>
-            <p className="mt-1 text-sm text-gray-600">{forecast.forecast_number}</p>
-          </div>
-          <div className="text-right text-sm">
-            <div className="text-gray-500">得意先</div>
-            <div className="font-medium">{customerDisplay}</div>
-          </div>
-        </div>
+    <div className="space-y-6">
+      {productData.map((product) => {
+        const dekadData = calculateDekadAggregations(product, dekadMonth);
+        const monthlyData = calculateMonthlyAggregation(product, monthlyMonth);
 
-        <div className="mt-4 grid grid-cols-2 gap-4 border-t pt-4">
-          <div>
-            <div className="text-sm text-gray-500">納入場所</div>
-            <div className="font-medium">{deliveryPlaceDisplay}</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-500">製品選択</div>
-            <Select
-              value={selectedProductId?.toString() ?? ""}
-              onValueChange={(value) => setSelectedProductId(Number(value))}
-            >
-              <SelectTrigger className="mt-1 h-8">
-                <SelectValue placeholder="製品を選択" />
-              </SelectTrigger>
-              <SelectContent>
-                {productData.map((product) => (
-                  <SelectItem key={product.productId} value={product.productId.toString()}>
-                    {product.productCode} : {product.productName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {selectedProduct && (
-          <div className="mt-2 text-sm text-gray-600">
-            選択中: {selectedProduct.productCode} : {selectedProduct.productName} （単位:{" "}
-            {selectedProduct.unit}）
-          </div>
-        )}
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        {/* Section 2-4: 31-day Grid using CSS Grid */}
-        <div>
-          <h4 className="mb-2 text-sm font-semibold text-gray-700">日次予測 (31日間)</h4>
-          <div className="space-y-1">
-            {/* Row 1: 10 cells */}
-            <div className="grid grid-cols-10 gap-0.5">
-              {row1.map((date) => {
-                const dateKey = formatDateKey(date);
-                return (
-                  <DayCell
-                    key={dateKey}
-                    date={date}
-                    quantity={selectedProduct?.dailyData.get(dateKey)}
-                    isToday={todayKey === dateKey}
-                  />
-                );
-              })}
-            </div>
-
-            {/* Row 2: 10 cells */}
-            <div className="grid grid-cols-10 gap-0.5">
-              {row2.map((date) => {
-                const dateKey = formatDateKey(date);
-                return (
-                  <DayCell
-                    key={dateKey}
-                    date={date}
-                    quantity={selectedProduct?.dailyData.get(dateKey)}
-                    isToday={todayKey === dateKey}
-                  />
-                );
-              })}
-            </div>
-
-            {/* Row 3: 11 cells (remainder) */}
-            <div className="grid grid-cols-10 gap-0.5">
-              {row3.map((date) => {
-                const dateKey = formatDateKey(date);
-                return (
-                  <DayCell
-                    key={dateKey}
-                    date={date}
-                    quantity={selectedProduct?.dailyData.get(dateKey)}
-                    isToday={todayKey === dateKey}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Section 5: Dekad and Monthly Aggregations */}
-        <div className="grid grid-cols-2 gap-6 border-t pt-4">
-          {/* Dekad (left) */}
-          <div>
-            <h4 className="mb-3 font-semibold text-gray-700">旬別予測</h4>
-            <div className="flex gap-3">
-              {dekadData.map((dekad) => (
-                <div
-                  key={dekad.label}
-                  className="flex-1 rounded-lg border-2 border-green-300 bg-green-50 px-3 py-2 text-center"
-                >
-                  <div className="text-sm font-medium text-green-700">{dekad.label}</div>
-                  <div className="mt-1 text-xl font-bold text-green-900">{dekad.total}</div>
-                </div>
-              ))}
-              {dekadData.length === 0 && <div className="text-sm text-gray-400">データなし</div>}
-            </div>
-          </div>
-
-          {/* Monthly (right) */}
-          <div>
-            <h4 className="mb-3 font-semibold text-gray-700">月別予測</h4>
-            {monthlyData ? (
-              <div className="rounded-lg border-2 border-purple-300 bg-purple-50 px-4 py-3 text-center">
-                <div className="text-sm font-medium text-purple-700">{monthlyData.label}</div>
-                <div className="mt-1 text-2xl font-bold text-purple-900">{monthlyData.total}</div>
+        return (
+          <Card key={`${forecast.forecast_id}-${product.productId}`}>
+            {/* Section 1: Header Info */}
+            <CardHeader className="space-y-4 pb-3">
+              <div>
+                <CardTitle className="text-lg">フォーキャスト詳細</CardTitle>
+                <p className="mt-1 text-sm text-gray-600">{forecast.forecast_number}</p>
               </div>
-            ) : (
-              <div className="text-sm text-gray-400">データなし</div>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+
+              <div className="grid gap-4 border-t pt-4 text-sm text-gray-600 md:grid-cols-3">
+                <div>
+                  <div className="text-xs text-gray-500">得意先</div>
+                  <div className="font-medium text-gray-900">{customerDisplay}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500">納入先</div>
+                  <div className="font-medium text-gray-900">{deliveryPlaceDisplay}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-gray-500">製品</div>
+                  <div className="font-medium text-gray-900">
+                    {product.productCode} : {product.productName}
+                  </div>
+                  <div className="text-xs text-gray-500">単位: {product.unit}</div>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              {/* Section 2-4: 31-day Grid using CSS Grid */}
+              <div>
+                <h4 className="mb-2 text-sm font-semibold text-gray-700">日次予測 (31日間)</h4>
+                <div className="space-y-1">
+                  {/* Row 1: 10 cells */}
+                  <div className="grid grid-cols-10 gap-0.5">
+                    {row1.map((date) => {
+                      const dateKey = formatDateKey(date);
+                      return (
+                        <DayCell
+                          key={dateKey}
+                          date={date}
+                          quantity={product.dailyData.get(dateKey)}
+                          isToday={todayKey === dateKey}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {/* Row 2: 10 cells */}
+                  <div className="grid grid-cols-10 gap-0.5">
+                    {row2.map((date) => {
+                      const dateKey = formatDateKey(date);
+                      return (
+                        <DayCell
+                          key={dateKey}
+                          date={date}
+                          quantity={product.dailyData.get(dateKey)}
+                          isToday={todayKey === dateKey}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {/* Row 3: 11 cells (remainder) */}
+                  <div className="grid grid-cols-10 gap-0.5">
+                    {row3.map((date) => {
+                      const dateKey = formatDateKey(date);
+                      return (
+                        <DayCell
+                          key={dateKey}
+                          date={date}
+                          quantity={product.dailyData.get(dateKey)}
+                          isToday={todayKey === dateKey}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 5: Dekad and Monthly Aggregations */}
+              <div className="grid grid-cols-1 gap-6 border-t pt-4 md:grid-cols-2">
+                {/* Dekad (left) */}
+                <div className="flex h-full flex-col">
+                  <h4 className="mb-3 font-semibold text-gray-700">旬別予測</h4>
+                  <div className="flex flex-1 gap-3">
+                    {dekadData.map((dekad) => (
+                      <div
+                        key={dekad.label}
+                        className="flex flex-1 flex-col justify-center rounded-lg border-2 border-green-300 bg-green-50 px-3 py-2 text-center"
+                      >
+                        <div className="text-sm font-medium text-green-700">{dekad.label}</div>
+                        <div className="mt-1 text-xl font-bold text-green-900">{dekad.total}</div>
+                      </div>
+                    ))}
+                    {dekadData.length === 0 && (
+                      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-gray-200 text-sm text-gray-400">
+                        データなし
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Monthly (right) */}
+                <div className="flex h-full flex-col">
+                  <h4 className="mb-3 font-semibold text-gray-700">月別予測</h4>
+                  <div className="flex flex-1 items-stretch">
+                    {monthlyData ? (
+                      <div className="flex w-full flex-col justify-center rounded-lg border-2 border-purple-300 bg-purple-50 px-4 py-3 text-center">
+                        <div className="text-sm font-medium text-purple-700">{monthlyData.label}</div>
+                        <div className="mt-1 text-2xl font-bold text-purple-900">{monthlyData.total}</div>
+                      </div>
+                    ) : (
+                      <div className="flex w-full items-center justify-center rounded-lg border border-dashed border-gray-200 text-sm text-gray-400">
+                        データなし
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
   );
 }

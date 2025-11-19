@@ -37,7 +37,7 @@ class ForecastService:
         customer_id: int | None = None,
         delivery_place_id: int | None = None,
         status: str | None = None,
-    ) -> list[ForecastHeader]:
+    ) -> list[ForecastHeaderResponse]:
         """
         Get forecast headers with optional filtering.
 
@@ -51,7 +51,9 @@ class ForecastService:
         Returns:
             List of forecast headers
         """
-        query = self.db.query(ForecastHeader)
+        query = self.db.query(ForecastHeader).options(
+            joinedload(ForecastHeader.customer), joinedload(ForecastHeader.delivery_place)
+        )
 
         if customer_id is not None:
             query = query.filter(ForecastHeader.customer_id == customer_id)
@@ -64,7 +66,24 @@ class ForecastService:
 
         query = query.order_by(ForecastHeader.created_at.desc())
 
-        return query.offset(skip).limit(limit).all()
+        headers = query.offset(skip).limit(limit).all()
+
+        return [
+            ForecastHeaderResponse(
+                id=header.id,
+                customer_id=header.customer_id,
+                delivery_place_id=header.delivery_place_id,
+                forecast_number=header.forecast_number,
+                forecast_start_date=header.forecast_start_date,
+                forecast_end_date=header.forecast_end_date,
+                status=header.status,
+                created_at=header.created_at,
+                updated_at=header.updated_at,
+                customer_name=getattr(header.customer, "customer_name", None),
+                delivery_place_name=getattr(header.delivery_place, "delivery_place_name", None),
+            )
+            for header in headers
+        ]
 
     def get_header_by_id(self, header_id: int) -> ForecastHeaderDetailResponse | None:
         """
@@ -78,7 +97,11 @@ class ForecastService:
         """
         header = (
             self.db.query(ForecastHeader)
-            .options(joinedload(ForecastHeader.lines))
+            .options(
+                joinedload(ForecastHeader.customer),
+                joinedload(ForecastHeader.delivery_place),
+                joinedload(ForecastHeader.lines).joinedload(ForecastLine.product),
+            )
             .filter(ForecastHeader.id == header_id)
             .first()
         )
@@ -97,6 +120,8 @@ class ForecastService:
             status=header.status,
             created_at=header.created_at,
             updated_at=header.updated_at,
+            customer_name=getattr(header.customer, "customer_name", None),
+            delivery_place_name=getattr(header.delivery_place, "delivery_place_name", None),
             lines=[
                 ForecastLineResponse(
                     id=line.id,
@@ -107,6 +132,8 @@ class ForecastService:
                     unit=line.unit,
                     created_at=line.created_at,
                     updated_at=line.updated_at,
+                    product_code=getattr(line.product, "maker_part_code", None),
+                    product_name=getattr(line.product, "product_name", None),
                 )
                 for line in header.lines
             ],
@@ -255,6 +282,7 @@ class ForecastService:
         """
         lines = (
             self.db.query(ForecastLine)
+            .options(joinedload(ForecastLine.product))
             .filter(ForecastLine.forecast_id == header_id)
             .order_by(ForecastLine.delivery_date)
             .all()
@@ -270,6 +298,8 @@ class ForecastService:
                 unit=line.unit,
                 created_at=line.created_at,
                 updated_at=line.updated_at,
+                product_code=getattr(line.product, "maker_part_code", None),
+                product_name=getattr(line.product, "product_name", None),
             )
             for line in lines
         ]
@@ -315,6 +345,8 @@ class ForecastService:
             unit=db_line.unit,
             created_at=db_line.created_at,
             updated_at=db_line.updated_at,
+            product_code=getattr(db_line.product, "maker_part_code", None),
+            product_name=getattr(db_line.product, "product_name", None),
         )
 
     def update_line(self, line_id: int, line: ForecastLineUpdate) -> ForecastLineResponse | None:
@@ -352,6 +384,8 @@ class ForecastService:
             unit=db_line.unit,
             created_at=db_line.created_at,
             updated_at=db_line.updated_at,
+            product_code=getattr(db_line.product, "maker_part_code", None),
+            product_name=getattr(db_line.product, "product_name", None),
         )
 
     def delete_line(self, line_id: int) -> bool:
