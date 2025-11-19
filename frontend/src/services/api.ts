@@ -89,7 +89,14 @@ export const api = {
 // 型のエクスポート
 // ========================================
 
-export type { Order, OrderDetail, DragAssignRequest, DragAssignResponse, Lot, ForecastListResponse };
+export type {
+  Order,
+  OrderDetail,
+  DragAssignRequest,
+  DragAssignResponse,
+  Lot,
+  ForecastListResponse,
+};
 
 // === Compat helpers added by patch ===
 export type DashboardStats = {

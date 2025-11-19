@@ -233,6 +233,7 @@ export type OrderLineComputed = {
   progressPct: number; // UI計算値
   customerCode?: string;
   customerName?: string;
+  customerId?: number | null;
   deliveryPlaces: string[]; // warehouse → deliveryPlace に変更
   shippingLeadTime?: string; // 任意表示
 };

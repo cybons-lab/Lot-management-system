@@ -14,8 +14,12 @@ export function ForecastSection({ productId, customerId, fullWidth = false }: Pr
 
   const forecastQ = useQuery<ForecastListResponse>({
     queryKey: ["forecast", productId, customerId],
-    queryFn: () => getForecasts({ product_id: productId, customer_id: customerId }),
-    enabled: isOpen && !!productId && !!customerId,
+    queryFn: () =>
+      getForecasts({
+        product_id: productId,
+        customer_id: customerId,
+      }),
+    enabled: isOpen && productId != null && customerId != null,
     staleTime: 1000 * 60,
   });
 
@@ -65,7 +69,7 @@ export function ForecastSection({ productId, customerId, fullWidth = false }: Pr
               <div className="grid gap-3 text-xs sm:grid-cols-2 md:grid-cols-3">
                 {sortedForecasts.map((f) => (
                   <div key={f.id} className="rounded border bg-white p-3 shadow-sm">
-                    <div className="text-[11px] uppercase text-gray-400">
+                    <div className="text-[11px] text-gray-400 uppercase">
                       {new Date(f.forecast_date).toLocaleDateString("ja-JP", {
                         year: "numeric",
                         month: "short",

@@ -181,9 +181,7 @@ export function ForecastListPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="text-sm text-gray-600">
-            {response.total}件のグループが見つかりました
-          </div>
+          <div className="text-sm text-gray-600">{response.total}件のグループが見つかりました</div>
 
           <div className="space-y-3 pb-64">
             {groups.map((group) => {
