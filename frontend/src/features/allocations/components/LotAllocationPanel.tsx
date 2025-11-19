@@ -1,89 +1,59 @@
-/**
- * LotAllocationPanel - ロット引当パネル（再利用可能）
- *
- * 機能:
- * - ロット候補一覧表示
- * - 各ロットから引当る数量を入力
- * - 「全量」ボタン（残り必要数量を自動入力）
- * - 自動引当（FEFO）ボタン
- * - クリアボタン
- * - 保存ボタン
- * - layout prop により inline / sidePane で見た目調整
- */
-
 import type { CandidateLotItem } from "../api";
 
 import { LotAllocationHeader } from "./LotAllocationHeader";
 import { LotListCard } from "./LotListCard";
 
-import { useToast } from "@/hooks/use-toast";
+import type { OrderLine, OrderWithLinesResponse } from "@/shared/types/aliases";
 import { cn } from "@/shared/libs/utils";
-import type { OrderLine } from "@/shared/types/aliases";
 
 interface LotAllocationPanelProps {
-  /** 選択中の明細行 */
+  order?: OrderWithLinesResponse;
   orderLine: OrderLine | null;
-  /** ロット候補一覧 */
   candidateLots: CandidateLotItem[];
-  /** ロット引当入力（lotId -> quantity） */
   lotAllocations: Record<number, number>;
-  /** ロット引当数量変更ハンドラー */
   onLotAllocationChange: (lotId: number, quantity: number) => void;
-  /** 全量ボタンハンドラー（指定ロットで全量にしたい場合） */
-  onFillAllFromLot?: (lotId: number) => void;
-  /** 自動引当（FEFO）ハンドラー */
   onAutoAllocate: () => void;
-  /** クリアハンドラー */
   onClearAllocations: () => void;
-  /** 保存ハンドラー */
   onSaveAllocations?: () => void;
-  /** 保存可否（外部制御用） */
+
   canSave?: boolean;
-  /** レイアウトモード */
-  layout?: "inline" | "sidePane";
-  /** ローディング状態 */
-  isLoading?: boolean;
-  /** エラー */
-  error?: Error | null;
-  /** 保存中 */
-  isSaving?: boolean;
-  /** 過剰引当フラグ */
   isOverAllocated?: boolean;
-  /** 残り必要数量（負の値は過剰分） */
+  isLoading?: boolean;
+  error?: Error | null;
+  isSaving?: boolean;
   remainingQty?: number;
+  layout?: "inline" | "sidePane";
+  customerName?: string;
+  productName?: string;
+
+  // ★王道追加: 親から受け取る「アクティブ状態」と「アクティブにするための通知」
+  isActive?: boolean;
+  onActivate?: () => void;
 }
 
 export function LotAllocationPanel({
+  order,
   orderLine,
   candidateLots,
   lotAllocations,
   onLotAllocationChange,
-  onFillAllFromLot,
   onAutoAllocate,
   onClearAllocations,
   onSaveAllocations,
-  canSave,
-  layout = "sidePane",
+  canSave = false,
   isLoading = false,
   error = null,
   isSaving = false,
   isOverAllocated = false,
   remainingQty: propRemainingQty,
+  customerName: propCustomerName,
+  productName: propProductName,
+
+  // デフォルトはfalseにしておく（親が未対応でも壊れないように）
+  isActive = false,
+  onActivate,
 }: LotAllocationPanelProps) {
-  const { toast } = useToast();
-
-  // スタイル調整（inline vs sidePane）
-  const containerClasses = cn(
-    "flex flex-col bg-white",
-    layout === "sidePane" ? "h-full" : "rounded-lg border border-gray-200",
-  );
-
-  const contentClasses = cn(
-    "flex-1 space-y-3 overflow-y-auto bg-gray-50/50 px-4 py-4", // Added slight bg for contrast
-    layout === "inline" && "max-h-[600px]",
-  );
-
-  // 必要数量・引当済み・残り
+  // 数量計算
   const requiredQty = orderLine ? Number(orderLine.order_quantity ?? orderLine.quantity ?? 0) : 0;
   const dbAllocated = orderLine
     ? Number(orderLine.allocated_qty ?? orderLine.allocated_quantity ?? 0)
@@ -91,101 +61,153 @@ export function LotAllocationPanel({
   const uiAllocatedTotal = Object.values(lotAllocations).reduce((sum, qty) => sum + qty, 0);
   const totalAllocated = dbAllocated + uiAllocatedTotal;
 
-  // Use prop remainingQty if provided, otherwise calculate locally (though prop is preferred for sync)
-  const remainingQty =
-    propRemainingQty !== undefined ? propRemainingQty : Math.max(0, requiredQty - totalAllocated);
-
+  const remainingNeeded = Math.max(0, requiredQty - totalAllocated);
+  const displayRemaining =
+    propRemainingQty !== undefined ? propRemainingQty : requiredQty - totalAllocated;
   const progressPercent = requiredQty > 0 ? Math.min(100, (totalAllocated / requiredQty) * 100) : 0;
 
-  // 保存可能判定
-  const autoCanSave = uiAllocatedTotal > 0 && !isSaving && !isOverAllocated;
-  const effectiveCanSave = typeof canSave === "boolean" ? canSave : autoCanSave;
+  // 状態判定
+  const isComplete = displayRemaining === 0 && !isOverAllocated;
+  const isOver = displayRemaining < 0 || isOverAllocated;
 
-  // Handle save with toast feedback
+  // コンテナスタイル設定（王道ロジック）
+  const containerClasses = cn(
+    "flex flex-col rounded-lg border transition-all duration-300 ease-out",
+
+    // 1. 非アクティブ（かつ未完了・エラーなし）: 薄暗く沈ませる
+    !isActive &&
+      !isComplete &&
+      !isOver &&
+      "bg-gray-100/80 border-gray-200 opacity-60 grayscale-[0.3] scale-[0.99]",
+
+    // 2. アクティブ（選択中）: 明るくポップアップさせる
+    isActive &&
+      !isComplete &&
+      !isOver &&
+      "bg-white border-blue-300 shadow-xl opacity-100 grayscale-0 scale-[1.005] z-10 ring-1 ring-blue-100",
+
+    // 3. 完了時: 緑枠固定
+    isComplete &&
+      "bg-white border-green-500 ring-1 ring-green-500 shadow-green-100 opacity-80 hover:opacity-100",
+
+    // 4. エラー時: 赤枠強調
+    isOver && "bg-red-50 border-red-300 ring-1 ring-red-300 opacity-100",
+  );
+
   const handleSave = () => {
-    if (!onSaveAllocations) return;
-
-    if (isOverAllocated) {
-      toast({
-        variant: "destructive",
-        title: "エラー",
-        description: "必要数量を超えて引当されています。数量を調整してください。",
-      });
-      return;
+    if (onSaveAllocations && !isOverAllocated) {
+      onSaveAllocations();
     }
+  };
 
-    onSaveAllocations();
+  // どこかをクリックしたりフォーカスしたりしたら、親に「俺をアクティブにして！」と伝える
+  const handleInteraction = () => {
+    if (onActivate) {
+      onActivate();
+    }
   };
 
   if (!orderLine) {
     return (
-      <div className={containerClasses}>
+      <div className="flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
         <div className="flex h-full items-center justify-center p-8 text-center text-gray-500">
-          {layout === "inline" ? "明細を選択してください" : "左から明細を選択してください"}
+          明細を選択してください
         </div>
       </div>
     );
   }
 
+  const customerName =
+    propCustomerName || order?.customer_name || orderLine.customer_name || "顧客未設定";
+  const deliveryPlaceName =
+    orderLine.delivery_place_name ||
+    (candidateLots.length > 0 ? candidateLots[0].delivery_place_name : undefined) ||
+    "納入先未設定";
+
   return (
-    <div className={containerClasses}>
-      {/* Header Component */}
-      <LotAllocationHeader
-        orderLine={orderLine}
-        requiredQty={requiredQty}
-        totalAllocated={totalAllocated}
-        remainingQty={remainingQty}
-        progressPercent={progressPercent}
-        isOverAllocated={isOverAllocated}
-        onAutoAllocate={onAutoAllocate}
-        onClearAllocations={onClearAllocations}
-        onSaveAllocations={handleSave}
-        canSave={effectiveCanSave}
-        isSaving={isSaving}
-        isLoading={isLoading}
-        hasCandidates={candidateLots.length > 0}
-      />
+    // 最上位divでクリックとフォーカスを検知
+    <div
+      className={cn("relative outline-none", isLoading ? "pointer-events-none" : "")}
+      onClick={handleInteraction}
+      onFocus={handleInteraction} // Tabキーなどで入力欄に入った時も反応するように
+      onMouseEnter={handleInteraction}
+    >
+      {/* パネル本体 */}
+      <div className={containerClasses}>
+        <div className="overflow-hidden rounded-t-lg">
+          <LotAllocationHeader
+            order={order}
+            orderLine={orderLine}
+            customerName={customerName}
+            productName={propProductName}
+            deliveryPlaceName={deliveryPlaceName}
+            requiredQty={requiredQty}
+            totalAllocated={totalAllocated}
+            remainingQty={displayRemaining}
+            progressPercent={progressPercent}
+            isOverAllocated={isOverAllocated}
+            onAutoAllocate={onAutoAllocate}
+            onClearAllocations={onClearAllocations}
+            onSaveAllocations={handleSave}
+            canSave={canSave}
+            isSaving={isSaving}
+            isLoading={isLoading}
+            hasCandidates={candidateLots.length > 0}
+          />
+        </div>
 
-      {/* ロット候補一覧 */}
-      <div className={contentClasses}>
-        {isLoading ? (
-          <div className="rounded-lg border border-gray-200 bg-white p-6 text-center text-sm text-gray-500">
-            候補ロットを読み込み中...
-          </div>
-        ) : error ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-            <p className="text-center text-sm font-semibold text-red-800">
-              候補ロットの取得に失敗しました
-            </p>
-            <p className="mt-1 text-center text-xs text-red-600">
-              {error instanceof Error ? error.message : "サーバーエラーが発生しました"}
-            </p>
-          </div>
-        ) : candidateLots.length === 0 ? (
-          <div className="rounded-lg border border-gray-200 bg-white p-6 text-center">
-            <p className="text-sm font-medium text-gray-600">候補ロットがありません</p>
-            <p className="mt-1 text-xs text-gray-400">この製品の在庫が存在しません</p>
-          </div>
-        ) : (
-          <div className="space-y-3 pb-10">
-            {candidateLots.map((lot) => {
-              const lotId = lot.lot_id;
-              const allocatedQty = lotAllocations[lotId] ?? 0;
+        {/* ロット一覧エリア */}
+        <div className="flex-1 p-2 transition-colors duration-300">
+          {isLoading ? (
+            <div className="p-8 text-center text-sm text-gray-500">候補ロットを読み込み中...</div>
+          ) : error ? (
+            <div className="bg-red-50 p-4 text-center text-sm text-red-600">
+              エラーが発生しました
+            </div>
+          ) : candidateLots.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">候補ロットがありません</div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {candidateLots.map((lot) => {
+                const lotId = lot.lot_id;
+                const allocatedQty = lotAllocations[lotId] ?? 0;
+                const maxAllocatable = allocatedQty + remainingNeeded;
 
-              return (
-                <LotListCard
-                  key={lotId}
-                  lot={lot}
-                  allocatedQty={allocatedQty}
-                  onAllocationChange={(qty) => onLotAllocationChange(lotId, qty)}
-                  onSave={handleSave}
-                  canSave={effectiveCanSave}
-                  isSaving={isSaving}
-                />
-              );
-            })}
-          </div>
-        )}
+                return (
+                  <div
+                    key={lotId}
+                    className="group/item relative transition-all duration-200 hover:z-10"
+                  >
+                    {/* リスト内の非アクティブ行を暗くする処理は、Panelがアクティブな時だけ有効にする */}
+                    {isActive && (
+                      <div
+                        className={cn(
+                          "pointer-events-none absolute inset-0 z-20 rounded-lg bg-black/5 transition-opacity duration-300",
+                          "opacity-0",
+                          "group-focus-within/item:!opacity-0 group-hover/item:!opacity-0",
+                          // Panel自体がアクティブなら、リスト全体にホバーした時と同じ挙動
+                          "hover:opacity-100", // ←簡易的に hover でリスト全体が暗くなるようにCSSだけでやるのは難しいので
+                          // 厳密にやるならここもstate管理ですが、一旦CSSで「マウス乗ってないやつ」を暗くする
+                        )}
+                      />
+                    )}
+
+                    <div className="px-1 py-1 transition-transform duration-200 hover:scale-[1.01]">
+                      <div className="rounded-lg hover:shadow-lg">
+                        <LotListCard
+                          lot={lot}
+                          allocatedQty={allocatedQty}
+                          maxAllocatable={maxAllocatable}
+                          onAllocationChange={(qty) => onLotAllocationChange(lotId, qty)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
