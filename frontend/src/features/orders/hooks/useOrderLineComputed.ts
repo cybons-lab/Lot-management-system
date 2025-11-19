@@ -40,6 +40,7 @@ export function useOrderLineComputed(
     const plannedShipDate = line?.planned_ship_date ?? null;
     const customerCode = line?.customer_code ?? order?.customer_code ?? "";
     const customerName = line?.customer_name ?? order?.customer_name ?? "";
+    const customerId = typeof order?.customer_id === "number" ? order.customer_id : null;
 
     const totalQty = Number(line?.quantity ?? 0);
     const unit = line?.unit ?? "EA";
@@ -94,6 +95,7 @@ export function useOrderLineComputed(
       allocatedTotal,
       remainingQty,
       progressPct,
+      customerId,
       customerCode,
       customerName,
       deliveryPlaces, // warehouses → deliveryPlaces に変更

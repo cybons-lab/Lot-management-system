@@ -195,8 +195,8 @@ export function OrderLineCard({ order, line, onRematch }: Props) {
 
         <div className="mt-6">
           <ForecastSection
-            productCode={computed.productCode ?? undefined}
-            customerCode={computed.customerCode}
+            productId={computed.productId ?? undefined}
+            customerId={computed.customerId ?? undefined}
             fullWidth
           />
         </div>

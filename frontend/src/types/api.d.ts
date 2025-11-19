@@ -551,27 +551,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/api/forecast/list": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * List Forecast Summary
-     * @description Forecast一覧（フロント表示用）.
-     */
-    get: operations["list_forecast_summary_api_forecast_list_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/forecast": {
+  "/api/forecasts": {
     parameters: {
       query?: never;
       header?: never;
@@ -580,22 +560,71 @@ export interface paths {
     };
     /**
      * List Forecasts
-     * @description フォーキャスト一覧取得 (生データ).
+     * @description フォーキャスト一覧取得（顧客×納入先×製品でグループ化）.
+     *
+     *     Args:
+     *         skip: スキップ件数（ページネーション用）
+     *         limit: 取得件数上限
+     *         customer_id: 得意先IDでフィルタ
+     *         delivery_place_id: 納入先IDでフィルタ
+     *         product_id: 製品IDでフィルタ
+     *         db: データベースセッション
+     *
+     *     Returns:
+     *         グループ化されたフォーキャストリスト
      */
-    get: operations["list_forecasts_api_forecast_get"];
+    get: operations["list_forecasts_api_forecasts_get"];
     put?: never;
     /**
      * Create Forecast
-     * @description フォーキャスト単一登録.
+     * @description フォーキャスト作成.
+     *
+     *     Args:
+     *         data: フォーキャスト作成データ
+     *         db: データベースセッション
+     *
+     *     Returns:
+     *         作成されたフォーキャスト
      */
-    post: operations["create_forecast_api_forecast_post"];
+    post: operations["create_forecast_api_forecasts_post"];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  "/api/forecast/{forecast_id}": {
+  "/api/forecasts/history": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Forecast History
+     * @description フォーキャスト履歴取得.
+     *
+     *     Args:
+     *         skip: スキップ件数
+     *         limit: 取得件数上限
+     *         customer_id: 得意先IDでフィルタ
+     *         delivery_place_id: 納入先IDでフィルタ
+     *         product_id: 製品IDでフィルタ
+     *         db: データベースセッション
+     *
+     *     Returns:
+     *         アーカイブ済みフォーキャストリスト
+     */
+    get: operations["list_forecast_history_api_forecasts_history_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/forecasts/{forecast_id}": {
     parameters: {
       query?: never;
       header?: never;
@@ -605,25 +634,56 @@ export interface paths {
     /**
      * Get Forecast
      * @description フォーキャスト詳細取得.
+     *
+     *     Args:
+     *         forecast_id: フォーキャストID
+     *         db: データベースセッション
+     *
+     *     Returns:
+     *         フォーキャスト
+     *
+     *     Raises:
+     *         HTTPException: 見つからない場合は404
      */
-    get: operations["get_forecast_api_forecast__forecast_id__get"];
+    get: operations["get_forecast_api_forecasts__forecast_id__get"];
     /**
      * Update Forecast
      * @description フォーキャスト更新.
+     *
+     *     Args:
+     *         forecast_id: フォーキャストID
+     *         data: 更新データ
+     *         db: データベースセッション
+     *
+     *     Returns:
+     *         更新後のフォーキャスト
+     *
+     *     Raises:
+     *         HTTPException: 見つからない場合は404
      */
-    put: operations["update_forecast_api_forecast__forecast_id__put"];
+    put: operations["update_forecast_api_forecasts__forecast_id__put"];
     post?: never;
     /**
      * Delete Forecast
      * @description フォーキャスト削除.
+     *
+     *     Args:
+     *         forecast_id: フォーキャストID
+     *         db: データベースセッション
+     *
+     *     Returns:
+     *         None
+     *
+     *     Raises:
+     *         HTTPException: 見つからない場合は404
      */
-    delete: operations["delete_forecast_api_forecast__forecast_id__delete"];
+    delete: operations["delete_forecast_api_forecasts__forecast_id__delete"];
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  "/api/forecast/bulk": {
+  "/api/forecasts/bulk-import": {
     parameters: {
       query?: never;
       header?: never;
@@ -634,288 +694,20 @@ export interface paths {
     put?: never;
     /**
      * Bulk Import Forecasts
-     * @description フォーキャスト一括登録.
-     */
-    post: operations["bulk_import_forecasts_api_forecast_bulk_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/forecast/versions": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * List Versions
-     * @description フォーキャストバージョン一覧取得.
-     */
-    get: operations["list_versions_api_forecast_versions_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/forecast/activate": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Activate Version
-     * @description 指定バージョンをアクティブ化.
-     */
-    post: operations["activate_version_api_forecast_activate_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/forecast/match": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Match Forecasts
-     * @description フォーキャストと受注明細の手動マッチング.
-     */
-    post: operations["match_forecasts_api_forecast_match_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/forecasts/headers": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * List Forecast Headers
-     * @description フォーキャストヘッダ一覧取得.
+     * @description フォーキャスト一括インポート.
+     *
+     *     CSVデータからフォーキャストを一括登録します。
+     *     replace_existing=True の場合、同じ顧客×納入先×製品の既存データを
+     *     履歴テーブルにアーカイブしてから新データを登録します。
      *
      *     Args:
-     *         skip: スキップ件数（ページネーション用）
-     *         limit: 取得件数上限
-     *         customer_id: 得意先IDでフィルタ
-     *         delivery_place_id: 納入先IDでフィルタ
-     *         status: ステータスでフィルタ（active/completed/cancelled）
+     *         request: インポートリクエスト（items + replace_existing）
      *         db: データベースセッション
      *
      *     Returns:
-     *         フォーキャストヘッダのリスト
+     *         インポート結果サマリ
      */
-    get: operations["list_forecast_headers_api_forecasts_headers_get"];
-    put?: never;
-    /**
-     * Create Forecast Header
-     * @description フォーキャストヘッダ作成（明細も同時登録可能）.
-     *
-     *     Args:
-     *         header: フォーキャストヘッダ作成データ（明細含む）
-     *         db: データベースセッション
-     *
-     *     Returns:
-     *         作成されたフォーキャストヘッダ（明細含む）
-     */
-    post: operations["create_forecast_header_api_forecasts_headers_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/forecasts/headers/{header_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Forecast Header
-     * @description フォーキャストヘッダ詳細取得（明細含む）.
-     *
-     *     Args:
-     *         header_id: フォーキャストヘッダID
-     *         db: データベースセッション
-     *
-     *     Returns:
-     *         フォーキャストヘッダ（明細含む）
-     *
-     *     Raises:
-     *         HTTPException: ヘッダが見つからない場合は404
-     */
-    get: operations["get_forecast_header_api_forecasts_headers__header_id__get"];
-    /**
-     * Update Forecast Header
-     * @description フォーキャストヘッダ更新.
-     *
-     *     Args:
-     *         header_id: フォーキャストヘッダID
-     *         header: 更新データ
-     *         db: データベースセッション
-     *
-     *     Returns:
-     *         更新後のフォーキャストヘッダ
-     *
-     *     Raises:
-     *         HTTPException: ヘッダが見つからない場合は404
-     */
-    put: operations["update_forecast_header_api_forecasts_headers__header_id__put"];
-    post?: never;
-    /**
-     * Delete Forecast Header
-     * @description フォーキャストヘッダ削除（カスケード削除：明細も削除される）.
-     *
-     *     Args:
-     *         header_id: フォーキャストヘッダID
-     *         db: データベースセッション
-     *
-     *     Returns:
-     *         None
-     *
-     *     Raises:
-     *         HTTPException: ヘッダが見つからない場合は404
-     */
-    delete: operations["delete_forecast_header_api_forecasts_headers__header_id__delete"];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/forecasts/headers/{header_id}/lines": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * List Forecast Lines
-     * @description フォーキャスト明細一覧取得.
-     *
-     *     Args:
-     *         header_id: フォーキャストヘッダID
-     *         db: データベースセッション
-     *
-     *     Returns:
-     *         フォーキャスト明細のリスト
-     */
-    get: operations["list_forecast_lines_api_forecasts_headers__header_id__lines_get"];
-    put?: never;
-    /**
-     * Create Forecast Line
-     * @description フォーキャスト明細追加.
-     *
-     *     Args:
-     *         header_id: フォーキャストヘッダID
-     *         line: 明細作成データ
-     *         db: データベースセッション
-     *
-     *     Returns:
-     *         作成された明細
-     *
-     *     Raises:
-     *         HTTPException: ヘッダが見つからない場合は404
-     */
-    post: operations["create_forecast_line_api_forecasts_headers__header_id__lines_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/forecasts/lines/{line_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    /**
-     * Update Forecast Line
-     * @description フォーキャスト明細更新.
-     *
-     *     Args:
-     *         line_id: 明細ID
-     *         line: 更新データ
-     *         db: データベースセッション
-     *
-     *     Returns:
-     *         更新後の明細
-     *
-     *     Raises:
-     *         HTTPException: 明細が見つからない場合は404
-     */
-    put: operations["update_forecast_line_api_forecasts_lines__line_id__put"];
-    post?: never;
-    /**
-     * Delete Forecast Line
-     * @description フォーキャスト明細削除.
-     *
-     *     Args:
-     *         line_id: 明細ID
-     *         db: データベースセッション
-     *
-     *     Returns:
-     *         None
-     *
-     *     Raises:
-     *         HTTPException: 明細が見つからない場合は404
-     */
-    delete: operations["delete_forecast_line_api_forecasts_lines__line_id__delete"];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/forecasts/headers/bulk-import": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Bulk Import Forecasts
-     * @description フォーキャスト一括登録（ヘッダ・明細同時登録）.
-     *
-     *     Args:
-     *         headers: フォーキャストヘッダリスト（各ヘッダに明細を含む）
-     *         db: データベースセッション
-     *
-     *     Returns:
-     *         作成されたフォーキャストヘッダリスト（明細含む）
-     *
-     *     Note:
-     *         - トランザクション単位で処理
-     *         - エラーが発生した場合は全体をロールバック
-     */
-    post: operations["bulk_import_forecasts_api_forecasts_headers_bulk_import_post"];
+    post: operations["bulk_import_forecasts_api_forecasts_bulk_import_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -2633,8 +2425,6 @@ export interface components {
       delivery_places: number;
       /** Products */
       products: number;
-      /** Forecasts */
-      forecasts: number;
       /** Warehouses */
       warehouses: number;
       /** Lots */
@@ -3425,139 +3215,183 @@ export interface components {
       warnings?: string[];
     };
     /**
-     * ForecastHeaderCreate
-     * @description Payload for creating a new forecast header.
+     * ForecastBulkImportItem
+     * @description Single item for bulk import.
      */
-    ForecastHeaderCreate: {
-      /** Customer Id */
-      customer_id: number;
-      /** Delivery Place Id */
-      delivery_place_id: number;
-      /** Forecast Number */
-      forecast_number: string;
+    ForecastBulkImportItem: {
+      /** Customer Code */
+      customer_code: string;
+      /** Delivery Place Code */
+      delivery_place_code: string;
+      /** Product Code */
+      product_code: string;
       /**
-       * Forecast Start Date
+       * Forecast Date
        * Format: date
        */
-      forecast_start_date: string;
-      /**
-       * Forecast End Date
-       * Format: date
-       */
-      forecast_end_date: string;
-      /** @default active */
-      status: components["schemas"]["ForecastStatus"];
-      /**
-       * Lines
-       * @description Optional collection of forecast lines created together with the header.
-       */
-      lines?: components["schemas"]["ForecastLineCreate"][] | null;
-    };
-    /**
-     * ForecastHeaderDetailResponse
-     * @description Header representation bundled with its lines.
-     */
-    ForecastHeaderDetailResponse: {
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Updated At */
-      updated_at?: string | null;
-      /** Customer Id */
-      customer_id: number;
-      /** Delivery Place Id */
-      delivery_place_id: number;
-      /** Forecast Number */
-      forecast_number: string;
-      /**
-       * Forecast Start Date
-       * Format: date
-       */
-      forecast_start_date: string;
-      /**
-       * Forecast End Date
-       * Format: date
-       */
-      forecast_end_date: string;
-      /** @default active */
-      status: components["schemas"]["ForecastStatus"];
-      /** Forecast Id */
-      forecast_id: number;
-      /** Lines */
-      lines?: components["schemas"]["ForecastLineResponse"][];
-    };
-    /**
-     * ForecastHeaderResponse
-     * @description API response model for forecast headers.
-     */
-    ForecastHeaderResponse: {
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Updated At */
-      updated_at?: string | null;
-      /** Customer Id */
-      customer_id: number;
-      /** Delivery Place Id */
-      delivery_place_id: number;
-      /** Forecast Number */
-      forecast_number: string;
-      /**
-       * Forecast Start Date
-       * Format: date
-       */
-      forecast_start_date: string;
-      /**
-       * Forecast End Date
-       * Format: date
-       */
-      forecast_end_date: string;
-      /** @default active */
-      status: components["schemas"]["ForecastStatus"];
-      /** Forecast Id */
-      forecast_id: number;
-    };
-    /**
-     * ForecastHeaderUpdate
-     * @description Mutable fields on a forecast header.
-     */
-    ForecastHeaderUpdate: {
-      /** Delivery Place Id */
-      delivery_place_id?: number | null;
-      /** Forecast Number */
-      forecast_number?: string | null;
-      /** Forecast Start Date */
-      forecast_start_date?: string | null;
-      /** Forecast End Date */
-      forecast_end_date?: string | null;
-      status?: components["schemas"]["ForecastStatus"] | null;
-    };
-    /**
-     * ForecastLineCreate
-     * @description Payload for adding a forecast line.
-     */
-    ForecastLineCreate: {
-      /** Product Id */
-      product_id: number;
-      /**
-       * Delivery Date
-       * Format: date
-       */
-      delivery_date: string;
+      forecast_date: string;
       /** Forecast Quantity */
       forecast_quantity: number | string;
       /** Unit */
-      unit: string;
+      unit?: string | null;
     };
     /**
-     * ForecastLineResponse
-     * @description API response model for forecast lines.
+     * ForecastBulkImportRequest
+     * @description Bulk import request payload.
      */
-    ForecastLineResponse: {
+    ForecastBulkImportRequest: {
+      /** Items */
+      items: components["schemas"]["ForecastBulkImportItem"][];
+      /**
+       * Replace Existing
+       * @description If true, archive existing forecasts before importing new ones
+       * @default true
+       */
+      replace_existing: boolean;
+    };
+    /**
+     * ForecastBulkImportSummary
+     * @description Aggregated summary of bulk import outcomes.
+     */
+    ForecastBulkImportSummary: {
+      /** Imported Count */
+      imported_count: number;
+      /** Archived Count */
+      archived_count: number;
+      /**
+       * Skipped Count
+       * @default 0
+       */
+      skipped_count: number;
+      /** Errors */
+      errors?: string[];
+    };
+    /**
+     * ForecastCreate
+     * @description Payload for creating a new forecast entry.
+     */
+    ForecastCreate: {
+      /** Customer Id */
+      customer_id: number;
+      /** Delivery Place Id */
+      delivery_place_id: number;
+      /** Product Id */
+      product_id: number;
+      /**
+       * Forecast Date
+       * Format: date
+       */
+      forecast_date: string;
+      /** Forecast Quantity */
+      forecast_quantity: number | string;
+      /** Unit */
+      unit?: string | null;
+    };
+    /**
+     * ForecastGroupKey
+     * @description Group key for customer × delivery_place × product.
+     */
+    ForecastGroupKey: {
+      /** Customer Id */
+      customer_id: number;
+      /** Delivery Place Id */
+      delivery_place_id: number;
+      /** Product Id */
+      product_id: number;
+      /** Customer Code */
+      customer_code?: string | null;
+      /** Customer Name */
+      customer_name?: string | null;
+      /** Delivery Place Code */
+      delivery_place_code?: string | null;
+      /** Delivery Place Name */
+      delivery_place_name?: string | null;
+      /** Product Code */
+      product_code?: string | null;
+      /** Product Name */
+      product_name?: string | null;
+    };
+    /**
+     * ForecastGroupResponse
+     * @description Grouped forecasts by customer × delivery_place × product.
+     */
+    ForecastGroupResponse: {
+      group_key: components["schemas"]["ForecastGroupKey"];
+      /** Forecasts */
+      forecasts?: components["schemas"]["ForecastResponse"][];
+      /** Snapshot At */
+      snapshot_at?: string | null;
+    };
+    /**
+     * ForecastHistoryResponse
+     * @description API response model for forecast_history entries.
+     */
+    ForecastHistoryResponse: {
+      /** Customer Id */
+      customer_id: number;
+      /** Delivery Place Id */
+      delivery_place_id: number;
+      /** Product Id */
+      product_id: number;
+      /**
+       * Forecast Date
+       * Format: date
+       */
+      forecast_date: string;
+      /** Forecast Quantity */
+      forecast_quantity: string;
+      /** Unit */
+      unit?: string | null;
+      /** Id */
+      id: number;
+      /**
+       * Snapshot At
+       * Format: date-time
+       */
+      snapshot_at: string;
+      /**
+       * Archived At
+       * Format: date-time
+       */
+      archived_at: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Customer Code */
+      customer_code?: string | null;
+      /** Customer Name */
+      customer_name?: string | null;
+      /** Delivery Place Code */
+      delivery_place_code?: string | null;
+      /** Delivery Place Name */
+      delivery_place_name?: string | null;
+      /** Product Code */
+      product_code?: string | null;
+      /** Product Name */
+      product_name?: string | null;
+    };
+    /**
+     * ForecastListResponse
+     * @description List response with grouped forecasts.
+     */
+    ForecastListResponse: {
+      /** Items */
+      items: components["schemas"]["ForecastGroupResponse"][];
+      /** Total */
+      total: number;
+    };
+    /**
+     * ForecastResponse
+     * @description API response model for forecast_current entries.
+     */
+    ForecastResponse: {
       /**
        * Created At
        * Format: date-time
@@ -3565,40 +3399,51 @@ export interface components {
       created_at: string;
       /** Updated At */
       updated_at?: string | null;
+      /** Customer Id */
+      customer_id: number;
+      /** Delivery Place Id */
+      delivery_place_id: number;
       /** Product Id */
       product_id: number;
       /**
-       * Delivery Date
+       * Forecast Date
        * Format: date
        */
-      delivery_date: string;
-      /** Quantity */
-      quantity: string;
+      forecast_date: string;
+      /** Forecast Quantity */
+      forecast_quantity: string;
       /** Unit */
-      unit: string;
-      /** Forecast Line Id */
-      forecast_line_id: number;
-      /** Forecast Id */
-      forecast_id: number;
+      unit?: string | null;
+      /** Id */
+      id: number;
+      /**
+       * Snapshot At
+       * Format: date-time
+       */
+      snapshot_at: string;
+      /** Customer Code */
+      customer_code?: string | null;
+      /** Customer Name */
+      customer_name?: string | null;
+      /** Delivery Place Code */
+      delivery_place_code?: string | null;
+      /** Delivery Place Name */
+      delivery_place_name?: string | null;
+      /** Product Code */
+      product_code?: string | null;
+      /** Product Name */
+      product_name?: string | null;
     };
     /**
-     * ForecastLineUpdate
-     * @description Mutable fields for forecast lines.
+     * ForecastUpdate
+     * @description Mutable fields for updating a forecast entry.
      */
-    ForecastLineUpdate: {
-      /** Delivery Date */
-      delivery_date?: string | null;
+    ForecastUpdate: {
       /** Forecast Quantity */
       forecast_quantity?: number | string | null;
       /** Unit */
       unit?: string | null;
     };
-    /**
-     * ForecastStatus
-     * @description Lifecycle states for :class:`ForecastHeader`.
-     * @enum {string}
-     */
-    ForecastStatus: "active" | "completed" | "cancelled";
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -3799,344 +3644,6 @@ export interface components {
        * Format: date-time
        */
       last_updated: string;
-    };
-    /**
-     * LegacyForecastActivateRequest
-     * @description Deprecated activation request for legacy forecasts.
-     */
-    LegacyForecastActivateRequest: {
-      /** Version No */
-      version_no: number;
-      /**
-       * Deactivate Others
-       * @default true
-       */
-      deactivate_others: boolean;
-    };
-    /**
-     * LegacyForecastActivateResponse
-     * @description Deprecated activation response for legacy forecasts.
-     */
-    LegacyForecastActivateResponse: {
-      /** Success */
-      success: boolean;
-      /** Message */
-      message: string;
-      /** Activated Version */
-      activated_version: number;
-      /**
-       * Deactivated Versions
-       * @default []
-       */
-      deactivated_versions: number[];
-    };
-    /**
-     * LegacyForecastBulkImportRequest
-     * @description Deprecated bulk import request for legacy forecasts.
-     */
-    LegacyForecastBulkImportRequest: {
-      /** Version No */
-      version_no: number;
-      /**
-       * Version Issued At
-       * Format: date-time
-       */
-      version_issued_at: string;
-      /**
-       * Source System
-       * @default external
-       */
-      source_system: string;
-      /**
-       * Deactivate Old Version
-       * @default true
-       */
-      deactivate_old_version: boolean;
-      /** Forecasts */
-      forecasts: components["schemas"]["LegacyForecastCreate"][];
-    };
-    /**
-     * LegacyForecastBulkImportResponse
-     * @description Deprecated bulk import response for legacy forecasts.
-     */
-    LegacyForecastBulkImportResponse: {
-      /** Success */
-      success: boolean;
-      /** Message */
-      message: string;
-      /** Version No */
-      version_no: number;
-      /** Imported Count */
-      imported_count: number;
-      /** Skipped Count */
-      skipped_count: number;
-      /** Error Count */
-      error_count: number;
-      /** Error Details */
-      error_details?: string | null;
-    };
-    /**
-     * LegacyForecastCreate
-     * @description Deprecated create payload for legacy forecasts.
-     */
-    LegacyForecastCreate: {
-      /** Product Id */
-      product_id: string;
-      /** Customer Id */
-      customer_id: string;
-      /** Granularity */
-      granularity: string;
-      /** Qty Forecast */
-      qty_forecast: number;
-      /**
-       * Version No
-       * @default 1
-       */
-      version_no: number;
-      /**
-       * Source System
-       * @default external
-       */
-      source_system: string;
-      /**
-       * Is Active
-       * @default true
-       */
-      is_active: boolean;
-      /** Date Day */
-      date_day?: string | null;
-      /** Date Dekad Start */
-      date_dekad_start?: string | null;
-      /** Year Month */
-      year_month?: string | null;
-      /**
-       * Version Issued At
-       * Format: date-time
-       */
-      version_issued_at: string;
-    };
-    /**
-     * LegacyForecastItemOut
-     * @description Deprecated list item schema used by legacy UI mocks.
-     */
-    LegacyForecastItemOut: {
-      /** Id */
-      id: number;
-      /** Product Code */
-      product_code: string;
-      /** Product Name */
-      product_name: string;
-      /** Customer Code */
-      customer_code: string;
-      /** Supplier Code */
-      supplier_code?: string | null;
-      /** Granularity */
-      granularity: string;
-      /** Version No */
-      version_no: number;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
-      /** Daily Data */
-      daily_data?: {
-        [key: string]: number;
-      } | null;
-      /** Dekad Data */
-      dekad_data?: {
-        [key: string]: number;
-      } | null;
-      /** Monthly Data */
-      monthly_data?: {
-        [key: string]: number;
-      } | null;
-      /** Dekad Summary */
-      dekad_summary?: {
-        [key: string]: number;
-      } | null;
-      /**
-       * Customer Name
-       * @default 得意先A (ダミー)
-       */
-      customer_name: string | null;
-      /**
-       * Supplier Name
-       * @default サプライヤーB (ダミー)
-       */
-      supplier_name: string | null;
-      /**
-       * Unit
-       * @default EA
-       */
-      unit: string;
-      /**
-       * Version History
-       * @default []
-       */
-      version_history: Record<string, never>[];
-    };
-    /**
-     * LegacyForecastListResponse
-     * @description Deprecated list response for legacy forecasts.
-     */
-    LegacyForecastListResponse: {
-      /** Items */
-      items: components["schemas"]["LegacyForecastItemOut"][];
-    };
-    /**
-     * LegacyForecastMatchRequest
-     * @description Deprecated match request for legacy forecasts.
-     */
-    LegacyForecastMatchRequest: {
-      /** Order Id */
-      order_id?: number | null;
-      /** Order Ids */
-      order_ids?: number[] | null;
-      /** Date From */
-      date_from?: string | null;
-      /** Date To */
-      date_to?: string | null;
-      /**
-       * Force Rematch
-       * @default false
-       */
-      force_rematch: boolean;
-    };
-    /**
-     * LegacyForecastMatchResponse
-     * @description Deprecated match response for legacy forecasts.
-     */
-    LegacyForecastMatchResponse: {
-      /** Success */
-      success: boolean;
-      /** Message */
-      message: string;
-      /** Total Lines */
-      total_lines: number;
-      /** Matched Lines */
-      matched_lines: number;
-      /** Unmatched Lines */
-      unmatched_lines: number;
-      /**
-       * Results
-       * @default []
-       */
-      results: components["schemas"]["LegacyForecastMatchResult"][];
-    };
-    /**
-     * LegacyForecastMatchResult
-     * @description Deprecated match result for legacy forecasts.
-     */
-    LegacyForecastMatchResult: {
-      /** Order Line Id */
-      order_line_id: number;
-      /** Order No */
-      order_no: string;
-      /** Line No */
-      line_no: number;
-      /** Product Code */
-      product_code: string;
-      /** Matched */
-      matched: boolean;
-      /** Forecast Id */
-      forecast_id?: number | null;
-      /** Forecast Granularity */
-      forecast_granularity?: string | null;
-      /** Forecast Match Status */
-      forecast_match_status?: string | null;
-      /** Forecast Qty */
-      forecast_qty?: number | null;
-    };
-    /**
-     * LegacyForecastResponse
-     * @description Deprecated response schema for legacy forecasts.
-     */
-    LegacyForecastResponse: {
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Updated At */
-      updated_at?: string | null;
-      /** Product Id */
-      product_id: string;
-      /** Customer Id */
-      customer_id: string;
-      /** Granularity */
-      granularity: string;
-      /** Qty Forecast */
-      qty_forecast: number;
-      /**
-       * Version No
-       * @default 1
-       */
-      version_no: number;
-      /**
-       * Source System
-       * @default external
-       */
-      source_system: string;
-      /**
-       * Is Active
-       * @default true
-       */
-      is_active: boolean;
-      /** Date Day */
-      date_day?: string | null;
-      /** Date Dekad Start */
-      date_dekad_start?: string | null;
-      /** Year Month */
-      year_month?: string | null;
-      /** Id */
-      id: number;
-      /** Forecast Id */
-      forecast_id?: number | null;
-      /** Supplier Id */
-      supplier_id?: string | null;
-      /**
-       * Version Issued At
-       * Format: date-time
-       */
-      version_issued_at: string;
-    };
-    /**
-     * LegacyForecastUpdate
-     * @description Deprecated update payload for legacy forecasts.
-     */
-    LegacyForecastUpdate: {
-      /** Qty Forecast */
-      qty_forecast?: number | null;
-      /** Is Active */
-      is_active?: boolean | null;
-    };
-    /**
-     * LegacyForecastVersionInfo
-     * @description Deprecated version information schema.
-     */
-    LegacyForecastVersionInfo: {
-      /** Version No */
-      version_no: number;
-      /**
-       * Version Issued At
-       * Format: date-time
-       */
-      version_issued_at: string;
-      /** Is Active */
-      is_active: boolean;
-      /** Forecast Count */
-      forecast_count: number;
-      /** Source System */
-      source_system: string;
-    };
-    /**
-     * LegacyForecastVersionListResponse
-     * @description Deprecated version listing schema.
-     */
-    LegacyForecastVersionListResponse: {
-      /** Versions */
-      versions: components["schemas"]["LegacyForecastVersionInfo"][];
     };
     /**
      * LotCreate
@@ -4675,11 +4182,6 @@ export interface components {
        */
       products: number;
       /**
-       * Forecasts
-       * @default 0
-       */
-      forecasts: number;
-      /**
        * Warehouses
        * @default 2
        */
@@ -4796,8 +4298,6 @@ export interface components {
       delivery_places: number;
       /** Products */
       products: number;
-      /** Forecasts */
-      forecasts: number;
       /** Warehouses */
       warehouses: number;
       /** Lots */
@@ -6062,332 +5562,14 @@ export interface operations {
       };
     };
   };
-  list_forecast_summary_api_forecast_list_get: {
-    parameters: {
-      query?: {
-        product_code?: string | null;
-        supplier_code?: string | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["LegacyForecastListResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  list_forecasts_api_forecast_get: {
-    parameters: {
-      query?: {
-        skip?: number;
-        limit?: number;
-        product_id?: string | null;
-        customer_id?: string | null;
-        product_code?: string | null;
-        customer_code?: string | null;
-        granularity?: string | null;
-        is_active?: boolean | null;
-        version_no?: number | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["LegacyForecastResponse"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  create_forecast_api_forecast_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["LegacyForecastCreate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["LegacyForecastResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_forecast_api_forecast__forecast_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        forecast_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["LegacyForecastResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  update_forecast_api_forecast__forecast_id__put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        forecast_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["LegacyForecastUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["LegacyForecastResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  delete_forecast_api_forecast__forecast_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        forecast_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  bulk_import_forecasts_api_forecast_bulk_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["LegacyForecastBulkImportRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["LegacyForecastBulkImportResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  list_versions_api_forecast_versions_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["LegacyForecastVersionListResponse"];
-        };
-      };
-    };
-  };
-  activate_version_api_forecast_activate_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["LegacyForecastActivateRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["LegacyForecastActivateResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  match_forecasts_api_forecast_match_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["LegacyForecastMatchRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["LegacyForecastMatchResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  list_forecast_headers_api_forecasts_headers_get: {
+  list_forecasts_api_forecasts_get: {
     parameters: {
       query?: {
         skip?: number;
         limit?: number;
         customer_id?: number | null;
         delivery_place_id?: number | null;
-        status?: string | null;
+        product_id?: number | null;
       };
       header?: never;
       path?: never;
@@ -6401,7 +5583,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["ForecastHeaderResponse"][];
+          "application/json": components["schemas"]["ForecastListResponse"];
         };
       };
       /** @description Validation Error */
@@ -6415,7 +5597,7 @@ export interface operations {
       };
     };
   };
-  create_forecast_header_api_forecasts_headers_post: {
+  create_forecast_api_forecasts_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -6424,7 +5606,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["ForecastHeaderCreate"];
+        "application/json": components["schemas"]["ForecastCreate"];
       };
     };
     responses: {
@@ -6434,7 +5616,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["ForecastHeaderDetailResponse"];
+          "application/json": components["schemas"]["ForecastResponse"];
         };
       };
       /** @description Validation Error */
@@ -6448,12 +5630,47 @@ export interface operations {
       };
     };
   };
-  get_forecast_header_api_forecasts_headers__header_id__get: {
+  list_forecast_history_api_forecasts_history_get: {
+    parameters: {
+      query?: {
+        skip?: number;
+        limit?: number;
+        customer_id?: number | null;
+        delivery_place_id?: number | null;
+        product_id?: number | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ForecastHistoryResponse"][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_forecast_api_forecasts__forecast_id__get: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        header_id: number;
+        forecast_id: number;
       };
       cookie?: never;
     };
@@ -6465,7 +5682,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["ForecastHeaderDetailResponse"];
+          "application/json": components["schemas"]["ForecastResponse"];
         };
       };
       /** @description Validation Error */
@@ -6479,18 +5696,18 @@ export interface operations {
       };
     };
   };
-  update_forecast_header_api_forecasts_headers__header_id__put: {
+  update_forecast_api_forecasts__forecast_id__put: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        header_id: number;
+        forecast_id: number;
       };
       cookie?: never;
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["ForecastHeaderUpdate"];
+        "application/json": components["schemas"]["ForecastUpdate"];
       };
     };
     responses: {
@@ -6500,7 +5717,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["ForecastHeaderResponse"];
+          "application/json": components["schemas"]["ForecastResponse"];
         };
       };
       /** @description Validation Error */
@@ -6514,12 +5731,12 @@ export interface operations {
       };
     };
   };
-  delete_forecast_header_api_forecasts_headers__header_id__delete: {
+  delete_forecast_api_forecasts__forecast_id__delete: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        header_id: number;
+        forecast_id: number;
       };
       cookie?: never;
     };
@@ -6543,137 +5760,7 @@ export interface operations {
       };
     };
   };
-  list_forecast_lines_api_forecasts_headers__header_id__lines_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        header_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ForecastLineResponse"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  create_forecast_line_api_forecasts_headers__header_id__lines_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        header_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ForecastLineCreate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ForecastLineResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  update_forecast_line_api_forecasts_lines__line_id__put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        line_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ForecastLineUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ForecastLineResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  delete_forecast_line_api_forecasts_lines__line_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        line_id: number;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  bulk_import_forecasts_api_forecasts_headers_bulk_import_post: {
+  bulk_import_forecasts_api_forecasts_bulk_import_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -6682,7 +5769,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["ForecastHeaderCreate"][];
+        "application/json": components["schemas"]["ForecastBulkImportRequest"];
       };
     };
     responses: {
@@ -6692,7 +5779,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["ForecastHeaderDetailResponse"][];
+          "application/json": components["schemas"]["ForecastBulkImportSummary"];
         };
       };
       /** @description Validation Error */
