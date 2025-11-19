@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict aWv8itgMFhYCdmgamzfIFRmHzEh3yz6FMo8xEaLKxrrLQXUcc20MEhjWtCLIVae
+\restrict mwkh8oSElrgA1zyiIBSLZLY6uY5yWfj8wfrRRDMe5PivXYdk2o5s3LGeBWhzI0H
 
 -- Dumped from database version 15.15
 -- Dumped by pg_dump version 15.15
@@ -1852,6 +1852,14 @@ ALTER TABLE ONLY public.adjustments
 
 
 --
+-- Name: allocation_suggestions fk_allocation_suggestions_forecast_current; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.allocation_suggestions
+    ADD CONSTRAINT fk_allocation_suggestions_forecast_current FOREIGN KEY (forecast_line_id) REFERENCES public.forecast_current(id) ON DELETE CASCADE;
+
+
+--
 -- Name: allocation_suggestions fk_allocation_suggestions_lot; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1913,6 +1921,54 @@ ALTER TABLE ONLY public.delivery_places
 
 ALTER TABLE ONLY public.expected_lots
     ADD CONSTRAINT fk_expected_lots_line FOREIGN KEY (inbound_plan_line_id) REFERENCES public.inbound_plan_lines(id) ON DELETE CASCADE;
+
+
+--
+-- Name: forecast_current fk_forecast_current_customer; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.forecast_current
+    ADD CONSTRAINT fk_forecast_current_customer FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: forecast_current fk_forecast_current_delivery_place; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.forecast_current
+    ADD CONSTRAINT fk_forecast_current_delivery_place FOREIGN KEY (delivery_place_id) REFERENCES public.delivery_places(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: forecast_current fk_forecast_current_product; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.forecast_current
+    ADD CONSTRAINT fk_forecast_current_product FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: forecast_history fk_forecast_history_customer; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.forecast_history
+    ADD CONSTRAINT fk_forecast_history_customer FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: forecast_history fk_forecast_history_delivery_place; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.forecast_history
+    ADD CONSTRAINT fk_forecast_history_delivery_place FOREIGN KEY (delivery_place_id) REFERENCES public.delivery_places(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: forecast_history fk_forecast_history_product; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.forecast_history
+    ADD CONSTRAINT fk_forecast_history_product FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE RESTRICT;
 
 
 --
@@ -2047,5 +2103,5 @@ ALTER TABLE ONLY public.user_roles
 -- PostgreSQL database dump complete
 --
 
-\unrestrict aWv8itgMFhYCdmgamzfIFRmHzEh3yz6FMo8xEaLKxrrLQXUcc20MEhjWtCLIVae
+\unrestrict mwkh8oSElrgA1zyiIBSLZLY6uY5yWfj8wfrRRDMe5PivXYdk2o5s3LGeBWhzI0H
 
