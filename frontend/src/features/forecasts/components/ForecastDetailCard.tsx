@@ -5,6 +5,11 @@
  * - Section 1: Header info (product, delivery place, customer)
  * - Section 2-4: 31-day grid (3 rows of ~10-11 tiles)
  * - Section 5: Dekad (left) and Monthly (right) aggregations
+ *
+ * Timeline Logic:
+ * - Tier 1 (Daily): Current 31 days
+ * - Tier 2 (Dekad): Next month after daily period (上旬/中旬/下旬)
+ * - Tier 3 (Monthly): Month after dekad period (1 month only)
  */
 
 import { useMemo, useState } from "react";
@@ -50,14 +55,6 @@ function get31DayDates(): Date[] {
 }
 
 /**
- * Check if a date is a dekad date (1st, 11th, 21st)
- */
-function isDekadDate(date: Date): boolean {
-  const day = date.getDate();
-  return day === 1 || day === 11 || day === 21;
-}
-
-/**
  * Format date for display
  */
 function formatDateShort(date: Date): string {
@@ -69,6 +66,40 @@ function formatDateShort(date: Date): string {
  */
 function formatDateKey(date: Date): string {
   return date.toISOString().split("T")[0] ?? "";
+}
+
+/**
+ * Render a single day cell for the grid
+ */
+function DayCell({
+  date,
+  quantity,
+  isToday,
+}: {
+  date: Date;
+  quantity: number | undefined;
+  isToday: boolean;
+}) {
+  return (
+    <div
+      className={`w-[calc(100%/11)] min-w-0 rounded border text-center text-xs ${
+        isToday
+          ? "border-blue-500 bg-blue-50"
+          : quantity !== undefined
+            ? "border-gray-300 bg-gray-50"
+            : "border-gray-200 bg-white"
+      }`}
+    >
+      <div className="border-b border-gray-200 px-1 py-0.5 text-gray-500">
+        {formatDateShort(date)}
+      </div>
+      <div
+        className={`px-1 py-1 font-medium ${quantity !== undefined ? "text-gray-900" : "text-gray-300"}`}
+      >
+        {quantity !== undefined ? Math.round(quantity) : "-"}
+      </div>
+    </div>
+  );
 }
 
 export function ForecastDetailCard({ forecast }: ForecastDetailCardProps) {
@@ -99,58 +130,89 @@ export function ForecastDetailCard({ forecast }: ForecastDetailCardProps) {
     productData[0]?.productId ?? null
   );
 
-  const selectedProduct = productData.find(p => p.productId === selectedProductId);
+  const selectedProduct = productData.find((p) => p.productId === selectedProductId);
 
   // Get 31-day dates
   const dates = useMemo(() => get31DayDates(), []);
 
-  // Split into 3 rows of ~11 tiles each
+  // Split into 3 rows of 11 tiles each (last row has 9)
   const row1 = dates.slice(0, 11);
-  const row2 = dates.slice(11, 21);
-  const row3 = dates.slice(21, 31);
+  const row2 = dates.slice(11, 22);
+  const row3 = dates.slice(22, 31);
 
-  // Calculate dekad aggregations
-  const dekadData = useMemo(() => {
-    if (!selectedProduct) return [];
-
-    const dekads: { label: string; total: number }[] = [];
-    const dekadDates = dates.filter(isDekadDate);
-
-    for (const date of dekadDates) {
-      const dateKey = formatDateKey(date);
-      const qty = selectedProduct.dailyData.get(dateKey) ?? 0;
-      dekads.push({
-        label: formatDateShort(date),
-        total: qty,
-      });
+  // Calculate the target months for dekad and monthly
+  const { dekadMonth, monthlyMonth } = useMemo(() => {
+    // Get the last date of the daily period
+    const lastDailyDate = dates[dates.length - 1];
+    if (!lastDailyDate) {
+      return { dekadMonth: null, monthlyMonth: null };
     }
 
-    return dekads;
-  }, [selectedProduct, dates]);
+    // Dekad month: next month after the last daily date
+    const dekadDate = new Date(lastDailyDate);
+    dekadDate.setMonth(dekadDate.getMonth() + 1);
+    dekadDate.setDate(1);
 
-  // Calculate monthly aggregations
-  const monthlyData = useMemo(() => {
-    if (!selectedProduct) return [];
+    // Monthly month: month after dekad
+    const monthlyDate = new Date(dekadDate);
+    monthlyDate.setMonth(monthlyDate.getMonth() + 1);
 
-    const monthlyMap = new Map<string, number>();
+    return {
+      dekadMonth: { year: dekadDate.getFullYear(), month: dekadDate.getMonth() },
+      monthlyMonth: { year: monthlyDate.getFullYear(), month: monthlyDate.getMonth() },
+    };
+  }, [dates]);
+
+  // Calculate dekad aggregations for the target month
+  const dekadData = useMemo(() => {
+    if (!selectedProduct || !dekadMonth) return [];
+
+    // Sum quantities for each dekad period (1-10, 11-20, 21-end)
+    let jouTotal = 0;
+    let chuTotal = 0;
+    let geTotal = 0;
 
     for (const [dateStr, qty] of selectedProduct.dailyData) {
       const date = new Date(dateStr);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      monthlyMap.set(monthKey, (monthlyMap.get(monthKey) ?? 0) + qty);
+      if (date.getFullYear() === dekadMonth.year && date.getMonth() === dekadMonth.month) {
+        const day = date.getDate();
+        if (day <= 10) {
+          jouTotal += qty;
+        } else if (day <= 20) {
+          chuTotal += qty;
+        } else {
+          geTotal += qty;
+        }
+      }
     }
 
-    return Array.from(monthlyMap.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(0, 4)
-      .map(([key, total]) => {
-        const [year, month] = key.split("-");
-        return {
-          label: `${year}/${month}`,
-          total,
-        };
-      });
-  }, [selectedProduct]);
+    const monthLabel = `${dekadMonth.month + 1}月`;
+
+    return [
+      { label: `${monthLabel} 上旬`, total: Math.round(jouTotal) },
+      { label: `${monthLabel} 中旬`, total: Math.round(chuTotal) },
+      { label: `${monthLabel} 下旬`, total: Math.round(geTotal) },
+    ];
+  }, [selectedProduct, dekadMonth]);
+
+  // Calculate monthly aggregation for the target month (single month)
+  const monthlyData = useMemo(() => {
+    if (!selectedProduct || !monthlyMonth) return null;
+
+    let total = 0;
+
+    for (const [dateStr, qty] of selectedProduct.dailyData) {
+      const date = new Date(dateStr);
+      if (date.getFullYear() === monthlyMonth.year && date.getMonth() === monthlyMonth.month) {
+        total += qty;
+      }
+    }
+
+    return {
+      label: `${monthlyMonth.year}年${monthlyMonth.month + 1}月`,
+      total: Math.round(total),
+    };
+  }, [selectedProduct, monthlyMonth]);
 
   if (productData.length === 0) {
     return (
@@ -162,6 +224,8 @@ export function ForecastDetailCard({ forecast }: ForecastDetailCardProps) {
     );
   }
 
+  const todayKey = formatDateKey(new Date());
+
   return (
     <Card>
       {/* Section 1: Header Info */}
@@ -169,9 +233,7 @@ export function ForecastDetailCard({ forecast }: ForecastDetailCardProps) {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-lg">フォーキャスト詳細</CardTitle>
-            <p className="mt-1 text-sm text-gray-600">
-              {forecast.forecast_number}
-            </p>
+            <p className="mt-1 text-sm text-gray-600">{forecast.forecast_number}</p>
           </div>
           <div className="text-right text-sm">
             <div className="text-gray-500">得意先</div>
@@ -199,10 +261,7 @@ export function ForecastDetailCard({ forecast }: ForecastDetailCardProps) {
               </SelectTrigger>
               <SelectContent>
                 {productData.map((product) => (
-                  <SelectItem
-                    key={product.productId}
-                    value={product.productId.toString()}
-                  >
+                  <SelectItem key={product.productId} value={product.productId.toString()}>
                     {product.productCode} - {product.productName}
                   </SelectItem>
                 ))}
@@ -212,96 +271,56 @@ export function ForecastDetailCard({ forecast }: ForecastDetailCardProps) {
         </div>
 
         {selectedProduct && (
-          <div className="mt-2 text-sm text-gray-600">
-            単位: {selectedProduct.unit}
-          </div>
+          <div className="mt-2 text-sm text-gray-600">単位: {selectedProduct.unit}</div>
         )}
       </CardHeader>
 
       <CardContent className="space-y-4">
         {/* Section 2-4: 31-day Grid */}
         <div>
-          <h4 className="mb-2 text-sm font-semibold text-gray-700">
-            日次予測 (31日間)
-          </h4>
+          <h4 className="mb-2 text-sm font-semibold text-gray-700">日次予測 (31日間)</h4>
           <div className="space-y-1">
             {/* Row 1 */}
-            <div className="flex gap-1">
+            <div className="flex gap-0.5">
               {row1.map((date) => {
                 const dateKey = formatDateKey(date);
-                const qty = selectedProduct?.dailyData.get(dateKey);
-                const isToday = formatDateKey(new Date()) === dateKey;
-
                 return (
-                  <div
+                  <DayCell
                     key={dateKey}
-                    className={`flex-1 rounded border p-1 text-center text-xs ${
-                      isToday
-                        ? "border-blue-500 bg-blue-50"
-                        : qty
-                          ? "border-gray-300 bg-gray-50"
-                          : "border-gray-200 bg-white"
-                    }`}
-                  >
-                    <div className="text-gray-500">{formatDateShort(date)}</div>
-                    <div className={`font-medium ${qty ? "text-gray-900" : "text-gray-300"}`}>
-                      {qty ?? "-"}
-                    </div>
-                  </div>
+                    date={date}
+                    quantity={selectedProduct?.dailyData.get(dateKey)}
+                    isToday={todayKey === dateKey}
+                  />
                 );
               })}
             </div>
 
             {/* Row 2 */}
-            <div className="flex gap-1">
+            <div className="flex gap-0.5">
               {row2.map((date) => {
                 const dateKey = formatDateKey(date);
-                const qty = selectedProduct?.dailyData.get(dateKey);
-                const isToday = formatDateKey(new Date()) === dateKey;
-
                 return (
-                  <div
+                  <DayCell
                     key={dateKey}
-                    className={`flex-1 rounded border p-1 text-center text-xs ${
-                      isToday
-                        ? "border-blue-500 bg-blue-50"
-                        : qty
-                          ? "border-gray-300 bg-gray-50"
-                          : "border-gray-200 bg-white"
-                    }`}
-                  >
-                    <div className="text-gray-500">{formatDateShort(date)}</div>
-                    <div className={`font-medium ${qty ? "text-gray-900" : "text-gray-300"}`}>
-                      {qty ?? "-"}
-                    </div>
-                  </div>
+                    date={date}
+                    quantity={selectedProduct?.dailyData.get(dateKey)}
+                    isToday={todayKey === dateKey}
+                  />
                 );
               })}
             </div>
 
             {/* Row 3 */}
-            <div className="flex gap-1">
+            <div className="flex gap-0.5">
               {row3.map((date) => {
                 const dateKey = formatDateKey(date);
-                const qty = selectedProduct?.dailyData.get(dateKey);
-                const isToday = formatDateKey(new Date()) === dateKey;
-
                 return (
-                  <div
+                  <DayCell
                     key={dateKey}
-                    className={`flex-1 rounded border p-1 text-center text-xs ${
-                      isToday
-                        ? "border-blue-500 bg-blue-50"
-                        : qty
-                          ? "border-gray-300 bg-gray-50"
-                          : "border-gray-200 bg-white"
-                    }`}
-                  >
-                    <div className="text-gray-500">{formatDateShort(date)}</div>
-                    <div className={`font-medium ${qty ? "text-gray-900" : "text-gray-300"}`}>
-                      {qty ?? "-"}
-                    </div>
-                  </div>
+                    date={date}
+                    quantity={selectedProduct?.dailyData.get(dateKey)}
+                    isToday={todayKey === dateKey}
+                  />
                 );
               })}
             </div>
@@ -309,18 +328,18 @@ export function ForecastDetailCard({ forecast }: ForecastDetailCardProps) {
         </div>
 
         {/* Section 5: Dekad and Monthly Aggregations */}
-        <div className="grid grid-cols-2 gap-4 border-t pt-4">
+        <div className="grid grid-cols-2 gap-6 border-t pt-4">
           {/* Dekad (left) */}
           <div>
-            <h4 className="mb-2 text-sm font-semibold text-gray-700">旬別予測</h4>
-            <div className="flex flex-wrap gap-2">
-              {dekadData.map((dekad, index) => (
+            <h4 className="mb-3 font-semibold text-gray-700">旬別予測</h4>
+            <div className="flex gap-3">
+              {dekadData.map((dekad) => (
                 <div
-                  key={index}
-                  className="rounded border border-green-300 bg-green-50 px-2 py-1 text-center text-xs"
+                  key={dekad.label}
+                  className="flex-1 rounded-lg border-2 border-green-300 bg-green-50 px-3 py-2 text-center"
                 >
-                  <div className="text-green-600">{dekad.label}</div>
-                  <div className="font-medium text-green-900">{dekad.total}</div>
+                  <div className="text-sm font-medium text-green-700">{dekad.label}</div>
+                  <div className="mt-1 text-xl font-bold text-green-900">{dekad.total}</div>
                 </div>
               ))}
               {dekadData.length === 0 && (
@@ -331,21 +350,15 @@ export function ForecastDetailCard({ forecast }: ForecastDetailCardProps) {
 
           {/* Monthly (right) */}
           <div>
-            <h4 className="mb-2 text-sm font-semibold text-gray-700">月別予測</h4>
-            <div className="flex flex-wrap gap-2">
-              {monthlyData.map((month, index) => (
-                <div
-                  key={index}
-                  className="rounded border border-purple-300 bg-purple-50 px-2 py-1 text-center text-xs"
-                >
-                  <div className="text-purple-600">{month.label}</div>
-                  <div className="font-medium text-purple-900">{month.total}</div>
-                </div>
-              ))}
-              {monthlyData.length === 0 && (
-                <div className="text-sm text-gray-400">データなし</div>
-              )}
-            </div>
+            <h4 className="mb-3 font-semibold text-gray-700">月別予測</h4>
+            {monthlyData ? (
+              <div className="rounded-lg border-2 border-purple-300 bg-purple-50 px-4 py-3 text-center">
+                <div className="text-sm font-medium text-purple-700">{monthlyData.label}</div>
+                <div className="mt-1 text-2xl font-bold text-purple-900">{monthlyData.total}</div>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-400">データなし</div>
+            )}
           </div>
         </div>
       </CardContent>
