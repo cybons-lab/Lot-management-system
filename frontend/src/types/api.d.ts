@@ -4383,8 +4383,6 @@ export interface components {
       order_number: string;
       /** Customer Id */
       customer_id: number;
-      /** Delivery Place Id */
-      delivery_place_id: number;
       /**
        * Order Date
        * Format: date
@@ -4470,8 +4468,6 @@ export interface components {
       order_number: string;
       /** Customer Id */
       customer_id: number;
-      /** Delivery Place Id */
-      delivery_place_id: number;
       /**
        * Order Date
        * Format: date

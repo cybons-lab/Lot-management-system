@@ -803,7 +803,6 @@ def validate_simulation_constraints(
             f"Destinations check: NG ({len(dest_violations)} violations, {len(missing_delivery)} missing delivery_place_id)",
         )
 
-
     # Check 3: 受注明細行数チェック (≤5)
     order_line_max_check = params["order_line_items_per_order"]
     if isinstance(order_line_max_check, dict):

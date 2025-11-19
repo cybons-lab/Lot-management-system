@@ -31,7 +31,7 @@ from .base_model import Base
 
 if TYPE_CHECKING:  # pragma: no cover - for type checkers only
     from .inventory_models import Lot
-    from .masters_models import Customer, DeliveryPlace, Product
+    from .masters_models import Customer, Product
 
 
 class Order(Base):

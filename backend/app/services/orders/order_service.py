@@ -60,7 +60,6 @@ class OrderService:
             .options(
                 selectinload(Order.order_lines).selectinload(OrderLine.product),
                 selectinload(Order.customer),
-                selectinload(Order.delivery_place),
             )
             .where(Order.id == order_id)
         )
@@ -87,7 +86,6 @@ class OrderService:
         order = Order(
             order_number=order_data.order_number,
             customer_id=order_data.customer_id,
-            delivery_place_id=order_data.delivery_place_id,
             order_date=order_data.order_date,
         )
         self.db.add(order)
