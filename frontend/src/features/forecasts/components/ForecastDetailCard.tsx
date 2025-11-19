@@ -38,7 +38,7 @@ interface AggregationMonth {
 /**
  * Get dates for a 31-day window starting from the first day of the target month
  */
-function getFixedMonthDates(startDate?: string): Date[] {
+function getFixedMonthDates(startDate?: string | Date): Date[] {
   const baseDate = startDate ? new Date(startDate) : new Date();
   const firstDay = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
   const dates: Date[] = [];
@@ -64,6 +64,22 @@ function formatDateShort(date: Date): string {
  */
 function formatDateKey(date: Date): string {
   return date.toISOString().split("T")[0] ?? "";
+}
+
+function getYearMonthKeyFromDate(date: Date): number {
+  return date.getFullYear() * 12 + date.getMonth();
+}
+
+function getYearMonthKeyFromString(dateStr: string): number | null {
+  const [yearStr, monthStr] = dateStr.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr) - 1;
+
+  if (Number.isNaN(year) || Number.isNaN(month)) {
+    return null;
+  }
+
+  return year * 12 + month;
 }
 
 /**
@@ -159,9 +175,10 @@ function calculateMonthlyAggregation(
 }
 
 export function ForecastDetailCard({ forecast }: ForecastDetailCardProps) {
-  // Group lines by product with proper number conversion
-  const productData = useMemo(() => {
+  // Group lines by product and keep track of which delivery months have data
+  const { productData, availableMonths } = useMemo(() => {
     const productMap = new Map<number, ProductForecastData>();
+    const monthKeys = new Set<number>();
 
     for (const line of forecast.lines) {
       if (!productMap.has(line.product_id)) {
@@ -178,16 +195,49 @@ export function ForecastDetailCard({ forecast }: ForecastDetailCardProps) {
       // Ensure quantity is converted to number (fix NaN issue)
       const qty = Number(line.quantity) || 0;
       data.dailyData.set(line.delivery_date, qty);
+
+      const monthKey = getYearMonthKeyFromString(line.delivery_date);
+      if (monthKey !== null) {
+        monthKeys.add(monthKey);
+      }
     }
 
-    return Array.from(productMap.values());
+    return {
+      productData: Array.from(productMap.values()),
+      availableMonths: Array.from(monthKeys).sort((a, b) => a - b),
+    };
   }, [forecast.lines]);
 
-  // Get 31-day dates starting from the first day of the forecast month
-  const dates = useMemo(
-    () => getFixedMonthDates(forecast.forecast_start_date),
-    [forecast.forecast_start_date],
-  );
+  const targetMonthStartDate = useMemo(() => {
+    if (availableMonths.length === 0) {
+      const fallbackBase = forecast.forecast_start_date
+        ? new Date(forecast.forecast_start_date)
+        : new Date();
+      return new Date(fallbackBase.getFullYear(), fallbackBase.getMonth(), 1);
+    }
+
+    const today = new Date();
+    const todayKey = getYearMonthKeyFromDate(today);
+
+    let selectedKey: number | undefined = availableMonths.includes(todayKey)
+      ? todayKey
+      : availableMonths.find((key) => key >= todayKey);
+
+    if (selectedKey === undefined) {
+      // TODO: Remove this fallback once historical daily records move to their
+      // own archive table and the active dataset only contains future months.
+      selectedKey = availableMonths[availableMonths.length - 1];
+    }
+
+    const year = Math.floor(selectedKey / 12);
+    const month = selectedKey % 12;
+    return new Date(year, month, 1);
+  }, [availableMonths, forecast.forecast_start_date]);
+
+  const targetMonthIso = targetMonthStartDate.toISOString();
+
+  // Get 31-day dates starting from the selected target month
+  const dates = useMemo(() => getFixedMonthDates(targetMonthIso), [targetMonthIso]);
 
   // Split into 3 rows for CSS Grid (10 columns each, last row has remainder)
   const row1 = dates.slice(0, 10);
