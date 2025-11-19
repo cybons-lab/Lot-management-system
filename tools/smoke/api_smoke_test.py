@@ -135,7 +135,7 @@ def main():
         ("version", f"{base_url}/version"),
         ("openapi.json", f"{base_url}/openapi.json"),
         ("masters.warehouses list", f"{base_url}/api/masters/warehouses"),
-        ("masters.products list", f"{base_url}/api/masters/products"),
+        ("masters.products list", f"{base_url}/api/products"),
         ("lots list", f"{base_url}/api/lots"),
         ("orders list", f"{base_url}/api/orders"),
         ("allocations list", f"{base_url}/api/allocations"),

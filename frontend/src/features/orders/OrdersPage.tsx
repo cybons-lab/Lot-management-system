@@ -1,11 +1,11 @@
 import { Loader2, RefreshCcw } from "lucide-react";
 import * as React from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { OrderCard } from "@/features/orders/components/OrderCard";
 import { OrderFilters } from "@/features/orders/components/OrderFilters";
 import { useOrdersList } from "@/features/orders/hooks/useOrders";
-import { useToast } from "@/hooks/use-toast";
 import type { OrderWithLinesResponse, OrdersListParams } from "@/shared/types/aliases";
 
 const DEFAULT_FILTERS: OrdersListParams = { limit: 20, skip: 0 };
@@ -33,7 +33,6 @@ function normaliseOrders(data: unknown): OrderWithLinesResponse[] {
 
 export function OrdersPage() {
   const [filters, setFilters] = React.useState<OrdersListParams>(DEFAULT_FILTERS);
-  const { toast } = useToast();
 
   const ordersQuery = useOrdersList(filters);
   const orders = React.useMemo(() => normaliseOrders(ordersQuery.data), [ordersQuery.data]);
@@ -53,13 +52,9 @@ export function OrdersPage() {
 
   React.useEffect(() => {
     if (ordersQuery.error) {
-      toast({
-        title: "受注の取得に失敗しました",
-        description: ordersQuery.error instanceof Error ? ordersQuery.error.message : undefined,
-        variant: "destructive",
-      });
+      toast.error("受注の取得に失敗しました");
     }
-  }, [ordersQuery.error, toast]);
+  }, [ordersQuery.error]);
 
   return (
     <div className="space-y-6 p-6">

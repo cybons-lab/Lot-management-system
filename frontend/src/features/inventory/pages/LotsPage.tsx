@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { useAtom } from "jotai";
 import { Plus, RefreshCw } from "lucide-react";
 import { useMemo } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,7 @@ import {
 import { lotFiltersAtom, lotTableSettingsAtom } from "@/features/inventory/state";
 import { useLotsQuery } from "@/hooks/api";
 import { useCreateLot } from "@/hooks/mutations";
-import { useDialog, useToast } from "@/hooks/ui";
+import { useDialog } from "@/hooks/ui";
 import { DataTable, type Column } from "@/shared/components/data/DataTable";
 import { FilterField } from "@/shared/components/data/FilterField";
 import { FilterPanel } from "@/shared/components/data/FilterPanel";
@@ -39,7 +40,6 @@ import { FormDialog } from "@/shared/components/form";
 import { Section } from "@/shared/components/layout";
 import type { LotUI } from "@/shared/libs/normalize";
 import { fmt } from "@/shared/utils/number";
-
 // ============================================
 // メインコンポーネント
 // ============================================
@@ -51,7 +51,6 @@ export function LotsPage() {
 
   // UI状態管理
   const createDialog = useDialog();
-  const toast = useToast();
 
   // データ取得（null → undefined 変換）
   const {
@@ -382,22 +381,6 @@ export function LotsPage() {
           isSubmitting={createLotMutation.isPending}
         />
       </FormDialog>
-
-      {/* トースト表示 */}
-      {toast.toasts.map((t) => (
-        <div
-          key={t.id}
-          className={`fixed right-6 bottom-6 rounded-lg px-4 py-3 text-sm shadow-lg ${
-            t.variant === "success"
-              ? "bg-green-600 text-white"
-              : t.variant === "error"
-                ? "bg-red-600 text-white"
-                : "bg-slate-900 text-white"
-          }`}
-        >
-          {t.message}
-        </div>
-      ))}
     </div>
   );
 }

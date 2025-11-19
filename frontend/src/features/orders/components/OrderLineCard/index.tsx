@@ -1,5 +1,6 @@
 import { RefreshCcw } from "lucide-react";
 import * as React from "react";
+import { toast } from "sonner";
 
 import { InfoRow } from "@/components/common/InfoRow";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,6 @@ import {
   type OrderLineSource,
   type OrderSource,
 } from "@/features/orders/hooks/useOrderLineComputed";
-import { useToast } from "@/hooks/use-toast";
 import { coerceAllocatedLots } from "@/shared/libs/allocations";
 import { formatCodeAndName } from "@/shared/libs/utils";
 import { formatYmd } from "@/shared/libs/utils/date";
@@ -27,7 +27,6 @@ type Props = {
 
 export function OrderLineCard({ order, line, onRematch }: Props) {
   const computed = useOrderLineComputed(line, order ?? undefined);
-  const { toast } = useToast();
 
   const lineId = computed.lineId;
   const { candidatesQ, createAlloc, cancelAlloc } = useAllocationActions(
@@ -48,19 +47,12 @@ export function OrderLineCard({ order, line, onRematch }: Props) {
   const handleAllocate = React.useCallback(
     (lotId: number, qty: number) => {
       if (!lineId) {
-        toast({
-          title: "引当できません",
-          description: "受注明細が選択されていません。",
-          variant: "destructive",
-        });
+        toast.error("引当できません", { description: "受注明細が選択されていません。" });
         return;
       }
 
       if (qty <= 0) {
-        toast({
-          title: "引当数量を入力してください",
-          variant: "destructive",
-        });
+        toast.error("引当数量を入力してください");
         return;
       }
 
@@ -68,28 +60,22 @@ export function OrderLineCard({ order, line, onRematch }: Props) {
         { allocations: [{ lot_id: lotId, qty }] },
         {
           onSuccess: () => {
-            toast({ title: "引当が完了しました" });
+            toast.success("引当が完了しました");
           },
           onError: () => {
-            toast({
-              title: "引当に失敗しました",
-              description: "時間をおいて再度お試しください。",
-              variant: "destructive",
-            });
+            toast.error("引当に失敗しました", { description: "時間をおいて再度お試しください。" });
           },
         },
       );
     },
-    [createAlloc, lineId, toast],
+    [createAlloc, lineId],
   );
 
   const handleCancelAllocation = React.useCallback(
     (allocationId: number) => {
       if (!lineId) {
-        toast({
-          title: "取消できません",
+        toast.error("取消できません", {
           description: "受注明細が選択されていません。",
-          variant: "destructive",
         });
         return;
       }
@@ -98,19 +84,17 @@ export function OrderLineCard({ order, line, onRematch }: Props) {
         { allocation_ids: [allocationId] },
         {
           onSuccess: () => {
-            toast({ title: "引当を取り消しました" });
+            toast.success("引当を取り消しました");
           },
           onError: () => {
-            toast({
-              title: "引当取消に失敗しました",
+            toast.error("引当取消に失敗しました", {
               description: "ネットワーク状況をご確認ください。",
-              variant: "destructive",
             });
           },
         },
       );
     },
-    [cancelAlloc, lineId, toast],
+    [cancelAlloc, lineId],
   );
 
   return (

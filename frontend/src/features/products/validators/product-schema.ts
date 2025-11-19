@@ -16,16 +16,9 @@ export const productSchema = z.object({
 });
 
 // Minimal master schema type shims for compile
-export type Product = {
-  product_code: string;
-  product_name: string;
-  packaging_qty?: string;
-  packaging_unit?: string;
-  internal_unit?: string;
-  customer_part_no?: string | null;
-  maker_part_no?: string | null;
-  requires_lot_number?: boolean;
-};
+import type { components } from "@/types/api";
+
+export type Product = components["schemas"]["ProductResponse"];
 
 /**
  * 型推論

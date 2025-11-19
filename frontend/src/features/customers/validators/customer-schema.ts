@@ -16,11 +16,9 @@ export const customerSchema = z.object({
   email: z.string().email("有効なメールアドレスを入力してください").optional(),
 });
 
-export type Customer = {
-  customer_code: string;
-  customer_name?: string;
-  address?: string | null;
-};
+import type { components } from "@/types/api";
+
+export type Customer = components["schemas"]["CustomerResponse"];
 
 /**
  * 型推論
