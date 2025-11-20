@@ -4,7 +4,6 @@ import type { PreviewCounts, PreviewData } from "../types";
 
 import type { SimulateSeedRequest } from "@/features/admin/api/admin-simulate";
 
-
 /**
  * Convert a value to number or null
  */

@@ -4,7 +4,6 @@ import type { ProfileSelectProps } from "../types";
 import { Label } from "@/components/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
 
-
 /**
  * Profile selection dropdown component
  */

@@ -2,7 +2,6 @@ import { useMutation } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
-
 import { POLLING_INTERVAL_MS } from "../constants";
 import type { UseSimulationPollingReturn } from "../types";
 

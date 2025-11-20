@@ -1,7 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
 
-
 import { ParameterInputs } from "./components/ParameterInputs";
 import { PreviewSection } from "./components/PreviewSection";
 import { ProfileSelect } from "./components/ProfileSelect";
@@ -68,7 +67,9 @@ export function SeedSimulateDialog({ open, onOpenChange }: SeedSimulateDialogPro
             <SnapshotSettings
               saveSnapshot={form.save_snapshot || false}
               snapshotName={form.snapshot_name ?? null}
-              onSaveSnapshotChange={(checked) => setForm((prev) => ({ ...prev, save_snapshot: checked }))}
+              onSaveSnapshotChange={(checked) =>
+                setForm((prev) => ({ ...prev, save_snapshot: checked }))
+              }
               onSnapshotNameChange={(name) => setForm((prev) => ({ ...prev, snapshot_name: name }))}
             />
 

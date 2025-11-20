@@ -4,7 +4,6 @@ import { Checkbox } from "@/components/ui";
 import { Input } from "@/components/ui";
 import { Label } from "@/components/ui";
 
-
 /**
  * Snapshot configuration settings component
  */

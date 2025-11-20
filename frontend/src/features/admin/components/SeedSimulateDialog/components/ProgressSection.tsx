@@ -4,7 +4,6 @@ import type { ProgressSectionProps } from "../types";
 
 import { Badge } from "@/components/ui";
 
-
 /**
  * Progress display section showing simulation status and logs
  */

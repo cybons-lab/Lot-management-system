@@ -75,7 +75,13 @@ function SelectInput({
 /**
  * Forecast checkbox component
  */
-function ForecastCheckbox({ checked, onChange }: { checked: boolean; onChange: (v: number) => void }) {
+function ForecastCheckbox({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (v: number) => void;
+}) {
   return (
     <div className="space-y-2">
       <Label>需要予測データ</Label>
@@ -85,7 +91,9 @@ function ForecastCheckbox({ checked, onChange }: { checked: boolean; onChange: (
           checked={checked}
           onCheckedChange={(c) => onChange(c === true ? 1 : 0)}
         />
-        <Label htmlFor="forecasts" className="m-0 cursor-pointer">需要予測を生成する</Label>
+        <Label htmlFor="forecasts" className="m-0 cursor-pointer">
+          需要予測を生成する
+        </Label>
       </div>
     </div>
   );
@@ -99,16 +107,70 @@ export function ParameterInputs({ form, onFormChange }: ParameterInputsProps) {
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <NumberInput label="Random Seed" value={form.random_seed} placeholder="自動生成" onChange={(v) => updateField("random_seed", v)} />
-      <NumberInput label="倉庫数（1〜10）" value={form.warehouses ?? DEFAULT_FORM.warehouses} min={1} max={10} onChange={(v) => updateField("warehouses", v ?? DEFAULT_FORM.warehouses)} />
-      <NumberInput label="顧客数（0以上）" value={form.customers} placeholder="プロファイル既定" min={0} onChange={(v) => updateField("customers", v)} />
-      <NumberInput label="仕入先数（0以上）" value={form.suppliers} placeholder="プロファイル既定" min={0} onChange={(v) => updateField("suppliers", v)} />
-      <NumberInput label="製品数（0以上）" value={form.products} placeholder="プロファイル既定" min={0} onChange={(v) => updateField("products", v)} />
-      <NumberInput label="ロット数（0以上）" value={form.lots} placeholder="プロファイル既定" min={0} onChange={(v) => updateField("lots", v)} />
-      <NumberInput label="受注数（0以上）" value={form.orders} placeholder="プロファイル既定" min={0} onChange={(v) => updateField("orders", v)} />
-      <SelectInput label="受注明細行上限（1〜5）" value={form.order_line_items_per_order ?? DEFAULT_FORM.order_line_items_per_order ?? 1} options={ORDER_LINE_OPTIONS} onChange={(v) => updateField("order_line_items_per_order", v)} />
-      <SelectInput label="ロット分割上限（1〜3）" value={form.lot_split_max_per_line ?? DEFAULT_FORM.lot_split_max_per_line ?? 1} options={LOT_SPLIT_OPTIONS} onChange={(v) => updateField("lot_split_max_per_line", v)} />
-      <ForecastCheckbox checked={(form.forecasts ?? 0) > 0} onChange={(v) => updateField("forecasts", v)} />
+      <NumberInput
+        label="Random Seed"
+        value={form.random_seed}
+        placeholder="自動生成"
+        onChange={(v) => updateField("random_seed", v)}
+      />
+      <NumberInput
+        label="倉庫数（1〜10）"
+        value={form.warehouses ?? DEFAULT_FORM.warehouses}
+        min={1}
+        max={10}
+        onChange={(v) => updateField("warehouses", v ?? DEFAULT_FORM.warehouses)}
+      />
+      <NumberInput
+        label="顧客数（0以上）"
+        value={form.customers}
+        placeholder="プロファイル既定"
+        min={0}
+        onChange={(v) => updateField("customers", v)}
+      />
+      <NumberInput
+        label="仕入先数（0以上）"
+        value={form.suppliers}
+        placeholder="プロファイル既定"
+        min={0}
+        onChange={(v) => updateField("suppliers", v)}
+      />
+      <NumberInput
+        label="製品数（0以上）"
+        value={form.products}
+        placeholder="プロファイル既定"
+        min={0}
+        onChange={(v) => updateField("products", v)}
+      />
+      <NumberInput
+        label="ロット数（0以上）"
+        value={form.lots}
+        placeholder="プロファイル既定"
+        min={0}
+        onChange={(v) => updateField("lots", v)}
+      />
+      <NumberInput
+        label="受注数（0以上）"
+        value={form.orders}
+        placeholder="プロファイル既定"
+        min={0}
+        onChange={(v) => updateField("orders", v)}
+      />
+      <SelectInput
+        label="受注明細行上限（1〜5）"
+        value={form.order_line_items_per_order ?? DEFAULT_FORM.order_line_items_per_order ?? 1}
+        options={ORDER_LINE_OPTIONS}
+        onChange={(v) => updateField("order_line_items_per_order", v)}
+      />
+      <SelectInput
+        label="ロット分割上限（1〜3）"
+        value={form.lot_split_max_per_line ?? DEFAULT_FORM.lot_split_max_per_line ?? 1}
+        options={LOT_SPLIT_OPTIONS}
+        onChange={(v) => updateField("lot_split_max_per_line", v)}
+      />
+      <ForecastCheckbox
+        checked={(form.forecasts ?? 0) > 0}
+        onChange={(v) => updateField("forecasts", v)}
+      />
       <div className="space-y-2 md:col-span-2">
         <Label>納品先上限（固定=5）</Label>
         <Input type="text" value="5" disabled className="bg-muted" />

@@ -1,6 +1,5 @@
 import { useCallback, useState } from "react";
 
-
 import { DEFAULT_FORM, DEFAULT_PROFILE_VALUE, PROFILE_WAREHOUSE_MAP } from "../constants";
 import type { UseSimulationFormReturn } from "../types";
 

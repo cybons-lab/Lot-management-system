@@ -4,7 +4,6 @@ import type { ResultSectionProps } from "../types";
 
 import { Badge } from "@/components/ui";
 
-
 /**
  * Cap check badge component
  */
