@@ -1,4 +1,4 @@
-# Frontend Style Guide  
+# Frontend Style Guide
 
 Lot Management System (React + TypeScript)
 
@@ -22,11 +22,11 @@ Tailwind は引き続き利用しますが、
 
 ---
 
-# 📁 2. Style Modules（*.styles.ts）の作成ルール
+# 📁 2. Style Modules（\*.styles.ts）の作成ルール
 
 ## 2-1. 各コンポーネント専用にスタイルファイルを作る
 
-例：  
+例：
 
 ```
 src/features/allocations/components/LotAllocationPanel/
@@ -46,15 +46,15 @@ export const wrapper = "flex flex-col gap-3 p-2";
 
 ```tsx
 // ❌ Bad
-<div className="flex flex-col gap-3 p-2">...</div>
+<div className="flex flex-col gap-3 p-2">...</div>;
 
 // ✅ Good
 import * as styles from "./LotAllocationPanel.styles";
 
-<div className={styles.wrapper}>...</div>
+<div className={styles.wrapper}>...</div>;
 ```
 
-------
+---
 
 # ⚙ 3. class-variance-authority (cva) の利用ルール
 
@@ -65,36 +65,31 @@ import * as styles from "./LotAllocationPanel.styles";
 ```ts
 import { cva } from "class-variance-authority";
 
-export const lotCard = cva(
-  "rounded-md border p-3 shadow-sm transition-colors",
-  {
-    variants: {
-      active: {
-        true: "border-primary bg-primary/10",
-        false: "border-muted bg-background",
-      },
-      error: {
-        true: "border-destructive bg-destructive/10",
-        false: "",
-      },
+export const lotCard = cva("rounded-md border p-3 shadow-sm transition-colors", {
+  variants: {
+    active: {
+      true: "border-primary bg-primary/10",
+      false: "border-muted bg-background",
     },
-    defaultVariants: {
-      active: false,
-      error: false,
+    error: {
+      true: "border-destructive bg-destructive/10",
+      false: "",
     },
-  }
-);
+  },
+  defaultVariants: {
+    active: false,
+    error: false,
+  },
+});
 ```
 
 ## 3-2. JSX 側での使用
 
 ```tsx
-<div className={styles.lotCard({ active: isSelected, error })}>
-  ...
-</div>
+<div className={styles.lotCard({ active: isSelected, error })}>...</div>
 ```
 
-------
+---
 
 # 🔄 4. Class 結合は `clsx` 推奨
 
@@ -109,7 +104,7 @@ export const row = clsx(
 <div className={styles.row}>...</div>
 ```
 
-------
+---
 
 # 📦 5. 禁止事項
 
@@ -120,7 +115,7 @@ export const row = clsx(
 - インライン style を常用する
 - デザインに影響するクラスをコンポーネント内にハードコードする
 
-------
+---
 
 # 📚 6. 推奨ツール
 
@@ -129,7 +124,7 @@ export const row = clsx(
 - **TailwindCSS**（ユーティリティベースの記述）
 - **shadcn/ui**（統一感のある UI コンポーネント構築）
 
-------
+---
 
 # 📁 7. ディレクトリ構成の原則
 
@@ -141,14 +136,14 @@ ComponentName/
   ComponentName.test.tsx      ← テスト（任意）
 ```
 
-------
+---
 
 # 🧪 8. テスト部分（任意）
 
 スタイルに依存するテストは不要。
- ロジック部分のみ対象。
+ロジック部分のみ対象。
 
-------
+---
 
 # 🧭 9. 変更時
 
@@ -156,7 +151,7 @@ ComponentName/
 - Claude Code / Gemini に依頼する場合は
   **「STYLE_GUIDE に従って」** と指示すること
 
-------
+---
 
 # ✔ 以上
 
