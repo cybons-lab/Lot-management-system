@@ -12,7 +12,6 @@ import { FilterField } from "@/shared/components/data/FilterField";
 import { FilterPanel } from "@/shared/components/data/FilterPanel";
 import { SearchBar } from "@/shared/components/data/SearchBar";
 
-
 interface LotFiltersProps {
   /** フィルター値 */
   filters: LotFilterValues;

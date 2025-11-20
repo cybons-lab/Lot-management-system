@@ -10,7 +10,6 @@
 import { Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
-
 import { LotCreateForm, type LotCreateData } from "../components/LotCreateForm";
 import { LotFilters } from "../components/LotFilters";
 import { LotStatsCards } from "../components/LotStatsCards";
@@ -104,11 +103,7 @@ export function InventoryPage() {
 
       {/* フィルター */}
       <Section className="mb-6">
-        <LotFilters
-          filters={filters.values}
-          onFilterChange={filters.set}
-          onReset={filters.reset}
-        />
+        <LotFilters filters={filters.values} onFilterChange={filters.set} onReset={filters.reset} />
       </Section>
 
       {/* エラー表示 */}

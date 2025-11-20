@@ -12,7 +12,6 @@ import { DataTable } from "@/shared/components/data/DataTable";
 import { TablePagination } from "@/shared/components/data/TablePagination";
 import type { LotUI } from "@/shared/libs/normalize";
 
-
 interface LotTableProps {
   /** ロット一覧データ */
   lots: LotUI[];
