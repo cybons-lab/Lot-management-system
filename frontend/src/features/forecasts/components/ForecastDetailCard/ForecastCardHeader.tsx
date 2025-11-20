@@ -4,10 +4,10 @@
 
 import { ChevronDown } from "lucide-react";
 
+import { type ForecastCardHeaderProps } from "./types";
+
 import { Button } from "@/components/ui";
 import { cn } from "@/shared/libs/utils";
-
-import type { ForecastCardHeaderProps } from "./types";
 
 /**
  * Display card header with customer, product, and delivery place information
@@ -19,7 +19,6 @@ export function ForecastCardHeader({
   productName,
   productCode,
   deliveryPlaceDisplay,
-  groupKey,
   isActive,
   isOpen,
   onToggle,

@@ -2,7 +2,6 @@
  * ForecastDailyGrid - Daily forecast grid display
  */
 
-import { GRID_CONFIG } from "./constants";
 import { ForecastDayCell } from "./ForecastDayCell";
 import type { ForecastDailyGridProps } from "./types";
 import { formatDateKey, isPastDate } from "./utils/date-utils";

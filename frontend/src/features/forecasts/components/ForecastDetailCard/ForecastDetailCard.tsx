@@ -30,15 +30,8 @@ export function ForecastDetailCard({
   const { group_key, forecasts } = group;
 
   // Calculate all forecast data using custom hook
-  const {
-    dailyData,
-    unit,
-    targetMonthStartDate,
-    dates,
-    dekadData,
-    monthlyData,
-    targetMonthTotal,
-  } = useForecastCalculations(group);
+  const { dailyData, unit, targetMonthStartDate, dates, dekadData, monthlyData, targetMonthTotal } =
+    useForecastCalculations(group);
 
   // Early return if no forecasts
   if (forecasts.length === 0) {
