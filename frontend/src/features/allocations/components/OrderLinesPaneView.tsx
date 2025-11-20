@@ -84,7 +84,7 @@ export function OrderLinesPaneView({
             showLowStockBadge,
             deliveryPlaceDisplay,
             requiredQty,
-            dbAllocated,
+
             uiAllocated,
             allocatedQty,
             remainingQty,
