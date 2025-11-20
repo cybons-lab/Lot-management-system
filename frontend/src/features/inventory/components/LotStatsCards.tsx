@@ -16,7 +16,7 @@ interface LotStatsCardsProps {
 /**
  * ロット統計情報カード
  */
-export function LotStatsCards({ stats }: LotStatzsCardsProps) {
+export function LotStatsCards({ stats }: LotStatsCardsProps) {
   return (
     <div className="mb-6 grid grid-cols-3 gap-4">
       <StatCard title="総ロット数" value={stats.totalLots.toString()} />
