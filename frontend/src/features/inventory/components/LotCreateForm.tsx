@@ -1,21 +1,49 @@
+/**
+ * LotCreateForm.tsx
+ *
+ * ロット新規登録フォームコンポーネント
+ */
+
 import { Button, Input, Label } from "@/components/ui";
 
+/**
+ * ロット作成データの型定義
+ */
+export interface LotCreateData {
+  lot_number: string;
+  product_code: string;
+  supplier_code: string;
+  delivery_place_code?: string;
+  delivery_place_name?: string;
+  quantity: number;
+  lot_unit: string;
+  receipt_date: string;
+  expiry_date?: string;
+}
+
 interface LotCreateFormProps {
-  onSubmit: (data: Record<string, unknown>) => Promise<void>;
+  /** フォーム送信ハンドラ */
+  onSubmit: (data: LotCreateData) => Promise<void>;
+  /** キャンセルハンドラ */
   onCancel: () => void;
+  /** 送信中状態 */
   isSubmitting: boolean;
 }
 
+/**
+ * ロット新規登録フォーム
+ */
 export function LotCreateForm({ onSubmit, onCancel, isSubmitting }: LotCreateFormProps) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    const data = {
+    const data: LotCreateData = {
       lot_number: formData.get("lot_number") as string,
       product_code: formData.get("product_code") as string,
       supplier_code: formData.get("supplier_code") as string,
-      delivery_place_code: formData.get("delivery_place_code") as string,
+      delivery_place_code: (formData.get("delivery_place_code") as string) || undefined,
+      delivery_place_name: (formData.get("delivery_place_name") as string) || undefined,
       quantity: Number(formData.get("quantity")),
       lot_unit: formData.get("lot_unit") as string,
       receipt_date: formData.get("receipt_date") as string,
@@ -44,13 +72,13 @@ export function LotCreateForm({ onSubmit, onCancel, isSubmitting }: LotCreateFor
         </div>
 
         <div>
-          <Label htmlFor="delivery_place_code">納品場所コード *</Label>
-          <Input
-            id="delivery_place_code"
-            name="delivery_place_code"
-            required
-            placeholder="例: DP01"
-          />
+          <Label htmlFor="delivery_place_code">納品先コード</Label>
+          <Input id="delivery_place_code" name="delivery_place_code" placeholder="例: DP-001" />
+        </div>
+
+        <div>
+          <Label htmlFor="delivery_place_name">納品先名</Label>
+          <Input id="delivery_place_name" name="delivery_place_name" placeholder="例: 東京倉庫" />
         </div>
 
         <div>
