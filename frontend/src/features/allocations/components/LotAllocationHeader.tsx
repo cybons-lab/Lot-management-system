@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
-import { formatDate } from "@/shared/utils/date";
-import type { OrderLine } from "@/shared/types/aliases";
-
 import { LotAllocationHeaderView } from "./LotAllocationHeaderView";
+
+import type { OrderLine } from "@/shared/types/aliases";
+import { formatDate } from "@/shared/utils/date";
 
 type Order = {
   order_number?: string | null;

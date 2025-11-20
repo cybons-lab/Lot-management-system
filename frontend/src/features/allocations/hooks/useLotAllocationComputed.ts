@@ -3,19 +3,14 @@ import { useMemo } from "react";
 type CustomerList = Awaited<
   ReturnType<typeof import("@/services/api/master-service").listCustomers>
 >;
-type ProductList = Awaited<
-  ReturnType<typeof import("@/services/api/master-service").listProducts>
->;
+type ProductList = Awaited<ReturnType<typeof import("@/services/api/master-service").listProducts>>;
 
 interface UseLotAllocationComputedOptions {
   customers?: CustomerList;
   products?: ProductList;
 }
 
-export function useLotAllocationComputed({
-  customers,
-  products,
-}: UseLotAllocationComputedOptions) {
+export function useLotAllocationComputed({ customers, products }: UseLotAllocationComputedOptions) {
   const customerMap = useMemo(() => {
     if (!customers) return {};
     return customers.reduce(

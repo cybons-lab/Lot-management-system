@@ -91,14 +91,20 @@ export function LotAllocationHeaderView({
 
           <div className="flex items-end gap-6">
             <div>
-              <span className="text-[10px] font-bold tracking-wider text-gray-500 uppercase">必要数量</span>
-              <div className="text-2xl leading-none font-bold text-gray-900">{requiredQty.toLocaleString()}</div>
+              <span className="text-[10px] font-bold tracking-wider text-gray-500 uppercase">
+                必要数量
+              </span>
+              <div className="text-2xl leading-none font-bold text-gray-900">
+                {requiredQty.toLocaleString()}
+              </div>
             </div>
 
             <div className="h-8 w-px bg-gray-100" />
 
             <div>
-              <span className="text-[10px] font-bold tracking-wider text-gray-500 uppercase">引当合計</span>
+              <span className="text-[10px] font-bold tracking-wider text-gray-500 uppercase">
+                引当合計
+              </span>
               <div className="text-2xl leading-none font-bold text-blue-600">
                 {totalAllocated.toLocaleString()}
               </div>
@@ -107,11 +113,17 @@ export function LotAllocationHeaderView({
             <div className="h-8 w-px bg-gray-100" />
 
             <div>
-              <span className="text-[10px] font-bold tracking-wider text-gray-500 uppercase">残り</span>
+              <span className="text-[10px] font-bold tracking-wider text-gray-500 uppercase">
+                残り
+              </span>
               <div
                 className={cn(
                   "text-2xl leading-none font-bold",
-                  remainingQty > 0 ? "text-red-600" : remainingQty < 0 ? "text-red-600" : "text-green-600",
+                  remainingQty > 0
+                    ? "text-red-600"
+                    : remainingQty < 0
+                      ? "text-red-600"
+                      : "text-green-600",
                 )}
               >
                 {Math.abs(remainingQty).toLocaleString()}

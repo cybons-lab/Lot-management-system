@@ -11,8 +11,14 @@ export type { LineStatus, LineStockStatus };
 export function useLotAllocation() {
   const queryClient = useQueryClient();
 
-  const { allocationsByLine, setAllocationsByLine, lineStatuses, setLineStatuses, toast, setToast } =
-    useLotAllocationState();
+  const {
+    allocationsByLine,
+    setAllocationsByLine,
+    lineStatuses,
+    setLineStatuses,
+    toast,
+    setToast,
+  } = useLotAllocationState();
 
   const { ordersQuery, orders, allLines, customersQuery, productsQuery } = useLotAllocationData();
 

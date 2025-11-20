@@ -18,5 +18,12 @@ export function useLotAllocationState() {
     }
   }, [toast]);
 
-  return { allocationsByLine, setAllocationsByLine, lineStatuses, setLineStatuses, toast, setToast };
+  return {
+    allocationsByLine,
+    setAllocationsByLine,
+    lineStatuses,
+    setLineStatuses,
+    toast,
+    setToast,
+  };
 }
