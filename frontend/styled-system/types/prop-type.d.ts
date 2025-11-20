@@ -125,7 +125,7 @@ export interface UtilityValues {
 	borderSpacingY: Tokens["spacing"];
 	transitionProperty: "common" | "colors" | "size" | "position" | "background";
 	transition: "all" | "common" | "size" | "position" | "background" | "colors" | "opacity" | "shadow" | "transform";
-	animationName: "spin" | "ping" | "pulse" | "bounce";
+	animationName: "spin" | "ping" | "pulse" | "bounce" | "shake";
 	rotate: "auto" | "auto-3d" | CssProperties["rotate"];
 	rotateX: CssProperties["rotate"];
 	rotateY: CssProperties["rotate"];

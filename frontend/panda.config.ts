@@ -1,14 +1,16 @@
-// panda.config.ts
 import { defineConfig } from "@pandacss/dev";
 
 export default defineConfig({
-  // どのファイルをスキャンするか
+  // ▼▼▼ 追加: Park UI用プリセット ▼▼▼
+  presets: ["@pandacss/dev/presets", "@park-ui/panda-preset"],
+
+  // ▼▼▼ 追加: Reactフレームワーク指定 ▼▼▼
+  jsxFramework: "react",
+
   include: ["./src/**/*.{ts,tsx}"],
 
-  // 生成物の出力場所
   outdir: "styled-system",
 
-  // Tailwind 併用前提なのでリセットは無効化
   globalCss: {
     "*, *::before, *::after": {
       boxSizing: "border-box",
@@ -19,11 +21,22 @@ export default defineConfig({
     },
   },
 
-  // 最小限の design tokens
   theme: {
+    // ▼▼▼ 追加: ここにカスタムアニメーション定義（extend）を挿入 ▼▼▼
+    extend: {
+      keyframes: {
+        shake: {
+          "0%, 100%": { transform: "translateX(0)" },
+          "10%, 30%, 50%, 70%, 90%": { transform: "translateX(-2px)" },
+          "20%, 40%, 60%, 80%": { transform: "translateX(2px)" },
+        },
+      },
+    },
+    // ▲▲▲ 追加ここまで ▲▲▲
+
+    // ▼▼▼ 元の定義はそのまま維持 ▼▼▼
     tokens: {
       colors: {
-        // Tailwind に合わせて最低限
         gray: {
           50: { value: "#f9fafb" },
           100: { value: "#f3f4f6" },
