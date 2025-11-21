@@ -5,7 +5,7 @@ import { AllocationEmptyState } from "./AllocationEmptyState";
 import { LotAllocationHeader } from "./LotAllocationHeader";
 import { LotAllocationList } from "./LotAllocationList";
 import { useAllocationCalculations } from "./hooks/useAllocationCalculations";
-import { useAllocationStyles } from "./hooks/useAllocationStyles";
+import * as styles from "./styles";
 
 import type { OrderLine, OrderWithLinesResponse } from "@/shared/types/aliases";
 import { cn } from "@/shared/libs/utils";
@@ -74,13 +74,6 @@ export function LotAllocationPanel({
     isOver,
   } = calculations;
 
-  // スタイリング（カスタムフックで集約）
-  const { containerClasses } = useAllocationStyles({
-    isActive,
-    isComplete: isComplete && !isOverAllocated,
-    isOver: isOver || isOverAllocated,
-  });
-
   // インタラクション時にパネルをアクティブにする
   const handleInteraction = () => {
     if (onActivate) {
@@ -105,16 +98,26 @@ export function LotAllocationPanel({
   const deliveryPlaceName = getDeliveryPlaceName(orderLine, candidateLots);
   const productName = getProductName(orderLine, propProductName);
 
+  // スタイル状態の決定
+  let panelState: "inactive" | "active" | "complete" | "error" = "inactive";
+  if (isOver || isOverAllocated) {
+    panelState = "error";
+  } else if (isComplete) {
+    panelState = "complete";
+  } else if (isActive) {
+    panelState = "active";
+  }
+
   return (
     <div
-      className={cn("relative outline-none", isLoading ? "pointer-events-none" : "")}
+      className={cn(styles.panelWrapper, isLoading ? "pointer-events-none" : "")}
       onClick={handleInteraction}
       onFocus={handleInteraction}
       onMouseEnter={handleInteraction}
     >
-      <div className={containerClasses}>
+      <div className={styles.panelRoot({ state: panelState })}>
         {/* ヘッダー部分 */}
-        <div className="overflow-hidden rounded-t-lg">
+        <div className={styles.panelHeader}>
           <LotAllocationHeader
             order={order}
             orderLine={orderLine}
@@ -137,7 +140,7 @@ export function LotAllocationPanel({
         </div>
 
         {/* ロット一覧エリア */}
-        <div className="flex-1 p-2 transition-colors duration-300">
+        <div className={styles.panelBody}>
           {isLoading ? (
             <AllocationEmptyState type="loading" />
           ) : error ? (
