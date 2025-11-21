@@ -116,9 +116,14 @@ export function InboundPlansList({
         <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-600">
           データの取得に失敗しました
         </div>
-      ) : !plans || plans.length === 0 ? (
+      ) : !Array.isArray(plans) || plans.length === 0 ? (
         <div className="rounded-lg border bg-white p-8 text-center text-gray-500">
           入荷予定が登録されていません
+          {!Array.isArray(plans) && plans && (
+            <div className="mt-2 text-xs text-red-500">
+              データ形式エラー: 配列ではありません (Received: {typeof plans})
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
@@ -157,13 +162,12 @@ export function InboundPlansList({
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <span
-                        className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                          plan.status === "pending"
+                        className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${plan.status === "pending"
                             ? "bg-yellow-100 text-yellow-800"
                             : plan.status === "received"
                               ? "bg-green-100 text-green-800"
                               : "bg-gray-100 text-gray-800"
-                        }`}
+                          }`}
                       >
                         {plan.status}
                       </span>
