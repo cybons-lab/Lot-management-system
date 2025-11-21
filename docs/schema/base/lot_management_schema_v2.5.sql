@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict n726FULLf8B1vKmY6KT8f7AfqzjtMdzeqSRDiBJXPcaNmlTo4W0d6KqCvJ6Nsmx
+\restrict DOFP6XUDjgPHuRxbPQt9CiSi3YJfdhzGniRiPFVJkIgY2Unmx07YIDIpV2rxF7p
 
 -- Dumped from database version 15.15
 -- Dumped by pg_dump version 15.15
@@ -497,20 +497,6 @@ CREATE TABLE public.lots (
 
 
 --
--- Name: lot_current_stock; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW public.lot_current_stock AS
- SELECT l.id AS lot_id,
-    l.product_id,
-    l.warehouse_id,
-    l.current_quantity,
-    l.updated_at AS last_updated
-   FROM public.lots l
-  WHERE (l.current_quantity > (0)::numeric);
-
-
---
 -- Name: lots_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -985,14 +971,17 @@ CREATE VIEW public.v_forecast_order_pairs AS
 
 
 --
--- Name: v_product_code_to_id; Type: VIEW; Schema: public; Owner: -
+-- Name: v_lot_current_stock; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE VIEW public.v_product_code_to_id AS
- SELECT p.maker_part_code AS product_code,
-    p.id AS product_id,
-    p.product_name
-   FROM public.products p;
+CREATE VIEW public.v_lot_current_stock AS
+ SELECT l.id AS lot_id,
+    l.product_id,
+    l.warehouse_id,
+    l.current_quantity,
+    l.updated_at AS last_updated
+   FROM public.lots l
+  WHERE (l.current_quantity > (0)::numeric);
 
 
 --
@@ -1008,6 +997,36 @@ CREATE TABLE public.warehouses (
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT chk_warehouse_type CHECK (((warehouse_type)::text = ANY (ARRAY[('internal'::character varying)::text, ('external'::character varying)::text, ('supplier'::character varying)::text])))
 );
+
+
+--
+-- Name: v_lot_details; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.v_lot_details AS
+ SELECT laq.lot_id,
+    l.lot_number,
+    laq.product_id,
+    laq.warehouse_id,
+    w.warehouse_name,
+    laq.available_qty,
+    laq.receipt_date,
+    laq.expiry_date,
+    laq.lot_status
+   FROM ((public.v_lot_available_qty laq
+     JOIN public.lots l ON ((l.id = laq.lot_id)))
+     JOIN public.warehouses w ON ((w.id = laq.warehouse_id)));
+
+
+--
+-- Name: v_product_code_to_id; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.v_product_code_to_id AS
+ SELECT p.maker_part_code AS product_code,
+    p.id AS product_id,
+    p.product_name
+   FROM public.products p;
 
 
 --
@@ -2255,5 +2274,5 @@ ALTER TABLE ONLY public.user_roles
 -- PostgreSQL database dump complete
 --
 
-\unrestrict n726FULLf8B1vKmY6KT8f7AfqzjtMdzeqSRDiBJXPcaNmlTo4W0d6KqCvJ6Nsmx
+\unrestrict DOFP6XUDjgPHuRxbPQt9CiSi3YJfdhzGniRiPFVJkIgY2Unmx07YIDIpV2rxF7p
 
