@@ -11,6 +11,10 @@ import { RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { useInventoryItems } from "../hooks";
+
+import * as styles from "./styles";
+
 import { Button } from "@/components/ui";
 import { Input } from "@/components/ui";
 import { Label } from "@/components/ui";
@@ -19,8 +23,6 @@ import { StatCard } from "@/features/inventory/components/StatCard";
 import { useInventoryStats } from "@/features/inventory/hooks/useInventoryStats";
 import { Section } from "@/shared/components/layout";
 import { fmt } from "@/shared/utils/number";
-
-import { useInventoryItems } from "../hooks";
 
 // ============================================
 // メインコンポーネント
@@ -56,16 +58,16 @@ export function SummaryPage() {
   if (error) {
     return (
       <Section>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
-          <p className="text-sm font-semibold text-red-800">データの取得に失敗しました</p>
-          <p className="mt-2 text-xs text-red-600">
+        <div className={styles.errorState.root}>
+          <p className={styles.errorState.title}>データの取得に失敗しました</p>
+          <p className={styles.errorState.message}>
             {error instanceof Error ? error.message : "サーバーエラーが発生しました"}
           </p>
           <Button
             variant="outline"
             size="sm"
             onClick={() => refetch()}
-            className="mt-4 border-red-300 text-red-700 hover:bg-red-100"
+            className={styles.errorState.retryButton}
           >
             <RefreshCw className="mr-2 h-4 w-4" />
             再試行
@@ -80,9 +82,9 @@ export function SummaryPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className={styles.root}>
       {/* 統計カード */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className={styles.statsGrid}>
         {/* 在庫アイテム数 */}
         <StatCard
           title="在庫アイテム数"
@@ -129,8 +131,8 @@ export function SummaryPage() {
       </div>
 
       {/* Filters */}
-      <div className="rounded-lg border bg-white p-4">
-        <div className="grid gap-4 md:grid-cols-2">
+      <div className={styles.filterCard}>
+        <div className={styles.detailGrid.root}>
           <div>
             <Label className="mb-2 block text-sm font-medium">製品ID</Label>
             <Input
@@ -157,49 +159,49 @@ export function SummaryPage() {
         <div className="space-y-4">
           <div className="text-sm text-gray-600">{inventoryItems.length} 件の在庫アイテム</div>
 
-          <div className="overflow-x-auto rounded-lg border bg-white">
-            <table className="w-full">
-              <thead className="border-b bg-gray-50">
+          <div className={styles.table.container}>
+            <table className={styles.table.root}>
+              <thead className={styles.table.thead}>
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">製品</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">倉庫</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">
+                  <th className={styles.table.th}>製品</th>
+                  <th className={styles.table.th}>倉庫</th>
+                  <th className={styles.table.thRight}>
                     総在庫数
                   </th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">引当済</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">
+                  <th className={styles.table.thRight}>引当済</th>
+                  <th className={styles.table.thRight}>
                     利用可能
                   </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                  <th className={styles.table.th}>
                     最終更新
                   </th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">
+                  <th className={styles.table.thRight}>
                     アクション
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody className={styles.table.tbody}>
                 {inventoryItems.map((item) => (
-                  <tr key={`${item.product_id}-${item.warehouse_id}`} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm">
+                  <tr key={`${item.product_id}-${item.warehouse_id}`} className={styles.table.tr}>
+                    <td className={styles.table.td}>
                       {item.product_name || item.product_code || `ID: ${item.product_id}`}
                     </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className={styles.table.td}>
                       {item.warehouse_name || `ID: ${item.warehouse_id}`}
                     </td>
-                    <td className="px-4 py-3 text-right text-sm font-medium">
+                    <td className={styles.table.tdRight}>
                       {fmt(item.total_quantity)}
                     </td>
-                    <td className="px-4 py-3 text-right text-sm text-yellow-600">
+                    <td className={styles.table.tdRightYellow}>
                       {fmt(item.allocated_quantity)}
                     </td>
-                    <td className="px-4 py-3 text-right text-sm font-medium text-green-600">
+                    <td className={styles.table.tdRightGreen}>
                       {fmt(item.available_quantity)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className={styles.table.tdGray}>
                       {new Date(item.last_updated).toLocaleString("ja-JP")}
                     </td>
-                    <td className="px-4 py-3 text-right text-sm">
+                    <td className={styles.table.tdRight}>
                       <Button
                         variant="outline"
                         size="sm"

@@ -9,11 +9,9 @@
  */
 
 import { Plus, RefreshCw } from "lucide-react";
-
-// バッチ3で作成したフック
-
-// バッチ3で作成した共通コンポーネント
 import { toast } from "sonner";
+
+import * as styles from "./styles";
 
 import { Button } from "@/components/ui";
 import { Input } from "@/components/ui";
@@ -105,22 +103,22 @@ export function OrdersListPage() {
       />
 
       {/* 統計情報 */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md">
-          <div className="text-sm font-medium text-gray-600">総受注数</div>
-          <div className="mt-2 text-3xl font-bold text-gray-900">{stats.totalOrders}</div>
+      <div className={styles.statsGrid}>
+        <div className={styles.statsCard({ variant: "default" })}>
+          <div className={styles.statsLabel}>総受注数</div>
+          <div className={styles.statsValue({ color: "default" })}>{stats.totalOrders}</div>
         </div>
-        <div className="group rounded-xl border-t border-r border-b border-l-4 border-gray-200 border-l-yellow-500 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md">
-          <div className="text-sm font-medium text-gray-600">未処理</div>
-          <div className="mt-2 text-3xl font-bold text-yellow-600">{stats.openOrders}</div>
+        <div className={styles.statsCard({ variant: "yellow" })}>
+          <div className={styles.statsLabel}>未処理</div>
+          <div className={styles.statsValue({ color: "yellow" })}>{stats.openOrders}</div>
         </div>
-        <div className="group rounded-xl border-t border-r border-b border-l-4 border-gray-200 border-l-blue-500 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md">
-          <div className="text-sm font-medium text-gray-600">引当済</div>
-          <div className="mt-2 text-3xl font-bold text-blue-600">{stats.allocatedOrders}</div>
+        <div className={styles.statsCard({ variant: "blue" })}>
+          <div className={styles.statsLabel}>引当済</div>
+          <div className={styles.statsValue({ color: "blue" })}>{stats.allocatedOrders}</div>
         </div>
-        <div className="group rounded-xl border-t border-r border-b border-l-4 border-gray-200 border-l-green-500 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md">
-          <div className="text-sm font-medium text-gray-600">引当率</div>
-          <div className="mt-2 text-3xl font-bold text-green-600">
+        <div className={styles.statsCard({ variant: "green" })}>
+          <div className={styles.statsLabel}>引当率</div>
+          <div className={styles.statsValue({ color: "green" })}>
             {stats.allocationRate.toFixed(1)}%
           </div>
         </div>
@@ -135,7 +133,7 @@ export function OrdersListPage() {
             placeholder="受注番号、得意先コード、得意先名で検索..."
           />
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className={styles.filterGrid}>
             <FilterField label="得意先コード">
               <Input
                 value={filters.values.customer_code}
@@ -163,15 +161,15 @@ export function OrdersListPage() {
             </FilterField>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className={styles.checkboxGroup}>
             <input
               type="checkbox"
               id="unallocatedOnly"
               checked={filters.values.unallocatedOnly}
               onChange={(e) => filters.set("unallocatedOnly", e.target.checked as false)}
-              className="h-4 w-4 rounded border-gray-300"
+              className={styles.checkbox}
             />
-            <label htmlFor="unallocatedOnly" className="text-sm text-gray-700">
+            <label htmlFor="unallocatedOnly" className={styles.checkboxLabel}>
               未引当のみ表示
             </label>
           </div>

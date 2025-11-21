@@ -8,6 +8,9 @@
  */
 
 import { useLocation } from "react-router-dom";
+
+import * as styles from "./TopNavLayout.styles";
+
 import { TopNav } from "@/components/layouts/TopNav";
 
 // ============================================
@@ -22,11 +25,11 @@ export function TopNavLayout({ children }: TopNavLayoutProps) {
   const location = useLocation();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={styles.root}>
       <TopNav currentPath={location.pathname} />
 
       {/* メインコンテンツ */}
-      <main className="mx-auto max-w-[1920px]">{children}</main>
+      <main className={styles.main}>{children}</main>
     </div>
   );
 }

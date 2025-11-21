@@ -5,11 +5,16 @@
 
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+
 import { useUser, useAssignUserRoles } from "../hooks";
-import { useRoles } from "@/features/roles/hooks";
+
+import * as styles from "./styles";
+
 import { Button } from "@/components/ui";
 import { ROUTES } from "@/constants/routes";
+import { useRoles } from "@/features/roles/hooks";
 
+// eslint-disable-next-line max-lines-per-function
 export function UserDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -47,8 +52,8 @@ export function UserDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 p-6">
-        <div className="rounded-lg border bg-white p-8 text-center text-gray-500">
+      <div className={styles.root}>
+        <div className={styles.loadingState}>
           読み込み中...
         </div>
       </div>
@@ -57,8 +62,8 @@ export function UserDetailPage() {
 
   if (isError || !user) {
     return (
-      <div className="space-y-6 p-6">
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-600">
+      <div className={styles.root}>
+        <div className={styles.errorState}>
           ユーザー情報の取得に失敗しました
         </div>
         <Button onClick={handleBack}>戻る</Button>
@@ -67,12 +72,12 @@ export function UserDetailPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className={styles.root}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">ユーザー詳細</h2>
-          <p className="mt-1 text-gray-600">{user.username}</p>
+      <div className={styles.header.root}>
+        <div className={styles.header.titleGroup}>
+          <h2 className={styles.header.title}>ユーザー詳細</h2>
+          <p className={styles.header.description}>{user.username}</p>
         </div>
         <Button variant="outline" onClick={handleBack}>
           一覧に戻る
@@ -80,61 +85,55 @@ export function UserDetailPage() {
       </div>
 
       {/* User Information */}
-      <div className="rounded-lg border bg-white p-6">
-        <h3 className="mb-4 text-lg font-semibold">ユーザー情報</h3>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="text-sm font-medium text-gray-700">ユーザーID</label>
-            <p className="mt-1 text-sm">{user.user_id}</p>
+      <div className={styles.card.root}>
+        <h3 className={styles.card.title}>ユーザー情報</h3>
+        <div className={styles.detailGrid.root}>
+          <div className={styles.detailGrid.item}>
+            <span className={styles.detailGrid.label}>ユーザーID</span>
+            <p className={styles.detailGrid.value}>{user.user_id}</p>
           </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700">ユーザー名</label>
-            <p className="mt-1 text-sm">{user.username}</p>
+          <div className={styles.detailGrid.item}>
+            <span className={styles.detailGrid.label}>ユーザー名</span>
+            <p className={styles.detailGrid.value}>{user.username}</p>
           </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700">メールアドレス</label>
-            <p className="mt-1 text-sm">{user.email}</p>
+          <div className={styles.detailGrid.item}>
+            <span className={styles.detailGrid.label}>メールアドレス</span>
+            <p className={styles.detailGrid.value}>{user.email}</p>
           </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700">表示名</label>
-            <p className="mt-1 text-sm">{user.display_name}</p>
+          <div className={styles.detailGrid.item}>
+            <span className={styles.detailGrid.label}>表示名</span>
+            <p className={styles.detailGrid.value}>{user.display_name}</p>
           </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700">状態</label>
-            <p className="mt-1 text-sm">
-              {user.is_active ? (
-                <span className="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
-                  有効
-                </span>
-              ) : (
-                <span className="inline-flex rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-800">
-                  無効
-                </span>
-              )}
+          <div className={styles.detailGrid.item}>
+            <span className={styles.detailGrid.label}>状態</span>
+            <p className={styles.detailGrid.value}>
+              <span className={styles.statusBadge({ isActive: user.is_active })}>
+                {user.is_active ? "有効" : "無効"}
+              </span>
             </p>
           </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700">最終ログイン</label>
-            <p className="mt-1 text-sm">
+          <div className={styles.detailGrid.item}>
+            <span className={styles.detailGrid.label}>最終ログイン</span>
+            <p className={styles.detailGrid.value}>
               {user.last_login_at
                 ? new Date(user.last_login_at).toLocaleString("ja-JP")
                 : "未ログイン"}
             </p>
           </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700">作成日時</label>
-            <p className="mt-1 text-sm">{new Date(user.created_at).toLocaleString("ja-JP")}</p>
+          <div className={styles.detailGrid.item}>
+            <span className={styles.detailGrid.label}>作成日時</span>
+            <p className={styles.detailGrid.value}>{new Date(user.created_at).toLocaleString("ja-JP")}</p>
           </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700">更新日時</label>
-            <p className="mt-1 text-sm">{new Date(user.updated_at).toLocaleString("ja-JP")}</p>
+          <div className={styles.detailGrid.item}>
+            <span className={styles.detailGrid.label}>更新日時</span>
+            <p className={styles.detailGrid.value}>{new Date(user.updated_at).toLocaleString("ja-JP")}</p>
           </div>
         </div>
       </div>
 
       {/* Assigned Roles */}
-      <div className="rounded-lg border bg-white p-6">
-        <div className="mb-4 flex items-center justify-between">
+      <div className={styles.card.root}>
+        <div className={styles.card.header}>
           <h3 className="text-lg font-semibold">割り当てられたロール</h3>
           <Button onClick={() => setShowRoleForm(!showRoleForm)}>
             {showRoleForm ? "キャンセル" : "ロールを編集"}
@@ -147,7 +146,7 @@ export function UserDetailPage() {
               user.role_codes.map((code) => (
                 <span
                   key={code}
-                  className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-800"
+                  className={styles.roleBadge}
                 >
                   {code}
                 </span>
@@ -157,12 +156,12 @@ export function UserDetailPage() {
             )}
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className={styles.roleForm.root}>
             <div>
-              <label className="mb-2 block text-sm font-medium">ロールを選択</label>
-              <div className="space-y-2">
+              <p className={styles.roleForm.label}>ロールを選択</p>
+              <div className={styles.roleForm.checkboxGroup}>
                 {roles?.map((role) => (
-                  <div key={role.role_id} className="flex items-center gap-2">
+                  <div key={role.role_id} className={styles.roleForm.checkboxItem}>
                     <input
                       type="checkbox"
                       id={`role-${role.role_id}`}
@@ -174,12 +173,12 @@ export function UserDetailPage() {
                           setSelectedRoleIds(selectedRoleIds.filter((id) => id !== role.role_id));
                         }
                       }}
-                      className="h-4 w-4 rounded border-gray-300"
+                      className={styles.roleForm.checkbox}
                     />
-                    <label htmlFor={`role-${role.role_id}`} className="text-sm">
+                    <label htmlFor={`role-${role.role_id}`} className={styles.roleForm.checkboxLabel}>
                       {role.role_name} ({role.role_code})
                       {role.description && (
-                        <span className="ml-2 text-gray-500">- {role.description}</span>
+                        <span className={styles.roleForm.description}>- {role.description}</span>
                       )}
                     </label>
                   </div>

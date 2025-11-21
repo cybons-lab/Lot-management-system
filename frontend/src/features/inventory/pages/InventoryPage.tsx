@@ -10,6 +10,7 @@
 import { Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
+
 import { LotCreateForm, type LotCreateData } from "../components/LotCreateForm";
 import { LotFilters } from "../components/LotFilters";
 import { LotStatsCards } from "../components/LotStatsCards";
@@ -17,6 +18,8 @@ import { LotTable } from "../components/LotTable";
 import type { LotFilterValues } from "../hooks/useLotFilters";
 import { useLotFilters } from "../hooks/useLotFilters";
 import { useLotStats } from "../hooks/useLotStats";
+
+import * as styles from "./styles";
 
 import { Button } from "@/components/ui";
 import { useLotsQuery } from "@/hooks/api";
@@ -109,16 +112,16 @@ export function InventoryPage() {
       {/* エラー表示 */}
       {error && (
         <Section>
-          <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
-            <p className="text-sm font-semibold text-red-800">データの取得に失敗しました</p>
-            <p className="mt-2 text-xs text-red-600">
+          <div className={styles.errorState.root}>
+            <p className={styles.errorState.title}>データの取得に失敗しました</p>
+            <p className={styles.errorState.message}>
               {error instanceof Error ? error.message : "サーバーエラーが発生しました"}
             </p>
             <Button
               variant="outline"
               size="sm"
               onClick={() => refetch()}
-              className="mt-4 border-red-300 text-red-700 hover:bg-red-100"
+              className={styles.errorState.retryButton}
             >
               <RefreshCw className="mr-2 h-4 w-4" />
               再試行
