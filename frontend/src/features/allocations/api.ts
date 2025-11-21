@@ -263,3 +263,94 @@ export async function createAllocations(
   }
   return { order_id: payload.order_line_id };
 }
+
+// ===== Allocation Suggestions API (Phase 4) =====
+
+export interface AllocationSuggestionResponse {
+  id: number;
+  forecast_period: string;
+  customer_id: number;
+  delivery_place_id: number;
+  product_id: number;
+  lot_id: number;
+  quantity: number;
+  allocation_type: "soft" | "hard";
+  source: string;
+  order_line_id?: number | null;
+  created_at: string;
+  updated_at: string;
+  lot_number?: string;
+  lot_expiry_date?: string;
+  warehouse_name?: string;
+}
+
+export interface AllocationSuggestionListResponse {
+  suggestions: AllocationSuggestionResponse[];
+  total: number;
+}
+
+export interface AllocationScopeForecast {
+  forecast_periods: string[];
+  customer_ids?: number[];
+  delivery_place_ids?: number[];
+  product_ids?: number[];
+}
+
+export interface AllocationScopeOrder {
+  order_line_id: number;
+}
+
+export interface AllocationOptions {
+  allocation_type?: "soft" | "hard";
+  fefo?: boolean;
+  allow_cross_warehouse?: boolean;
+  ignore_existing_suggestions?: boolean;
+}
+
+export interface AllocationSuggestionRequest {
+  mode: "forecast" | "order";
+  forecast_scope?: AllocationScopeForecast;
+  order_scope?: AllocationScopeOrder;
+  options?: AllocationOptions;
+}
+
+export interface AllocationSuggestionPreviewResponse {
+  suggestions: AllocationSuggestionResponse[];
+  stats: any; // Define detailed stats type if needed
+  gaps: any[];
+}
+
+/**
+ * Generate or Preview Allocation Suggestions
+ * @endpoint POST /allocation-suggestions/preview
+ */
+export const generateAllocationSuggestions = (data: AllocationSuggestionRequest) => {
+  return fetchApi.post<AllocationSuggestionPreviewResponse>(
+    "/allocation-suggestions/preview",
+    data,
+  );
+};
+
+/**
+ * List Allocation Suggestions
+ * @endpoint GET /allocation-suggestions
+ */
+export const getAllocationSuggestions = (params: {
+  skip?: number;
+  limit?: number;
+  forecast_period?: string;
+  product_id?: number;
+  customer_id?: number;
+}) => {
+  const searchParams = new URLSearchParams();
+  if (params.skip) searchParams.append("skip", params.skip.toString());
+  if (params.limit) searchParams.append("limit", params.limit.toString());
+  if (params.forecast_period) searchParams.append("forecast_period", params.forecast_period);
+  if (params.product_id) searchParams.append("product_id", params.product_id.toString());
+  if (params.customer_id) searchParams.append("customer_id", params.customer_id.toString());
+
+  const queryString = searchParams.toString();
+  return fetchApi.get<AllocationSuggestionListResponse>(
+    `/allocation-suggestions${queryString ? "?" + queryString : ""}`,
+  );
+};

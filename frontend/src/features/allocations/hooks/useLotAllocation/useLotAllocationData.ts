@@ -1,7 +1,6 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
-import type { CandidateLotItem } from "../../api";
 import { allocationCandidatesKeys } from "../api/useAllocationCandidates";
 import { useOrdersForAllocation } from "../api/useOrdersForAllocation";
 
@@ -15,7 +14,7 @@ export function useLotAllocationData() {
     return orders.flatMap((order) => order.lines ?? []);
   }, [orders]);
 
-  useQueries({
+  const candidateQueries = useQueries({
     queries: allLines.map((line) => ({
       queryKey: allocationCandidatesKeys.list({
         order_line_id: line.id!,
@@ -23,12 +22,28 @@ export function useLotAllocationData() {
         limit: 100,
       }),
       queryFn: async () => {
-        return { items: [] as CandidateLotItem[] };
+        // Note: This is a placeholder. Actual fetch logic should be here or in a separate fetcher.
+        // Since we are using useQueries, we need the fetch function.
+        // But wait, useCandidateLotFetcher uses getQueryData, implying the data is fetched elsewhere?
+        // No, useQueries *fetches* the data.
+        // I need to import the fetcher function from api.ts!
+        // getAllocationCandidates is in api.ts.
+
+        const response = await import("../../api").then((mod) =>
+          mod.getAllocationCandidates({
+            order_line_id: line.id!,
+            strategy: "fefo",
+            limit: 100,
+          }),
+        );
+        return response;
       },
       enabled: !!line.id,
       staleTime: 1000 * 60,
     })),
   });
+
+  const isCandidatesLoading = candidateQueries.some((q) => q.isLoading);
 
   const customersQuery = useQuery({
     queryKey: ["masters", "customers"],
@@ -42,5 +57,5 @@ export function useLotAllocationData() {
     staleTime: 1000 * 60 * 5,
   });
 
-  return { ordersQuery, orders, allLines, customersQuery, productsQuery };
+  return { ordersQuery, orders, allLines, customersQuery, productsQuery, isCandidatesLoading };
 }
