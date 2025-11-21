@@ -9,7 +9,6 @@ import * as styles from "./styles";
 
 import { Button } from "@/components/ui";
 
-
 export function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
 

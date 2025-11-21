@@ -165,19 +165,11 @@ export function SummaryPage() {
                 <tr>
                   <th className={styles.table.th}>製品</th>
                   <th className={styles.table.th}>倉庫</th>
-                  <th className={styles.table.thRight}>
-                    総在庫数
-                  </th>
+                  <th className={styles.table.thRight}>総在庫数</th>
                   <th className={styles.table.thRight}>引当済</th>
-                  <th className={styles.table.thRight}>
-                    利用可能
-                  </th>
-                  <th className={styles.table.th}>
-                    最終更新
-                  </th>
-                  <th className={styles.table.thRight}>
-                    アクション
-                  </th>
+                  <th className={styles.table.thRight}>利用可能</th>
+                  <th className={styles.table.th}>最終更新</th>
+                  <th className={styles.table.thRight}>アクション</th>
                 </tr>
               </thead>
               <tbody className={styles.table.tbody}>
@@ -189,15 +181,9 @@ export function SummaryPage() {
                     <td className={styles.table.td}>
                       {item.warehouse_name || `ID: ${item.warehouse_id}`}
                     </td>
-                    <td className={styles.table.tdRight}>
-                      {fmt(item.total_quantity)}
-                    </td>
-                    <td className={styles.table.tdRightYellow}>
-                      {fmt(item.allocated_quantity)}
-                    </td>
-                    <td className={styles.table.tdRightGreen}>
-                      {fmt(item.available_quantity)}
-                    </td>
+                    <td className={styles.table.tdRight}>{fmt(item.total_quantity)}</td>
+                    <td className={styles.table.tdRightYellow}>{fmt(item.allocated_quantity)}</td>
+                    <td className={styles.table.tdRightGreen}>{fmt(item.available_quantity)}</td>
                     <td className={styles.table.tdGray}>
                       {new Date(item.last_updated).toLocaleString("ja-JP")}
                     </td>

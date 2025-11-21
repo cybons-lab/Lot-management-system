@@ -107,9 +107,7 @@ export function InventoryItemDetailPage() {
         {/* Available Quantity */}
         <div className={styles.statsCard({ variant: "active" })}>
           <div className={styles.statsLabel}>利用可能在庫数</div>
-          <div className={styles.statsValue({ color: "blue" })}>
-            {fmt(item.available_quantity)}
-          </div>
+          <div className={styles.statsValue({ color: "blue" })}>{fmt(item.available_quantity)}</div>
           <div className="mt-2 text-xs text-gray-500">引当可能な在庫数</div>
         </div>
       </div>

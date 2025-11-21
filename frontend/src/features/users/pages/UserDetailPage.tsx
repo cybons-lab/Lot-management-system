@@ -53,9 +53,7 @@ export function UserDetailPage() {
   if (isLoading) {
     return (
       <div className={styles.root}>
-        <div className={styles.loadingState}>
-          読み込み中...
-        </div>
+        <div className={styles.loadingState}>読み込み中...</div>
       </div>
     );
   }
@@ -63,9 +61,7 @@ export function UserDetailPage() {
   if (isError || !user) {
     return (
       <div className={styles.root}>
-        <div className={styles.errorState}>
-          ユーザー情報の取得に失敗しました
-        </div>
+        <div className={styles.errorState}>ユーザー情報の取得に失敗しました</div>
         <Button onClick={handleBack}>戻る</Button>
       </div>
     );
@@ -122,11 +118,15 @@ export function UserDetailPage() {
           </div>
           <div className={styles.detailGrid.item}>
             <span className={styles.detailGrid.label}>作成日時</span>
-            <p className={styles.detailGrid.value}>{new Date(user.created_at).toLocaleString("ja-JP")}</p>
+            <p className={styles.detailGrid.value}>
+              {new Date(user.created_at).toLocaleString("ja-JP")}
+            </p>
           </div>
           <div className={styles.detailGrid.item}>
             <span className={styles.detailGrid.label}>更新日時</span>
-            <p className={styles.detailGrid.value}>{new Date(user.updated_at).toLocaleString("ja-JP")}</p>
+            <p className={styles.detailGrid.value}>
+              {new Date(user.updated_at).toLocaleString("ja-JP")}
+            </p>
           </div>
         </div>
       </div>
@@ -144,10 +144,7 @@ export function UserDetailPage() {
           <div className="flex flex-wrap gap-2">
             {user.role_codes.length > 0 ? (
               user.role_codes.map((code) => (
-                <span
-                  key={code}
-                  className={styles.roleBadge}
-                >
+                <span key={code} className={styles.roleBadge}>
                   {code}
                 </span>
               ))
@@ -175,7 +172,10 @@ export function UserDetailPage() {
                       }}
                       className={styles.roleForm.checkbox}
                     />
-                    <label htmlFor={`role-${role.role_id}`} className={styles.roleForm.checkboxLabel}>
+                    <label
+                      htmlFor={`role-${role.role_id}`}
+                      className={styles.roleForm.checkboxLabel}
+                    >
                       {role.role_name} ({role.role_code})
                       {role.description && (
                         <span className={styles.roleForm.description}>- {role.description}</span>

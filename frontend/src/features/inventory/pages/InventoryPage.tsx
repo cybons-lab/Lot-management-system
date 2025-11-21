@@ -10,7 +10,6 @@
 import { Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
-
 import { LotCreateForm, type LotCreateData } from "../components/LotCreateForm";
 import { LotFilters } from "../components/LotFilters";
 import { LotStatsCards } from "../components/LotStatsCards";

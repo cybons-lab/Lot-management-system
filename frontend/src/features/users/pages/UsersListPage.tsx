@@ -93,7 +93,9 @@ export function UsersListPage() {
       {/* Filter */}
       <div className={styles.filter.root}>
         <div className={styles.filter.container}>
-          <label className={styles.filter.label} htmlFor="status-filter">状態フィルタ:</label>
+          <label className={styles.filter.label} htmlFor="status-filter">
+            状態フィルタ:
+          </label>
           <select
             id="status-filter"
             value={isActiveFilter === undefined ? "all" : isActiveFilter ? "active" : "inactive"}
@@ -113,17 +115,11 @@ export function UsersListPage() {
 
       {/* Data display area */}
       {isLoading ? (
-        <div className={styles.loadingState}>
-          読み込み中...
-        </div>
+        <div className={styles.loadingState}>読み込み中...</div>
       ) : isError ? (
-        <div className={styles.errorState}>
-          データの取得に失敗しました
-        </div>
+        <div className={styles.errorState}>データの取得に失敗しました</div>
       ) : !users || users.length === 0 ? (
-        <div className={styles.emptyState}>
-          ユーザーが登録されていません
-        </div>
+        <div className={styles.emptyState}>ユーザーが登録されていません</div>
       ) : (
         <div className="space-y-4">
           <div className="text-sm text-gray-600">{users.length} 人のユーザー</div>
@@ -133,15 +129,9 @@ export function UsersListPage() {
             <table className={styles.table.root}>
               <thead className={styles.table.thead}>
                 <tr>
-                  <th className={styles.table.th}>
-                    ユーザーID
-                  </th>
-                  <th className={styles.table.th}>
-                    ユーザー名
-                  </th>
-                  <th className={styles.table.th}>
-                    メールアドレス
-                  </th>
+                  <th className={styles.table.th}>ユーザーID</th>
+                  <th className={styles.table.th}>ユーザー名</th>
+                  <th className={styles.table.th}>メールアドレス</th>
                   <th className={styles.table.th}>表示名</th>
                   <th className={styles.table.th}>状態</th>
                   <th className={styles.table.th}>操作</th>

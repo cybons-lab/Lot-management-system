@@ -67,7 +67,9 @@ export function BatchJobsPage() {
       {/* Filter */}
       <div className={styles.filter.root}>
         <div className={styles.filter.container}>
-          <label className={styles.filter.label} htmlFor="status-filter">ステータスフィルタ:</label>
+          <label className={styles.filter.label} htmlFor="status-filter">
+            ステータスフィルタ:
+          </label>
           <select
             id="status-filter"
             value={statusFilter}
@@ -85,17 +87,11 @@ export function BatchJobsPage() {
 
       {/* Data display area */}
       {isLoading ? (
-        <div className={styles.loadingState}>
-          読み込み中...
-        </div>
+        <div className={styles.loadingState}>読み込み中...</div>
       ) : isError ? (
-        <div className={styles.errorState}>
-          データの取得に失敗しました
-        </div>
+        <div className={styles.errorState}>データの取得に失敗しました</div>
       ) : !response || response.jobs.length === 0 ? (
-        <div className={styles.emptyState}>
-          バッチジョブが登録されていません
-        </div>
+        <div className={styles.emptyState}>バッチジョブが登録されていません</div>
       ) : (
         <div className={styles.content.root}>
           <div className={styles.content.info}>
@@ -108,21 +104,11 @@ export function BatchJobsPage() {
             <table className={styles.table.root}>
               <thead className={styles.table.thead}>
                 <tr>
-                  <th className={styles.table.th}>
-                    ジョブID
-                  </th>
-                  <th className={styles.table.th}>
-                    ジョブ名
-                  </th>
-                  <th className={styles.table.th}>
-                    ジョブ種別
-                  </th>
-                  <th className={styles.table.th}>
-                    ステータス
-                  </th>
-                  <th className={styles.table.th}>
-                    作成日時
-                  </th>
+                  <th className={styles.table.th}>ジョブID</th>
+                  <th className={styles.table.th}>ジョブ名</th>
+                  <th className={styles.table.th}>ジョブ種別</th>
+                  <th className={styles.table.th}>ステータス</th>
+                  <th className={styles.table.th}>作成日時</th>
                   <th className={styles.table.th}>操作</th>
                 </tr>
               </thead>
@@ -132,13 +118,13 @@ export function BatchJobsPage() {
                     <td className={styles.table.td}>{job.job_id}</td>
                     <td className={styles.table.tdMedium}>{job.job_name}</td>
                     <td className={styles.table.td}>
-                      <span className={styles.jobTypeBadge}>
-                        {job.job_type}
-                      </span>
+                      <span className={styles.jobTypeBadge}>{job.job_type}</span>
                     </td>
                     <td className={styles.table.td}>
                       <span
-                        className={styles.statusBadge({ status: job.status as "pending" | "running" | "completed" | "failed" })}
+                        className={styles.statusBadge({
+                          status: job.status as "pending" | "running" | "completed" | "failed",
+                        })}
                       >
                         {job.status}
                       </span>
