@@ -1,6 +1,7 @@
 # バックエンドAPI vs フロントエンド対応状況分析
 
 作成日: 2025-11-21
+更新日: 2025-11-21
 
 ## 概要
 
@@ -31,11 +32,12 @@ FastAPIバックエンドのAPIエンドポイントと、React/TypeScriptフロ
 | Suppliers | `PUT /suppliers/{code}` | 更新 | Missing | |
 | Suppliers | `DELETE /suppliers/{code}` | 削除 | Missing | |
 | **Masters - Customers** |||||
-| Customers | `GET /customers` | 一覧 | Missing | スケルトンページのみ |
-| Customers | `GET /customers/{code}` | 詳細 | Missing | |
-| Customers | `POST /customers` | 登録 | Missing | |
-| Customers | `PUT /customers/{code}` | 更新 | Missing | |
-| Customers | `DELETE /customers/{code}` | 削除 | Missing | |
+| Customers | `GET /customers` | 一覧 | ✅ Implemented | `features/customers` |
+| Customers | `GET /customers/{code}` | 詳細 | ✅ Implemented | |
+| Customers | `POST /customers` | 登録 | ✅ Implemented | |
+| Customers | `PUT /customers/{code}` | 更新 | ✅ Implemented | |
+| Customers | `DELETE /customers/{code}` | 削除 | ✅ Implemented | |
+| Customers | `POST /customers/bulk-upsert` | 一括処理 | ✅ Implemented | TODO: backend API待ち |
 | **Masters - Customer Items** |||||
 | Customer Items | `GET /customer-items` | 一覧 | Implemented | `features/customer-items` |
 | Customer Items | `GET /customer-items/{id}` | 顧客別 | Implemented | |
@@ -149,7 +151,7 @@ FastAPIバックエンドのAPIエンドポイントと、React/TypeScriptフロ
 
 | Domain | Missing Endpoints | 優先度 | 備考 |
 |--------|------------------|--------|------|
-| **Customers** | 全5エンドポイント (一覧/詳細/登録/更新/削除) | 高 | スケルトンページあり、API未連携 |
+| ~~**Customers**~~ | ~~全5エンドポイント~~ | ~~高~~ | ✅ 実装完了 |
 | **Warehouses** | 4 (詳細/登録/更新/削除) | 中 | 一覧のみ実装済 |
 | **Products** | 4 (詳細/登録/更新/削除) | 中 | 一覧のみ実装済 |
 | **Suppliers** | 4 (詳細/登録/更新/削除) | 中 | 一覧のみ実装済 |
@@ -171,13 +173,13 @@ FastAPIバックエンドのAPIエンドポイントと、React/TypeScriptフロ
 
 | カテゴリ | 総エンドポイント数 | Implemented | Partial | Missing |
 |---------|-------------------|-------------|---------|---------|
-| Masters | 25 | 8 | 0 | 17 |
+| Masters | 25 | 13 (+5) | 0 | 12 (-5) |
 | Orders | 6 | 4 | 1 | 1 |
 | Allocations | 13 | 9 | 0 | 4 |
 | Inventory | 18 | 18 | 0 | 0 |
 | Forecasts | 7 | 7 | 0 | 0 |
 | Admin | 46 | 27 | 0 | 19 |
-| **合計** | **115** | **73 (63%)** | **1 (1%)** | **41 (36%)** |
+| **合計** | **115** | **78 (68%)** | **1 (1%)** | **36 (31%)** |
 
 ---
 
@@ -185,7 +187,7 @@ FastAPIバックエンドのAPIエンドポイントと、React/TypeScriptフロ
 
 ### Phase 1: マスタCRUD完成 (高優先度)
 
-1. **Customers** - スケルトンページが既にあるため最優先
+1. ~~**Customers**~~ ✅ 完了
 2. **Warehouses/Products/Suppliers** - 詳細・登録・更新・削除画面の追加
 
 ### Phase 2: 業務機能強化 (中優先度)
@@ -207,3 +209,120 @@ FastAPIバックエンドのAPIエンドポイントと、React/TypeScriptフロ
 - `GET /healthz`, `/readyz`, `/health` - インフラ監視用（Kubernetes等から呼び出し）
 - `POST /admin/reset-database` - 開発専用、UIからの操作は危険
 - `POST /admin/seeds` - 開発専用
+
+---
+
+## マスタCRUD実装ガイド
+
+### 概要
+
+Customersマスタの実装をベースに、他のマスタ（Warehouses, Products, Suppliers）でも
+ほぼ同じパターンで実装できます。以下は実装時の参考情報です。
+
+### ファイル構成テンプレート
+
+```
+frontend/src/features/{master-name}/
+├── api/
+│   └── {master-name}-api.ts          # CRUD + bulk API関数
+├── hooks/
+│   ├── use{MasterName}sQuery.ts      # 一覧取得 Query
+│   ├── use{MasterName}Query.ts       # 詳細取得 Query
+│   └── use{MasterName}Mutations.ts   # Create/Update/Delete/Bulk Mutations
+├── pages/
+│   ├── {MasterName}sListPage.tsx     # 一覧ページ
+│   ├── {MasterName}DetailPage.tsx    # 詳細/編集ページ
+│   ├── columns.tsx                   # テーブルカラム定義
+│   └── styles.ts                     # CVA + Tailwindスタイル
+├── components/
+│   ├── {MasterName}Form.tsx          # 新規/編集フォーム
+│   ├── {MasterName}BulkImportDialog.tsx  # 一括インポートダイアログ
+│   └── {MasterName}ExportButton.tsx  # エクスポートボタン
+├── utils/
+│   └── {master-name}-csv.ts          # CSV解析/生成ユーティリティ
+├── types/
+│   └── bulk-operation.ts             # OPERATION列の型定義（共通化推奨）
+├── validators/
+│   └── {master-name}-schema.ts       # Zodスキーマ
+└── index.ts                          # Barrel export
+```
+
+### 一括インポート/エクスポート仕様
+
+#### CSVフォーマット
+
+```csv
+OPERATION,{code_column},{name_column}
+ADD,CODE-001,サンプル名1
+UPD,CODE-002,更新後の名称
+DEL,CODE-003,
+```
+
+#### OPERATION列
+
+| 値 | 動作 | 備考 |
+|----|------|------|
+| `ADD` | 新規追加 | 同一コードが存在する場合はエラー |
+| `UPD` | 更新 | 存在しないコードの場合はエラー |
+| `DEL` | 削除 | 論理削除 or 物理削除（TODO: backend確認） |
+| (空欄) | `ADD`として扱う | デフォルト動作（TODO: backend確認） |
+
+#### バックエンドAPI（TODO）
+
+```
+POST /{master-name}/bulk-upsert
+
+Request:
+{
+  "rows": [
+    { "OPERATION": "ADD", "{code}": "...", "{name}": "..." },
+    ...
+  ]
+}
+
+Response:
+{
+  "status": "success" | "partial" | "failed",
+  "summary": {
+    "total": 10,
+    "added": 5,
+    "updated": 3,
+    "deleted": 1,
+    "failed": 1
+  },
+  "results": [
+    { "rowNumber": 1, "success": true, "code": "CODE-001" },
+    { "rowNumber": 2, "success": false, "code": "CODE-002", "errorMessage": "..." }
+  ]
+}
+```
+
+### 実装時のチェックリスト
+
+- [ ] API関数の作成（CRUD + bulk）
+- [ ] React Query Hooks の作成
+- [ ] 一覧ページの作成（検索、ソート、エクスポート、インポートボタン）
+- [ ] 詳細/編集ページの作成（削除確認ダイアログ含む）
+- [ ] フォームコンポーネントの作成（新規/編集両用）
+- [ ] 一括インポートダイアログの作成
+- [ ] エクスポートボタンの作成
+- [ ] CSVユーティリティの作成
+- [ ] index.ts でのエクスポート
+- [ ] App.tsx へのルーティング追加
+- [ ] TypeScript型チェック通過
+
+### TODOコメントの方針
+
+バックエンド未実装部分には以下のコメントを残す：
+
+```typescript
+// TODO: backend: bulk-upsert not yet implemented
+// TODO: backend: replace with per-record API when available
+// TODO: backend: confirm validation rules with SAP input spec
+// TODO: backend: adjust to final backend error format
+```
+
+### 参考実装
+
+Customers の完全な実装例:
+- `frontend/src/features/customers/` 配下のすべてのファイル

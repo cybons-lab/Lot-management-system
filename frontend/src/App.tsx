@@ -16,7 +16,7 @@ import { LotAllocationPage } from "@/features/allocations/pages/LotAllocationPag
 import { BatchJobsPage } from "@/features/batch-jobs/pages/BatchJobsPage";
 import { BusinessRulesPage } from "@/features/business-rules/pages/BusinessRulesPage";
 import { CustomerItemsListPage } from "@/features/customer-items/pages/CustomerItemsListPage";
-import { CustomersPage } from "@/features/customers/pages/CustomersPage";
+import { CustomersListPage, CustomerDetailPage } from "@/features/customers";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
 import { ForecastCreatePage } from "@/features/forecasts/pages/ForecastCreatePage";
 import { ForecastDetailPage } from "@/features/forecasts/pages/ForecastDetailPage";
@@ -104,7 +104,8 @@ function App() {
         {/* Masters - Phase G-1 */}
         <Route path={ROUTES.MASTERS.WAREHOUSES} element={<WarehousesPage />} />
         <Route path={ROUTES.MASTERS.SUPPLIERS} element={<SuppliersPage />} />
-        <Route path={ROUTES.MASTERS.CUSTOMERS} element={<CustomersPage />} />
+        <Route path={ROUTES.MASTERS.CUSTOMERS} element={<CustomersListPage />} />
+        <Route path="/customers/:customerCode" element={<CustomerDetailPage />} />
         <Route path={ROUTES.MASTERS.PRODUCTS} element={<ProductsPage />} />
         <Route path={ROUTES.MASTERS.CUSTOMER_ITEMS} element={<CustomerItemsListPage />} />
         <Route path={ROUTES.MASTERS.BULK_LOAD} element={<MastersBulkLoadPage />} />
