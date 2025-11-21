@@ -4,7 +4,7 @@
 import { useState, useId, useCallback } from "react";
 import { Upload, FileText, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { Button, Input, Label } from "@/components/ui";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/display/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/layout/dialog";
 import { useBulkUpsertWarehouses } from "../hooks/useWarehouseMutations";
 import { bulkImport as styles } from "../pages/styles";
 import type { BulkUpsertResponse, WarehouseBulkRow } from "../types/bulk-operation";

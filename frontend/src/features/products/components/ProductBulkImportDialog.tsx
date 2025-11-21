@@ -4,7 +4,7 @@
 import { useState, useCallback } from "react";
 import { Upload, Download, AlertCircle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/display/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/layout/dialog";
 import { useBulkUpsertProducts } from "../hooks/useProductMutations";
 import { parseProductCsv, generateProductTemplateCsv } from "../utils/product-csv";
 import type { ProductBulkRow, BulkUpsertResponse } from "../types/bulk-operation";

@@ -5,7 +5,7 @@ import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Upload, Truck } from "lucide-react";
 import { Button, Input } from "@/components/ui";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/display/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/layout/dialog";
 import { DataTable, type SortConfig } from "@/shared/components/data/DataTable";
 import { PageHeader } from "@/shared/components/layout/PageHeader";
 import type { Supplier, SupplierCreate } from "../api/suppliers-api";
