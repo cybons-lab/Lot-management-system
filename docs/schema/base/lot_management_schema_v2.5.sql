@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict unJSBPagibgQTls4Un91pvPtiVWqv0Za3oe8AhwDMdlq0slk6k7joewLAzsWFm7
+\restrict JJn5BMiO3tb3UY8rZx2kdflzAq9hJkXF1wShYyaJ6xzv8Ku1lhb7EFNw9OPXcfq
 
 -- Dumped from database version 15.15
 -- Dumped by pg_dump version 15.15
@@ -63,12 +63,17 @@ ALTER SEQUENCE public.adjustments_id_seq OWNED BY public.adjustments.id;
 
 CREATE TABLE public.allocation_suggestions (
     id bigint NOT NULL,
-    forecast_line_id bigint NOT NULL,
+    order_line_id bigint,
+    forecast_period character varying(7) NOT NULL,
+    customer_id bigint NOT NULL,
+    delivery_place_id bigint NOT NULL,
+    product_id bigint NOT NULL,
     lot_id bigint NOT NULL,
-    suggested_quantity numeric(15,3) NOT NULL,
-    allocation_logic character varying(50) NOT NULL,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    quantity numeric(15,3) NOT NULL,
+    allocation_type character varying(10) NOT NULL,
+    source character varying(32) NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL
 );
 
 
@@ -1397,10 +1402,10 @@ CREATE INDEX idx_adjustments_lot ON public.adjustments USING btree (lot_id);
 
 
 --
--- Name: idx_allocation_suggestions_forecast; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_allocation_suggestions_customer; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_allocation_suggestions_forecast ON public.allocation_suggestions USING btree (forecast_line_id);
+CREATE INDEX idx_allocation_suggestions_customer ON public.allocation_suggestions USING btree (customer_id);
 
 
 --
@@ -1408,6 +1413,20 @@ CREATE INDEX idx_allocation_suggestions_forecast ON public.allocation_suggestion
 --
 
 CREATE INDEX idx_allocation_suggestions_lot ON public.allocation_suggestions USING btree (lot_id);
+
+
+--
+-- Name: idx_allocation_suggestions_period; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_allocation_suggestions_period ON public.allocation_suggestions USING btree (forecast_period);
+
+
+--
+-- Name: idx_allocation_suggestions_product; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_allocation_suggestions_product ON public.allocation_suggestions USING btree (product_id);
 
 
 --
@@ -1847,11 +1866,19 @@ ALTER TABLE ONLY public.adjustments
 
 
 --
--- Name: allocation_suggestions fk_allocation_suggestions_forecast_current; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: allocation_suggestions fk_allocation_suggestions_customer; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.allocation_suggestions
-    ADD CONSTRAINT fk_allocation_suggestions_forecast_current FOREIGN KEY (forecast_line_id) REFERENCES public.forecast_current(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_allocation_suggestions_customer FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE CASCADE;
+
+
+--
+-- Name: allocation_suggestions fk_allocation_suggestions_delivery_place; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.allocation_suggestions
+    ADD CONSTRAINT fk_allocation_suggestions_delivery_place FOREIGN KEY (delivery_place_id) REFERENCES public.delivery_places(id) ON DELETE CASCADE;
 
 
 --
@@ -1860,6 +1887,14 @@ ALTER TABLE ONLY public.allocation_suggestions
 
 ALTER TABLE ONLY public.allocation_suggestions
     ADD CONSTRAINT fk_allocation_suggestions_lot FOREIGN KEY (lot_id) REFERENCES public.lots(id) ON DELETE CASCADE;
+
+
+--
+-- Name: allocation_suggestions fk_allocation_suggestions_product; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.allocation_suggestions
+    ADD CONSTRAINT fk_allocation_suggestions_product FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE CASCADE;
 
 
 --
@@ -2098,5 +2133,5 @@ ALTER TABLE ONLY public.user_roles
 -- PostgreSQL database dump complete
 --
 
-\unrestrict unJSBPagibgQTls4Un91pvPtiVWqv0Za3oe8AhwDMdlq0slk6k7joewLAzsWFm7
+\unrestrict JJn5BMiO3tb3UY8rZx2kdflzAq9hJkXF1wShYyaJ6xzv8Ku1lhb7EFNw9OPXcfq
 
