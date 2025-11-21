@@ -5,6 +5,8 @@ import { Archive, Library, AlertCircle } from "lucide-react";
 import { StatCard } from "@/components/ui";
 import { getStats } from "@/services/api";
 
+import * as styles from "./styles";
+
 export function DashboardStats() {
   const {
     data: stats,
@@ -18,7 +20,7 @@ export function DashboardStats() {
   // ローディング中のスケルトン表示
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className={styles.grid}>
         <StatCardSkeleton />
         <StatCardSkeleton />
         <StatCardSkeleton />
@@ -29,14 +31,14 @@ export function DashboardStats() {
   // エラー表示
   if (isError || !stats) {
     return (
-      <div className="bg-destructive/10 text-destructive rounded-lg border p-4 text-center">
+      <div className={styles.errorState.root + " text-center"}>
         統計データの読み込みに失敗しました。
       </div>
     );
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className={styles.grid}>
       <StatCard
         title="総在庫数"
         value={stats.total_stock}
@@ -62,13 +64,13 @@ export function DashboardStats() {
 // スケルトンコンポーネント (ローディング中)
 function StatCardSkeleton() {
   return (
-    <div className="bg-card text-card-foreground rounded-lg border border-l-4 border-gray-300 shadow-sm">
+    <div className={styles.skeleton.root}>
       <div className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
-        <div className="bg-muted h-4 w-24 rounded"></div>
+        <div className={styles.skeleton.title}></div>
         <div className="bg-muted h-4 w-4 rounded"></div>
       </div>
       <div className="p-4 pt-0">
-        <div className="bg-muted h-8 w-16 rounded"></div>
+        <div className={styles.skeleton.value}></div>
       </div>
     </div>
   );

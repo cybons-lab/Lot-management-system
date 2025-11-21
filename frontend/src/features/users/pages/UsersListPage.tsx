@@ -5,12 +5,17 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUsers, useCreateUser, useDeleteUser } from "../hooks";
+
+import type { CreateUserRequest } from "../api";
 import { UserForm } from "../components/UserForm";
+import { useUsers, useCreateUser, useDeleteUser } from "../hooks";
+
+import * as styles from "./styles";
+
 import { Button } from "@/components/ui";
 import { ROUTES } from "@/constants/routes";
-import type { CreateUserRequest } from "../api";
 
+// eslint-disable-next-line max-lines-per-function
 export function UsersListPage() {
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
@@ -63,20 +68,20 @@ export function UsersListPage() {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className={styles.root}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">ユーザー管理</h2>
-          <p className="mt-1 text-gray-600">ユーザーの作成・編集・削除</p>
+      <div className={styles.header.root}>
+        <div className={styles.header.titleGroup}>
+          <h2 className={styles.header.title}>ユーザー管理</h2>
+          <p className={styles.header.description}>ユーザーの作成・編集・削除</p>
         </div>
         {!showForm && <Button onClick={handleCreateNew}>新規ユーザー作成</Button>}
       </div>
 
       {/* Create Form */}
       {showForm && (
-        <div className="rounded-lg border bg-white p-6">
-          <h3 className="mb-4 text-lg font-semibold">ユーザー作成</h3>
+        <div className={styles.card.root}>
+          <h3 className={styles.card.title}>ユーザー作成</h3>
           <UserForm
             onSubmit={handleSubmitCreate}
             onCancel={handleCancelCreate}
@@ -86,17 +91,20 @@ export function UsersListPage() {
       )}
 
       {/* Filter */}
-      <div className="rounded-lg border bg-white p-4">
-        <div className="flex items-center gap-4">
-          <label className="text-sm font-medium">状態フィルタ:</label>
+      <div className={styles.filter.root}>
+        <div className={styles.filter.container}>
+          <label className={styles.filter.label} htmlFor="status-filter">
+            状態フィルタ:
+          </label>
           <select
+            id="status-filter"
             value={isActiveFilter === undefined ? "all" : isActiveFilter ? "active" : "inactive"}
             onChange={(e) => {
               if (e.target.value === "all") setIsActiveFilter(undefined);
               else if (e.target.value === "active") setIsActiveFilter(true);
               else setIsActiveFilter(false);
             }}
-            className="rounded-md border px-3 py-2 text-sm"
+            className={styles.filter.select}
           >
             <option value="all">すべて</option>
             <option value="active">有効のみ</option>
@@ -107,60 +115,42 @@ export function UsersListPage() {
 
       {/* Data display area */}
       {isLoading ? (
-        <div className="rounded-lg border bg-white p-8 text-center text-gray-500">
-          読み込み中...
-        </div>
+        <div className={styles.loadingState}>読み込み中...</div>
       ) : isError ? (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-600">
-          データの取得に失敗しました
-        </div>
+        <div className={styles.errorState}>データの取得に失敗しました</div>
       ) : !users || users.length === 0 ? (
-        <div className="rounded-lg border bg-white p-8 text-center text-gray-500">
-          ユーザーが登録されていません
-        </div>
+        <div className={styles.emptyState}>ユーザーが登録されていません</div>
       ) : (
         <div className="space-y-4">
           <div className="text-sm text-gray-600">{users.length} 人のユーザー</div>
 
           {/* Table */}
-          <div className="overflow-x-auto rounded-lg border bg-white">
-            <table className="w-full">
-              <thead className="border-b bg-gray-50">
+          <div className={styles.table.container}>
+            <table className={styles.table.root}>
+              <thead className={styles.table.thead}>
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                    ユーザーID
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                    ユーザー名
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                    メールアドレス
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">表示名</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">状態</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">操作</th>
+                  <th className={styles.table.th}>ユーザーID</th>
+                  <th className={styles.table.th}>ユーザー名</th>
+                  <th className={styles.table.th}>メールアドレス</th>
+                  <th className={styles.table.th}>表示名</th>
+                  <th className={styles.table.th}>状態</th>
+                  <th className={styles.table.th}>操作</th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody className={styles.table.tbody}>
                 {users.map((user) => (
-                  <tr key={user.user_id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm">{user.user_id}</td>
-                    <td className="px-4 py-3 text-sm font-medium">{user.username}</td>
-                    <td className="px-4 py-3 text-sm">{user.email}</td>
-                    <td className="px-4 py-3 text-sm">{user.display_name}</td>
-                    <td className="px-4 py-3 text-sm">
-                      {user.is_active ? (
-                        <span className="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-800">
-                          有効
-                        </span>
-                      ) : (
-                        <span className="inline-flex rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-800">
-                          無効
-                        </span>
-                      )}
+                  <tr key={user.user_id} className={styles.table.tr}>
+                    <td className={styles.table.td}>{user.user_id}</td>
+                    <td className={styles.table.tdMedium}>{user.username}</td>
+                    <td className={styles.table.td}>{user.email}</td>
+                    <td className={styles.table.td}>{user.display_name}</td>
+                    <td className={styles.table.td}>
+                      <span className={styles.statusBadge({ isActive: user.is_active })}>
+                        {user.is_active ? "有効" : "無効"}
+                      </span>
                     </td>
-                    <td className="px-4 py-3 text-sm">
-                      <div className="flex gap-2">
+                    <td className={styles.table.td}>
+                      <div className={styles.actionButtons}>
                         <Button
                           variant="outline"
                           size="sm"

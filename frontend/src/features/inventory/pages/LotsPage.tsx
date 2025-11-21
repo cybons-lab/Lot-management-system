@@ -8,12 +8,13 @@
  */
 /* eslint-disable max-lines-per-function */
 /* eslint-disable complexity */
-/* eslint-disable max-lines */
 
 import { useAtom } from "jotai";
 import { Plus, RefreshCw } from "lucide-react";
 import { useMemo } from "react";
 import { toast } from "sonner";
+
+import * as styles from "./styles";
 
 import { Button } from "@/components/ui";
 import { Input } from "@/components/ui";
@@ -34,6 +35,7 @@ import { FormDialog } from "@/shared/components/form";
 import { Section } from "@/shared/components/layout";
 import type { LotUI } from "@/shared/libs/normalize";
 import { fmt } from "@/shared/utils/number";
+
 // ============================================
 // メインコンポーネント
 // ============================================
@@ -137,9 +139,9 @@ export function LotsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className={styles.root}>
       {/* アクションバー */}
-      <div className="flex items-center justify-end gap-2">
+      <div className={styles.actionBar}>
         <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
           <RefreshCw className="mr-2 h-4 w-4" />
           更新
@@ -151,18 +153,18 @@ export function LotsPage() {
       </div>
 
       {/* 統計情報 */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md">
-          <div className="text-sm font-medium text-gray-600">総ロット数</div>
-          <div className="mt-2 text-3xl font-bold text-gray-900">{fmt(stats.totalLots)}</div>
+      <div className={styles.statsGrid}>
+        <div className={styles.statsCard({ variant: "default" })}>
+          <div className={styles.statsLabel}>総ロット数</div>
+          <div className={styles.statsValue({ color: "default" })}>{fmt(stats.totalLots)}</div>
         </div>
-        <div className="group rounded-xl border-t border-r border-b border-l-4 border-gray-200 border-l-blue-500 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md">
-          <div className="text-sm font-medium text-gray-600">有効ロット数</div>
-          <div className="mt-2 text-3xl font-bold text-blue-600">{fmt(stats.activeLots)}</div>
+        <div className={styles.statsCard({ variant: "active" })}>
+          <div className={styles.statsLabel}>有効ロット数</div>
+          <div className={styles.statsValue({ color: "blue" })}>{fmt(stats.activeLots)}</div>
         </div>
-        <div className="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md">
-          <div className="text-sm font-medium text-gray-600">総在庫数</div>
-          <div className="mt-2 text-3xl font-bold text-gray-900">{fmt(stats.totalQuantity)}</div>
+        <div className={styles.statsCard({ variant: "default" })}>
+          <div className={styles.statsLabel}>総在庫数</div>
+          <div className={styles.statsValue({ color: "default" })}>{fmt(stats.totalQuantity)}</div>
         </div>
       </div>
 
@@ -175,7 +177,7 @@ export function LotsPage() {
             placeholder="ロット番号、製品コード、製品名で検索..."
           />
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className={styles.filterGrid}>
             <FilterField label="製品コード">
               <Input
                 value={filters.productCode ?? ""}
@@ -211,15 +213,15 @@ export function LotsPage() {
             </FilterField>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className={styles.checkboxGroup}>
             <input
               type="checkbox"
               id="inStockOnly"
               checked={filters.inStockOnly ?? false}
               onChange={(e) => handleFilterChange("inStockOnly", e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300"
+              className={styles.checkbox}
             />
-            <label htmlFor="inStockOnly" className="text-sm text-gray-700">
+            <label htmlFor="inStockOnly" className={styles.checkboxLabel}>
               在庫ありのみ表示
             </label>
           </div>
@@ -229,16 +231,16 @@ export function LotsPage() {
       {/* エラー表示 */}
       {error && (
         <Section>
-          <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
-            <p className="text-sm font-semibold text-red-800">データの取得に失敗しました</p>
-            <p className="mt-2 text-xs text-red-600">
+          <div className={styles.errorState.root}>
+            <p className={styles.errorState.title}>データの取得に失敗しました</p>
+            <p className={styles.errorState.message}>
               {error instanceof Error ? error.message : "サーバーエラーが発生しました"}
             </p>
             <Button
               variant="outline"
               size="sm"
               onClick={() => refetch()}
-              className="mt-4 border-red-300 text-red-700 hover:bg-red-100"
+              className={styles.errorState.retryButton}
             >
               <RefreshCw className="mr-2 h-4 w-4" />
               再試行

@@ -4,9 +4,14 @@
  */
 
 import { useState } from "react";
+
 import { useBatchJobs, useExecuteBatchJob, useDeleteBatchJob } from "../hooks";
+
+import * as styles from "./BatchJobsPage.styles";
+
 import { Button } from "@/components/ui";
 
+// eslint-disable-next-line max-lines-per-function
 export function BatchJobsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("");
 
@@ -51,32 +56,25 @@ export function BatchJobsPage() {
     }
   };
 
-  const getStatusBadgeClass = (status: string) => {
-    const classes = {
-      pending: "bg-yellow-100 text-yellow-800",
-      running: "bg-blue-100 text-blue-800",
-      completed: "bg-green-100 text-green-800",
-      failed: "bg-red-100 text-red-800",
-    };
-    return classes[status as keyof typeof classes] || "bg-gray-100 text-gray-800";
-  };
-
   return (
-    <div className="space-y-6 p-6">
+    <div className={styles.root}>
       {/* Header */}
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">バッチジョブ</h2>
-        <p className="mt-1 text-gray-600">バッチジョブの管理と実行</p>
+      <div className={styles.header.root}>
+        <h2 className={styles.header.title}>バッチジョブ</h2>
+        <p className={styles.header.description}>バッチジョブの管理と実行</p>
       </div>
 
       {/* Filter */}
-      <div className="rounded-lg border bg-white p-4">
-        <div className="flex items-center gap-4">
-          <label className="text-sm font-medium">ステータスフィルタ:</label>
+      <div className={styles.filter.root}>
+        <div className={styles.filter.container}>
+          <label className={styles.filter.label} htmlFor="status-filter">
+            ステータスフィルタ:
+          </label>
           <select
+            id="status-filter"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-md border px-3 py-2 text-sm"
+            className={styles.filter.select}
           >
             <option value="">すべて</option>
             <option value="pending">待機中</option>
@@ -89,69 +87,53 @@ export function BatchJobsPage() {
 
       {/* Data display area */}
       {isLoading ? (
-        <div className="rounded-lg border bg-white p-8 text-center text-gray-500">
-          読み込み中...
-        </div>
+        <div className={styles.loadingState}>読み込み中...</div>
       ) : isError ? (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-600">
-          データの取得に失敗しました
-        </div>
+        <div className={styles.errorState}>データの取得に失敗しました</div>
       ) : !response || response.jobs.length === 0 ? (
-        <div className="rounded-lg border bg-white p-8 text-center text-gray-500">
-          バッチジョブが登録されていません
-        </div>
+        <div className={styles.emptyState}>バッチジョブが登録されていません</div>
       ) : (
-        <div className="space-y-4">
-          <div className="text-sm text-gray-600">
+        <div className={styles.content.root}>
+          <div className={styles.content.info}>
             {response.total} 件のジョブ (ページ {response.page}/
             {Math.ceil(response.total / response.page_size)})
           </div>
 
           {/* Table */}
-          <div className="overflow-x-auto rounded-lg border bg-white">
-            <table className="w-full">
-              <thead className="border-b bg-gray-50">
+          <div className={styles.table.container}>
+            <table className={styles.table.root}>
+              <thead className={styles.table.thead}>
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                    ジョブID
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                    ジョブ名
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                    ジョブ種別
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                    ステータス
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                    作成日時
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">操作</th>
+                  <th className={styles.table.th}>ジョブID</th>
+                  <th className={styles.table.th}>ジョブ名</th>
+                  <th className={styles.table.th}>ジョブ種別</th>
+                  <th className={styles.table.th}>ステータス</th>
+                  <th className={styles.table.th}>作成日時</th>
+                  <th className={styles.table.th}>操作</th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody className={styles.table.tbody}>
                 {response.jobs.map((job) => (
-                  <tr key={job.job_id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm">{job.job_id}</td>
-                    <td className="px-4 py-3 text-sm font-medium">{job.job_name}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <span className="inline-flex rounded-full bg-purple-100 px-2 py-1 text-xs font-semibold text-purple-800">
-                        {job.job_type}
-                      </span>
+                  <tr key={job.job_id} className={styles.table.tr}>
+                    <td className={styles.table.td}>{job.job_id}</td>
+                    <td className={styles.table.tdMedium}>{job.job_name}</td>
+                    <td className={styles.table.td}>
+                      <span className={styles.jobTypeBadge}>{job.job_type}</span>
                     </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className={styles.table.td}>
                       <span
-                        className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${getStatusBadgeClass(job.status)}`}
+                        className={styles.statusBadge({
+                          status: job.status as "pending" | "running" | "completed" | "failed",
+                        })}
                       >
                         {job.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className={styles.table.tdGray}>
                       {new Date(job.created_at).toLocaleString("ja-JP")}
                     </td>
-                    <td className="px-4 py-3 text-sm">
-                      <div className="flex gap-2">
+                    <td className={styles.table.td}>
+                      <div className={styles.actionButtons}>
                         <Button
                           variant="outline"
                           size="sm"

@@ -4,13 +4,16 @@
  */
 
 import { useParams } from "react-router-dom";
+
+import * as styles from "./styles";
+
 import { Button } from "@/components/ui";
 
 export function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
 
   return (
-    <div className="space-y-6 p-6">
+    <div className={styles.root}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -25,9 +28,9 @@ export function OrderDetailPage() {
       </div>
 
       {/* Coming Soon */}
-      <div className="rounded-lg border bg-white p-8 text-center">
-        <p className="text-lg text-gray-500">Coming Soon</p>
-        <p className="mt-2 text-sm text-gray-400">
+      <div className={styles.comingSoon.container}>
+        <p className={styles.comingSoon.title}>Coming Soon</p>
+        <p className={styles.comingSoon.description}>
           受注ヘッダ情報、受注明細、引当詳細、操作ログを実装予定
         </p>
       </div>

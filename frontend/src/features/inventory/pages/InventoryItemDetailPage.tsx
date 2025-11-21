@@ -4,11 +4,16 @@
  */
 
 import { useParams, useNavigate } from "react-router-dom";
+
 import { useInventoryItem } from "../hooks";
+
+import * as styles from "./styles";
+
 import { Button } from "@/components/ui";
 import { ROUTES } from "@/constants/routes";
 import { fmt } from "@/shared/utils/number";
 
+// eslint-disable-next-line max-lines-per-function
 export function InventoryItemDetailPage() {
   const { productId, warehouseId } = useParams<{ productId: string; warehouseId: string }>();
   const navigate = useNavigate();
@@ -32,9 +37,9 @@ export function InventoryItemDetailPage() {
 
   if (isError || !item) {
     return (
-      <div className="space-y-6 p-6">
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-600">
-          在庫アイテムが見つかりませんでした
+      <div className={styles.root}>
+        <div className={styles.errorState.root}>
+          <p className={styles.errorState.message}>在庫アイテムが見つかりませんでした</p>
         </div>
         <Button onClick={handleBack}>戻る</Button>
       </div>
@@ -42,7 +47,7 @@ export function InventoryItemDetailPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className={styles.root}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -57,24 +62,24 @@ export function InventoryItemDetailPage() {
       </div>
 
       {/* Basic Info Card */}
-      <div className="rounded-lg border bg-white p-6">
+      <div className={styles.filterCard}>
         <h3 className="mb-4 text-lg font-semibold">基本情報</h3>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className={styles.detailGrid.root}>
           <div>
-            <div className="text-sm font-medium text-gray-500">製品</div>
-            <div className="mt-1 text-base">
+            <div className={styles.detailGrid.label}>製品</div>
+            <div className={styles.detailGrid.value}>
               {item.product_name || item.product_code || `ID: ${item.product_id}`}
             </div>
           </div>
           <div>
-            <div className="text-sm font-medium text-gray-500">倉庫</div>
-            <div className="mt-1 text-base">
+            <div className={styles.detailGrid.label}>倉庫</div>
+            <div className={styles.detailGrid.value}>
               {item.warehouse_name || `ID: ${item.warehouse_id}`}
             </div>
           </div>
           <div>
-            <div className="text-sm font-medium text-gray-500">最終更新</div>
-            <div className="mt-1 text-base">
+            <div className={styles.detailGrid.label}>最終更新</div>
+            <div className={styles.detailGrid.value}>
               {new Date(item.last_updated).toLocaleString("ja-JP")}
             </div>
           </div>
@@ -82,17 +87,17 @@ export function InventoryItemDetailPage() {
       </div>
 
       {/* Inventory Stats */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className={styles.statsGrid}>
         {/* Total Quantity */}
-        <div className="rounded-lg border bg-white p-6">
-          <div className="text-sm font-medium text-gray-600">総在庫数</div>
-          <div className="mt-3 text-3xl font-bold text-gray-900">{fmt(item.total_quantity)}</div>
+        <div className={styles.statsCard({ variant: "default" })}>
+          <div className={styles.statsLabel}>総在庫数</div>
+          <div className={styles.statsValue({ color: "default" })}>{fmt(item.total_quantity)}</div>
           <div className="mt-2 text-xs text-gray-500">すべての在庫数</div>
         </div>
 
         {/* Allocated Quantity */}
-        <div className="rounded-lg border bg-white p-6">
-          <div className="text-sm font-medium text-gray-600">引当済在庫数</div>
+        <div className={styles.statsCard({ variant: "default" })}>
+          <div className={styles.statsLabel}>引当済在庫数</div>
           <div className="mt-3 text-3xl font-bold text-yellow-600">
             {fmt(item.allocated_quantity)}
           </div>
@@ -100,11 +105,9 @@ export function InventoryItemDetailPage() {
         </div>
 
         {/* Available Quantity */}
-        <div className="rounded-lg border border-l-4 border-gray-200 border-l-green-500 bg-white p-6">
-          <div className="text-sm font-medium text-gray-600">利用可能在庫数</div>
-          <div className="mt-3 text-3xl font-bold text-green-600">
-            {fmt(item.available_quantity)}
-          </div>
+        <div className={styles.statsCard({ variant: "active" })}>
+          <div className={styles.statsLabel}>利用可能在庫数</div>
+          <div className={styles.statsValue({ color: "blue" })}>{fmt(item.available_quantity)}</div>
           <div className="mt-2 text-xs text-gray-500">引当可能な在庫数</div>
         </div>
       </div>
