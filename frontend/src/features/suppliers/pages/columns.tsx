@@ -8,7 +8,9 @@ export const supplierColumns: Column<Supplier>[] = [
   {
     id: "supplier_code",
     header: "仕入先コード",
-    cell: (row) => <span className="font-mono text-sm font-medium text-gray-900">{row.supplier_code}</span>,
+    cell: (row) => (
+      <span className="font-mono text-sm font-medium text-gray-900">{row.supplier_code}</span>
+    ),
     sortable: true,
     width: "200px",
   },

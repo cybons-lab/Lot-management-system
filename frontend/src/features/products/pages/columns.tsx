@@ -8,7 +8,9 @@ export const productColumns: Column<Product>[] = [
   {
     id: "maker_part_code",
     header: "メーカー品番",
-    cell: (row) => <span className="font-mono text-sm font-medium text-gray-900">{row.maker_part_code}</span>,
+    cell: (row) => (
+      <span className="font-mono text-sm font-medium text-gray-900">{row.maker_part_code}</span>
+    ),
     sortable: true,
     width: "200px",
   },
@@ -29,9 +31,7 @@ export const productColumns: Column<Product>[] = [
     id: "consumption_limit_days",
     header: "消費期限日数",
     cell: (row) => (
-      <span className="text-sm text-gray-700">
-        {row.consumption_limit_days?.toString() ?? "-"}
-      </span>
+      <span className="text-sm text-gray-700">{row.consumption_limit_days?.toString() ?? "-"}</span>
     ),
     sortable: true,
     width: "150px",

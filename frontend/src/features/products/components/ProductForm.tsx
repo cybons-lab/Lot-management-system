@@ -18,7 +18,7 @@ const productFormSchema = z.object({
 type ProductFormData = z.infer<typeof productFormSchema>;
 
 // output型: APIへ送るデータ型
-type ProductFormOutput = Omit<ProductFormData, 'consumption_limit_days'> & {
+type ProductFormOutput = Omit<ProductFormData, "consumption_limit_days"> & {
   consumption_limit_days?: number | null;
 };
 
@@ -53,13 +53,13 @@ export function ProductForm({
   const handleFormSubmit = (data: ProductFormData) => {
     const output: ProductFormOutput = {
       ...data,
-      consumption_limit_days: data.consumption_limit_days && data.consumption_limit_days !== ""
-        ? Number(data.consumption_limit_days)
-        : null,
+      consumption_limit_days:
+        data.consumption_limit_days && data.consumption_limit_days !== ""
+          ? Number(data.consumption_limit_days)
+          : null,
     };
     onSubmit(output);
   };
-
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className={formStyles.grid}>
