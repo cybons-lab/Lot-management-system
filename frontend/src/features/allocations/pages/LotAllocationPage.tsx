@@ -27,6 +27,7 @@ export function LotAllocationPage() {
         // 新規追加: ステータスとバリデーション
         lineStatuses={logic.lineStatuses}
         isOverAllocated={logic.isOverAllocated}
+        getCandidateLots={logic.getCandidateLots}
       />
 
       {/* トースト通知 (既存機能を維持) */}

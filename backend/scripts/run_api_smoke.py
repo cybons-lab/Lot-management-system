@@ -3,6 +3,7 @@ from pathlib import Path
 
 import requests
 
+
 # -------------------------------------------------------
 # パス設定（スクリプト自身を基準に絶対パスで解決）
 # -------------------------------------------------------
@@ -29,12 +30,12 @@ def print_error(msg: str):
 
 
 def load_json(name: str) -> dict:
-    """data/配下のJSONファイルを絶対パスで読み込む"""
+    """data/配下のJSONファイルを絶対パスで読み込む."""
     path = DATA_DIR / name
     if not path.exists():
         print_error(f"ファイルが見つかりません: {path}")
         return None
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 

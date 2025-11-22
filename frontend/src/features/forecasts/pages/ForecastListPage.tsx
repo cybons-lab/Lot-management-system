@@ -15,6 +15,9 @@ import { Input } from "@/components/ui";
 import { Label } from "@/components/ui";
 import { ROUTES } from "@/constants/routes";
 
+import { useMutation } from "@tanstack/react-query";
+import { generateAllocationSuggestions } from "@/features/allocations/api";
+
 export function ForecastListPage() {
   const navigate = useNavigate();
   const [filters, setFilters] = useState({
@@ -30,6 +33,41 @@ export function ForecastListPage() {
   };
 
   const { data: response, isLoading, isError, refetch } = useForecasts(queryParams);
+
+  // Allocation Suggestion Generation
+  const generateMutation = useMutation({
+    mutationFn: generateAllocationSuggestions,
+    onSuccess: (data) => {
+      alert(`引当推奨を生成しました。\n生成数: ${data.suggestions.length}件`);
+    },
+    onError: (error) => {
+      console.error("Generation failed:", error);
+      alert("引当推奨の生成に失敗しました");
+    },
+  });
+
+  const handleGenerateSuggestions = () => {
+    const today = new Date();
+    const periods: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+      const period = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      periods.push(period);
+    }
+
+    if (
+      !confirm(`${periods.join(", ")} の引当推奨を生成しますか？\n既存の推奨は上書きされます。`)
+    ) {
+      return;
+    }
+
+    generateMutation.mutate({
+      mode: "forecast",
+      forecast_scope: {
+        forecast_periods: periods,
+      },
+    });
+  };
 
   const [openGroupKeys, setOpenGroupKeys] = useState<Set<string>>(new Set());
 
@@ -132,7 +170,16 @@ export function ForecastListPage() {
           <h2 className="text-3xl font-bold tracking-tight">フォーキャスト一覧</h2>
           <p className="mt-1 text-gray-600">顧客×納入先×製品でグループ化（v2.4）</p>
         </div>
-        <Button onClick={() => navigate(ROUTES.FORECASTS.IMPORT)}>一括インポート</Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleGenerateSuggestions}
+            disabled={generateMutation.isPending}
+          >
+            {generateMutation.isPending ? "生成中..." : "引当推奨生成"}
+          </Button>
+          <Button onClick={() => navigate(ROUTES.FORECASTS.IMPORT)}>一括インポート</Button>
+        </div>
       </div>
 
       <div className="rounded-lg border bg-white p-4">

@@ -3,7 +3,6 @@
 from typing import TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
-from pydantic.generics import GenericModel
 
 
 class ORMModel(BaseModel):
@@ -23,7 +22,7 @@ class PageQuery(BaseModel):
 T = TypeVar("T")
 
 
-class Page[T](GenericModel):
+class Page[T](BaseModel):
     """Generic paginated response."""
 
     items: list[T]

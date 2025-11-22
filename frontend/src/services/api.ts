@@ -19,11 +19,6 @@ import type {
 } from "@/shared/types/aliases";
 import type { ForecastListResponse } from "@/features/forecasts/api";
 
-// 引当関連の型
-// Note: DragAssignRequest is deprecated, use AllocationSuggestionManualRequest for new code
-type DragAssignRequest = components["schemas"]["AllocationSuggestionManualRequest"];
-type DragAssignResponse = components["schemas"]["AllocationSuggestionManualResponse"];
-
 // ロット関連の型
 type Lot = components["schemas"]["LotResponse"];
 
@@ -65,16 +60,6 @@ export const api = {
   listLots: (params?: Record<string, unknown>) =>
     http.get<Lot[]>("/lots", { params }).then((r) => r.data),
 
-  // ===== 引当 =====
-  /**
-   * ドラッグ&ドロップによる引当実行（手動引当）
-   * @description 旧: POST /allocations/drag-assign（非推奨）→ 新: POST /allocation-suggestions/manual
-   * @param body 引当リクエストデータ
-   * @returns 引当結果
-   */
-  dragAssignAllocation: (body: DragAssignRequest) =>
-    http.post<DragAssignResponse>("/allocation-suggestions/manual", body).then((r) => r.data),
-
   // ===== Forecast =====
   /**
    * Forecast一覧を取得 (v2.4)
@@ -89,14 +74,7 @@ export const api = {
 // 型のエクスポート
 // ========================================
 
-export type {
-  Order,
-  OrderDetail,
-  DragAssignRequest,
-  DragAssignResponse,
-  Lot,
-  ForecastListResponse,
-};
+export type { Order, OrderDetail, Lot, ForecastListResponse };
 
 // === Compat helpers added by patch ===
 export type DashboardStats = {

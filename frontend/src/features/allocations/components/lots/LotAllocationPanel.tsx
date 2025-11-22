@@ -139,6 +139,9 @@ export function LotAllocationPanel({
           />
         </div>
 
+        {/* Header and Body Separator */}
+        <div className="my-4 border-t-2 border-gray-100" />
+
         {/* ロット一覧エリア */}
         <div className={styles.panelBody}>
           {isLoading ? (
@@ -152,6 +155,10 @@ export function LotAllocationPanel({
               candidateLots={candidateLots}
               lotAllocations={lotAllocations}
               remainingNeeded={remainingNeeded}
+              requiredQty={requiredQty}
+              customerId={order?.customer_id}
+              deliveryPlaceId={orderLine?.delivery_place_id}
+              productId={orderLine?.product_id}
               isActive={isActive}
               onLotAllocationChange={onLotAllocationChange}
             />

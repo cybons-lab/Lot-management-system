@@ -8,6 +8,10 @@ interface LotAllocationListProps {
   candidateLots: CandidateLotItem[];
   lotAllocations: Record<number, number>;
   remainingNeeded: number;
+  requiredQty: number; // 新規: 明細の総要求数
+  customerId?: number | null;
+  deliveryPlaceId?: number | null;
+  productId?: number | null;
   isActive: boolean;
   onLotAllocationChange: (lotId: number, quantity: number) => void;
 }
@@ -20,18 +24,42 @@ export function LotAllocationList({
   candidateLots,
   lotAllocations,
   remainingNeeded,
+  requiredQty,
+  customerId,
+  deliveryPlaceId,
+  productId,
   isActive,
   onLotAllocationChange,
 }: LotAllocationListProps) {
+  // [全量]ボタン用: 指定ロットに全量を割り当て、他を全てクリア（1つのトランザクションとして）
+  const handleFullAllocation = (targetLotId: number, fullQty: number) => {
+    // まず、他のロットを全てクリア
+    Object.keys(lotAllocations).forEach((lotId) => {
+      const id = Number(lotId);
+      if (id !== targetLotId && lotAllocations[id] > 0) {
+        onLotAllocationChange(id, 0);
+      }
+    });
+    // 次に、対象ロットに全量を設定
+    onLotAllocationChange(targetLotId, fullQty);
+  };
+
   return (
     <div className="flex flex-col gap-1">
-      {candidateLots.map((lot) => {
+      {candidateLots.map((lot, index) => {
         const lotId = lot.lot_id;
         const allocatedQty = lotAllocations[lotId] ?? 0;
         const maxAllocatable = allocatedQty + remainingNeeded;
 
         return (
-          <div key={lotId} className="group/item relative transition-all duration-200 hover:z-10">
+          <div
+            key={lotId}
+            className={cn(
+              "group/item relative transition-all duration-200 hover:z-10",
+              // Zebra striping: even rows get a light gray background
+              index % 2 === 1 ? "bg-gray-50/50" : "bg-white",
+            )}
+          >
             {/* リスト内の非アクティブ行を暗くする処理は、Panelがアクティブな時だけ有効にする */}
             {isActive && (
               <div
@@ -58,7 +86,13 @@ export function LotAllocationList({
                   lot={lot}
                   allocatedQty={allocatedQty}
                   maxAllocatable={maxAllocatable}
+                  requiredQty={requiredQty}
+                  customerId={customerId}
+                  deliveryPlaceId={deliveryPlaceId}
+                  productId={productId}
+                  rank={index + 1}
                   onAllocationChange={(qty) => onLotAllocationChange(lotId, qty)}
+                  onFullAllocation={(qty) => handleFullAllocation(lotId, qty)}
                 />
               </div>
             </div>
