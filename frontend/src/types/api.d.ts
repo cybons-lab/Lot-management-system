@@ -3971,6 +3971,8 @@ export interface components {
        * Format: date-time
        */
       updated_at: string;
+      /** Supplier Name */
+      supplier_name?: string | null;
     };
     /**
      * OrderWithLinesResponse
