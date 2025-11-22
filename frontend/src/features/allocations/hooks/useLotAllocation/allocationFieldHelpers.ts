@@ -13,7 +13,8 @@ import type { OrderLine } from "@/shared/types/aliases";
  * @returns Order quantity as number
  */
 export function getOrderQuantity(line: OrderLine): number {
-  return Number(line.order_quantity ?? line.quantity ?? 0);
+  // Use converted_quantity (internal units) if available, otherwise fallback to external units
+  return Number(line.converted_quantity ?? line.order_quantity ?? line.quantity ?? 0);
 }
 
 /**
