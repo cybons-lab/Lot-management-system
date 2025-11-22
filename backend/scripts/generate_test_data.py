@@ -30,6 +30,7 @@ from app.core.database import SessionLocal
 from app.models import (
     Customer,
     DeliveryPlace,
+    ForecastCurrent,
     Lot,
     Order,
     OrderLine,
@@ -49,7 +50,8 @@ def clear_database(db: Session):
     db.execute(text("DELETE FROM order_lines"))
     db.execute(text("DELETE FROM orders"))
     db.execute(text("DELETE FROM lots"))
-    db.execute(text("DELETE FROM forecast_current"))  # Delete forecasts before products
+    db.execute(text("DELETE FROM forecast_current"))
+    db.execute(text("DELETE FROM customer_items"))
     db.execute(text("DELETE FROM products"))
     db.execute(text("DELETE FROM delivery_places"))
     db.execute(text("DELETE FROM warehouses"))
@@ -107,6 +109,26 @@ def warehouse_strategy(draw, warehouse_id: int):
 
 
 @st.composite
+def forecast_strategy(draw, product_id: int, customer_id: int, delivery_place_id: int):
+    """Generate a forecast."""
+    forecast_date = date.today() + timedelta(days=draw(st.integers(min_value=0, max_value=60)))
+    # Simple period generation (using monthly for simplicity or daily)
+    forecast_period = forecast_date.strftime("%Y-%m")
+    
+    return ForecastCurrent(
+        product_id=product_id,
+        customer_id=customer_id,
+        delivery_place_id=delivery_place_id,
+        forecast_date=forecast_date,
+        forecast_quantity=Decimal(str(draw(st.integers(min_value=10, max_value=500)))),
+        unit="PCS",  # Simplified
+        forecast_period=forecast_period,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+    )
+
+
+@st.composite
 def scenario_lot_strategy(draw, lot_id: int, product_id: int, warehouse_id: int, 
                           supplier_id: int, scenario: str):
     """Generate a lot based on scenario type.
@@ -158,7 +180,7 @@ def scenario_lot_strategy(draw, lot_id: int, product_id: int, warehouse_id: int,
     
     # Generate quantities
     current_qty = Decimal(str(draw(st.integers(min_value=qty_range[0], max_value=qty_range[1]))))
-    allocated_qty = Decimal(str(int(current_qty * allocated_pct)))
+    allocated_qty = Decimal(str(int(current_qty * Decimal(str(allocated_pct)))))
     
     # Generate expiry date
     expiry_days_val = draw(st.integers(min_value=expiry_days[0], max_value=expiry_days[1]))
@@ -197,7 +219,7 @@ def generate_test_data():
         print("\n📦 Creating master data...")
         
         # Customers (3)
-        customers = [customer_strategy().example(customer_id=i+1) for i in range(3)]
+        customers = [customer_strategy(customer_id=i+1).example() for i in range(3)]
         for customer in customers:
             db.add(customer)
         db.flush()
@@ -230,19 +252,54 @@ def generate_test_data():
         db.flush()
         
         # Warehouses (4)
-        warehouses = [warehouse_strategy().example(warehouse_id=i+1) for i in range(4)]
+        warehouses = [warehouse_strategy(warehouse_id=i+1).example() for i in range(4)]
         for warehouse in warehouses:
             db.add(warehouse)
         db.flush()
         
         # Products (20)
-        products = [product_strategy().example(product_id=i+1) for i in range(20)]
+        products = [product_strategy(product_id=i+1).example() for i in range(20)]
         for product in products:
             db.add(product)
         db.flush()
         
         print(f"✓ Created {len(customers)} customers, {len(suppliers)} suppliers, "
               f"{len(products)} products, {len(warehouses)} warehouses")
+        
+        # Generate Forecasts
+        print("\n📈 Generating forecasts...")
+        forecast_count = 0
+        generated_keys = set()
+        
+        for product in products:
+            # Generate 5-10 forecasts per product
+            import random
+            num_forecasts = random.randint(5, 10)
+            attempts = 0
+            created = 0
+            
+            while created < num_forecasts and attempts < 20:
+                attempts += 1
+                dp = random.choice(delivery_places)
+                
+                # Generate a potential forecast
+                forecast = forecast_strategy(
+                    product_id=product.id,
+                    customer_id=dp.customer_id,
+                    delivery_place_id=dp.id
+                ).example()
+                
+                key = (forecast.product_id, forecast.delivery_place_id, forecast.forecast_date)
+                if key in generated_keys:
+                    continue
+                
+                generated_keys.add(key)
+                db.add(forecast)
+                forecast_count += 1
+                created += 1
+                
+        db.flush()
+        print(f"✓ Generated {forecast_count} forecasts")
         
         # Create scenario-based lots
         print("\n🎯 Generating scenario-based lots...")
@@ -265,13 +322,13 @@ def generate_test_data():
                 warehouse = random.choice(warehouses)
                 supplier = random.choice(suppliers)
                 
-                lot = scenario_lot_strategy().example(
+                lot = scenario_lot_strategy(
                     lot_id=lot_id,
                     product_id=product.id,
                     warehouse_id=warehouse.id,
                     supplier_id=supplier.id,
                     scenario=scenario,
-                )
+                ).example()
                 db.add(lot)
                 lot_id += 1
             

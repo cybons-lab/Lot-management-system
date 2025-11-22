@@ -82,7 +82,7 @@ export function LotAllocationHeaderView({
     statusBadge = (
       <span className="flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
         <CheckCircle className="h-3 w-3" />
-        引当完了
+        仮引当完了
       </span>
     );
   } else if (isPartial) {
