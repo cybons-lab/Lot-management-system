@@ -60,8 +60,8 @@ export function OrderLineCard({
     <button
       type="button"
       className={`w-full cursor-pointer rounded-lg border p-3 text-left transition-all ${isSelected
-          ? "border-blue-500 bg-blue-50 shadow-md"
-          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+        ? "border-blue-500 bg-blue-50 shadow-md"
+        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
         }`}
       onClick={onClick}
     >
@@ -73,9 +73,9 @@ export function OrderLineCard({
         </div>
         <div className="text-right">
           <div className="text-sm font-semibold">
-            {displayedAllocated.toLocaleString()} / {totalQuantity.toLocaleString()}
+            {displayedAllocated.toLocaleString()} / {totalQuantity.toLocaleString()} <span className="text-xs font-normal text-gray-500">{unitLabel}</span>
           </div>
-          <div className="text-xs text-gray-500">{unitLabel}</div>
+          {/* <div className="text-xs text-gray-500">{unitLabel}</div> */}
           {pendingApplied > 0 && (
             <div className="text-[11px] text-blue-600">
               確定 {allocatedQty.toLocaleString()} + 配分 {pendingApplied.toLocaleString()}

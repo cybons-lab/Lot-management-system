@@ -20,7 +20,11 @@ from decimal import Decimal
 from pathlib import Path
 
 # Ensure app module is importable
-sys.path.insert(0, '/app')
+import os
+from dotenv import load_dotenv
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
+# sys.path.insert(0, '/app')
 
 from hypothesis import given, settings, strategies as st
 from sqlalchemy.orm import Session
@@ -83,11 +87,21 @@ def product_strategy(draw, product_id: int):
     from faker import Faker
     faker = Faker("ja_JP")
     
+    unit_config = draw(st.sampled_from([
+        {"internal": "CAN", "external": "KG", "factor": 20.0},
+        {"internal": "PCS", "external": "PCS", "factor": 1.0},
+        {"internal": "BOX", "external": "PCS", "factor": 12.0},
+        {"internal": "L", "external": "ML", "factor": 1000.0},
+    ]))
+
     return Product(
         id=product_id,
         maker_part_code=f"PROD-{5000 + product_id:04d}",
         product_name=faker.bs().title(),
-        base_unit=draw(st.sampled_from(["PCS", "BOX", "SET"])),
+        base_unit=unit_config["internal"], # Legacy field, maybe keep as internal
+        internal_unit=unit_config["internal"],
+        external_unit=unit_config["external"],
+        qty_per_internal_unit=unit_config["factor"],
         consumption_limit_days=draw(st.integers(min_value=30, max_value=180)),
         created_at=datetime.utcnow(),
     )
@@ -301,27 +315,31 @@ def generate_test_data():
         db.flush()
         print(f"✓ Generated {forecast_count} forecasts")
         
-        # Create scenario-based lots
-        print("\n🎯 Generating scenario-based lots...")
-        
-        scenario_distribution = [
-            ('normal', 30),
-            ('shortage', 15),
-            ('expiring', 10),
-            ('expired', 5),
-            ('depleted', 5),
-            ('large', 10),
-        ]
+        # Create scenario-based lots per product
+        print("\n🎯 Generating lots per product...")
         
         lot_id = 1
-        for scenario, count in scenario_distribution:
-            print(f"  - {scenario}: {count} lots")
-            for _ in range(count):
-                import random
-                product = random.choice(products)
+        for product in products:
+            # Decide scenario for this product
+            # 70% Normal, 10% Shortage, 10% Expiring, 5% Expired, 5% Depleted
+            import random
+            scenario = random.choices(
+                ['normal', 'shortage', 'expiring', 'expired', 'depleted'],
+                weights=[70, 10, 10, 5, 5],
+                k=1
+            )[0]
+            
+            # Decide number of lots (1-3)
+            if scenario == 'depleted':
+                num_lots = 0
+            else:
+                num_lots = random.choices([1, 2, 3], weights=[40, 40, 20], k=1)[0]
+            
+            for _ in range(num_lots):
                 warehouse = random.choice(warehouses)
                 supplier = random.choice(suppliers)
                 
+                # Generate lot
                 lot = scenario_lot_strategy(
                     lot_id=lot_id,
                     product_id=product.id,
@@ -329,14 +347,15 @@ def generate_test_data():
                     supplier_id=supplier.id,
                     scenario=scenario,
                 ).example()
+                
+                # Ensure unit matches product
+                lot.unit = product.internal_unit
+                
                 db.add(lot)
                 lot_id += 1
-            
-            if lot_id % 20 == 0:
-                db.flush()
         
         db.flush()
-        print(f"✓ Generated {lot_id - 1} lots")
+        print(f"✓ Generated {lot_id - 1} lots (Strategy: Max 3 lots per product)")
         
         # Create orders with various quantities
         print("\n📋 Generating orders...")
@@ -372,13 +391,27 @@ def generate_test_data():
                     product = random.choice(products)
                     delivery_place = random.choice(delivery_places)
                     
+                    # Determine unit (70% external, 30% internal)
+                    use_external = random.random() < 0.7
+                    if use_external and product.external_unit:
+                        unit = product.external_unit
+                        # quantity in external unit
+                        qty = random.randint(qty_min, qty_max)
+                        converted_qty = Decimal(str(qty)) / Decimal(str(product.qty_per_internal_unit))
+                    else:
+                        unit = product.internal_unit
+                        # quantity in internal unit (scaled down)
+                        qty = max(1, int(random.randint(qty_min, qty_max) / float(product.qty_per_internal_unit)))
+                        converted_qty = Decimal(str(qty))
+
                     line = OrderLine(
                         id=line_id,
                         order_id=order_id,
                         product_id=product.id,
                         delivery_date=order.order_date + timedelta(days=random.randint(7, 30)),
-                        order_quantity=Decimal(str(random.randint(qty_min, qty_max))),
-                        unit=product.base_unit,
+                        order_quantity=Decimal(str(qty)),
+                        unit=unit,
+                        converted_quantity=converted_qty,
                         delivery_place_id=delivery_place.id,
                         status='pending',
                         created_at=datetime.utcnow(),
@@ -402,9 +435,7 @@ def generate_test_data():
         print(f"  Lots: {lot_id - 1}")
         print(f"  Orders: {order_id - 1}")
         print(f"  Order Lines: {line_id - 1}")
-        print("\n💡 Scenarios covered:")
-        for scenario, count in scenario_distribution:
-            print(f"  - {scenario}: {count} lots")
+
         
     except Exception as e:
         print(f"\n❌ Error: {e}")
