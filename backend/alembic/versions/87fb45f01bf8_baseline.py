@@ -1,17 +1,16 @@
-"""baseline v2.5 schema
+"""baseline
 
-Revision ID: 121128300ac0
+Revision ID: 87fb45f01bf8
 Revises: 
-Create Date: 2025-11-22 08:39:14.685294
+Create Date: 2025-11-22 18:03:03.171717
 
 """
-import sqlalchemy as sa
-
 from alembic import op
+import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '121128300ac0'
+revision = '87fb45f01bf8'
 down_revision = None
 branch_labels = None
 depends_on = None

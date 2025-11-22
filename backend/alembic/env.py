@@ -20,13 +20,25 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 # 'Base.metadata' に全テーブル定義がアタッチされる
 from app.models import Base
 
-
+from app.core.config import settings
 # --- ▲▲▲ ここまで追加 ▲▲▲ ---
+
+
+def include_object(object, name, type_, reflected, compare_to):
+    """
+    Alembicのautogenerate対象を制御する関数.
+    
+    ビュー（is_view=Trueのテーブル）を除外します。
+    """
+    if type_ == "table" and hasattr(object, "info") and object.info.get("is_view"):
+        return False
+    return True
 
 
 # alembic.ini の設定を読み込みます
 config = context.config
 
+config.set_main_option("sqlalchemy.url", str(settings.DATABASE_URL))
 # ログ設定
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
@@ -46,6 +58,7 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         compare_type=True,
         render_as_batch=True,
+        include_object=include_object,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -55,27 +68,11 @@ def run_migrations_online() -> None:
     """Online mode (to apply changes to the DB)"""
 
     # ✅ 環境変数からDATABASE_URLを取得
-    import os
-
-    database_url = os.environ.get("DATABASE_URL")
-
-    if database_url:
-        # 環境変数が設定されている場合はそれを使用
-        from sqlalchemy import create_engine
-
-        connectable = create_engine(
-            database_url,
-            poolclass=pool.NullPool,
-            future=True,
-        )
-    else:
-        # 環境変数がない場合は alembic.ini から読み込む
-        connectable = engine_from_config(
-            config.get_section(config.config_ini_section),
-            prefix="sqlalchemy.",
-            poolclass=pool.NullPool,
-            future=True,
-        )
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
 
     with connectable.connect() as connection:
         context.configure(
@@ -83,6 +80,7 @@ def run_migrations_online() -> None:
             target_metadata=target_metadata,
             compare_type=True,
             render_as_batch=True,
+            include_object=include_object,
         )
         with context.begin_transaction():
             context.run_migrations()
