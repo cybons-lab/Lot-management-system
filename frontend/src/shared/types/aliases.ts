@@ -156,6 +156,7 @@ export type OrderLine = ApiOrderLine & {
   due_date?: string | null; // Deprecated: use delivery_date
   allocated_qty?: number | string | null; // Deprecated: use allocated_quantity
   allocated_quantity?: number | string | null; // API may expose the canonical column name
+  converted_quantity?: number | string | null; // Internal unit quantity (converted from external unit)
   allocated_lots?: AllocatedLot[];
   delivery_place_allocations?: Array<{ delivery_place_code: string; quantity: number }>;
   delivery_place?: string | null;
