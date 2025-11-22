@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui";
 import { cn } from "@/shared/libs/utils";
+import { formatQuantity } from "@/shared/utils/formatQuantity";
 import { AlertTriangle, CheckCircle, AlertCircle } from "lucide-react";
 
 interface LotAllocationHeaderViewProps {
@@ -166,7 +167,7 @@ export function LotAllocationHeaderView({
             <div className="flex items-baseline justify-between">
               <span className="text-xs font-bold text-gray-500">必要数</span>
               <span className="text-2xl font-bold text-gray-900">
-                {requiredQty.toLocaleString()} <span className="text-sm font-normal text-gray-500">{unit}</span>
+                {formatQuantity(requiredQty, unit)} <span className="text-sm font-normal text-gray-500">{unit}</span>
               </span>
             </div>
 
@@ -179,9 +180,9 @@ export function LotAllocationHeaderView({
                 />
               </div>
               <div className="flex justify-between text-[10px] font-medium">
-                <span className="text-blue-600">引当: {totalAllocated.toLocaleString()}</span>
+                <span className="text-blue-600">引当: {formatQuantity(totalAllocated, unit)}</span>
                 <span className={cn(remainingQty > 0 ? "text-red-500" : "text-green-600")}>
-                  残: {remainingQty.toLocaleString()}
+                  残: {formatQuantity(remainingQty, unit)}
                 </span>
               </div>
             </div>

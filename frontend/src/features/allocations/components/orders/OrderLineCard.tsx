@@ -5,6 +5,7 @@
 import type { OrderLine } from "../../types";
 
 import { formatDate } from "@/shared/utils/date";
+import { formatQuantity } from "@/shared/utils/formatQuantity";
 
 interface OrderLineCardProps {
   line: OrderLine;
@@ -73,12 +74,12 @@ export function OrderLineCard({
         </div>
         <div className="text-right">
           <div className="text-sm font-semibold">
-            {displayedAllocated.toLocaleString()} / {totalQuantity.toLocaleString()} <span className="text-xs font-normal text-gray-500">{unitLabel}</span>
+            {formatQuantity(displayedAllocated, unitLabel)} / {formatQuantity(totalQuantity, unitLabel)} <span className="text-xs font-normal text-gray-500">{unitLabel}</span>
           </div>
           {/* <div className="text-xs text-gray-500">{unitLabel}</div> */}
           {pendingApplied > 0 && (
             <div className="text-[11px] text-blue-600">
-              確定 {allocatedQty.toLocaleString()} + 配分 {pendingApplied.toLocaleString()}
+              確定 {formatQuantity(allocatedQty, unitLabel)} + 配分 {formatQuantity(pendingApplied, unitLabel)}
             </div>
           )}
         </div>
@@ -95,13 +96,13 @@ export function OrderLineCard({
 
       <div className="flex justify-between text-xs text-gray-600">
         <span>
-          受注数量: {totalQuantity.toLocaleString()} {unitLabel}
+          受注数量: {formatQuantity(totalQuantity, unitLabel)} {unitLabel}
           {/* Dual Unit Display */}
           {line.product_internal_unit &&
             line.product_qty_per_internal_unit &&
             unitLabel !== line.product_internal_unit && (
               <span className="ml-1 text-gray-400">
-                (= {Number(line.converted_quantity || 0).toLocaleString()} {line.product_internal_unit})
+                (= {formatQuantity(Number(line.converted_quantity || 0), line.product_internal_unit || "PCS")} {line.product_internal_unit})
               </span>
             )}
           {line.product_internal_unit &&
@@ -109,7 +110,7 @@ export function OrderLineCard({
             unitLabel === line.product_internal_unit &&
             line.product_external_unit && (
               <span className="ml-1 text-gray-400">
-                (= {(totalQuantity * line.product_qty_per_internal_unit).toLocaleString()}{" "}
+                (= {formatQuantity(totalQuantity * line.product_qty_per_internal_unit, line.product_internal_unit || "PCS")}{" "}
                 {line.product_external_unit})
               </span>
             )}
@@ -119,7 +120,7 @@ export function OrderLineCard({
 
       <div className="mt-1 flex justify-between text-xs text-gray-600">
         {remainingQty > 0 ? (
-          <span className="font-medium text-orange-600">残り {remainingQty.toLocaleString()}</span>
+          <span className="font-medium text-orange-600">残り {formatQuantity(remainingQty, unitLabel)}</span>
         ) : (
           <span className="invisible">-</span>
         )}

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui";
 import { cn } from "@/shared/libs/utils";
 import { Trash2 } from "lucide-react";
 import { formatDate } from "@/shared/utils/date";
+import { formatQuantity } from "@/shared/utils/formatQuantity";
 import { AnimatePresence } from "framer-motion";
 import { useForecastData } from "./hooks/useForecastData";
 import { ForecastTooltip } from "./ForecastTooltip";
@@ -190,12 +191,12 @@ export function LotListCard({
         <div className="min-w-[140px] text-right">
           <div className="text-xs font-bold text-gray-400">残量 / 総量</div>
           <div className="text-sm font-bold text-gray-900">
-            {remainingInLot.toLocaleString()} / {freeQty.toLocaleString()} {lot.internal_unit}
+            {formatQuantity(remainingInLot, lot.internal_unit || "PCS")} / {formatQuantity(freeQty, lot.internal_unit || "PCS")} {lot.internal_unit}
           </div>
           {lot.qty_per_internal_unit && lot.external_unit && (
             <div className="text-[10px] text-gray-500">
-              (= {(remainingInLot * lot.qty_per_internal_unit).toLocaleString()} /{" "}
-              {(freeQty * lot.qty_per_internal_unit).toLocaleString()} {lot.external_unit})
+              (= {formatQuantity(remainingInLot * lot.qty_per_internal_unit, lot.external_unit || "BOX")} /{" "}
+              {formatQuantity(freeQty * lot.qty_per_internal_unit, lot.external_unit || "BOX")} {lot.external_unit})
             </div>
           )}
         </div>
@@ -234,7 +235,7 @@ export function LotListCard({
             </div>
             {allocatedQty > 0 && lot.qty_per_internal_unit && lot.external_unit && (
               <div className="absolute -bottom-4 left-0 right-0 text-center text-[10px] text-gray-500">
-                = {(allocatedQty * lot.qty_per_internal_unit).toLocaleString()} {lot.external_unit}
+                = {formatQuantity(allocatedQty * lot.qty_per_internal_unit, lot.external_unit || "BOX")} {lot.external_unit}
               </div>
             )}
           </div>

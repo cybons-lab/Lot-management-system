@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui";
 import { Progress } from "@/components/ui";
 import { cn } from "@/shared/libs/utils";
+import { formatQuantity } from "@/shared/utils/formatQuantity";
 import type { OrderLine } from "@/shared/types/aliases";
 import { formatDate } from "@/shared/utils/date";
 
@@ -149,17 +150,17 @@ export function OrderLinesPaneView({
                   <div>
                     <div className="text-gray-500">必要数量</div>
                     <div className="mt-1 font-semibold text-gray-900">
-                      {requiredQty.toLocaleString()} <span className="text-xs font-normal text-gray-500">{line.unit}</span>
+                      {formatQuantity(requiredQty, line.unit || "PCS")} <span className="text-xs font-normal text-gray-500">{line.unit}</span>
                     </div>
                   </div>
                   <div>
                     <div className="text-gray-500">引当済</div>
                     <div className="mt-1 font-semibold text-blue-600">
-                      {allocatedQty.toLocaleString()}
+                      {formatQuantity(allocatedQty, line.unit || "PCS")}
                     </div>
                     {uiAllocated > 0 && (
                       <p className="text-[11px] text-gray-500">
-                        仮入力: +{uiAllocated.toLocaleString()}
+                        仮入力: +{formatQuantity(uiAllocated, line.unit || "PCS")}
                       </p>
                     )}
                   </div>
@@ -171,7 +172,7 @@ export function OrderLinesPaneView({
                         remainingQty > 0 ? "text-red-600" : "text-green-600",
                       )}
                     >
-                      {remainingQty.toLocaleString()}
+                      {formatQuantity(remainingQty, line.unit || "PCS")}
                     </div>
                   </div>
                 </div>
