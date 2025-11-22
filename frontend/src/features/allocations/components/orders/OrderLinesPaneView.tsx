@@ -149,7 +149,7 @@ export function OrderLinesPaneView({
                   <div>
                     <div className="text-gray-500">必要数量</div>
                     <div className="mt-1 font-semibold text-gray-900">
-                      {requiredQty.toLocaleString()}
+                      {requiredQty.toLocaleString()} <span className="text-xs font-normal text-gray-500">{line.unit}</span>
                     </div>
                   </div>
                   <div>
