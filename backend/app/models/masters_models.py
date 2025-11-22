@@ -16,6 +16,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -24,6 +25,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base_model import Base
+from decimal import Decimal
 
 
 if TYPE_CHECKING:  # pragma: no cover - for type checkers only
@@ -197,6 +199,16 @@ class Product(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
     )
+    # Unit Conversion Fields
+    internal_unit: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default="CAN"
+    )  # e.g. "CAN" (Allocation Unit)
+    external_unit: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default="KG"
+    )  # e.g. "KG" (Display/Input Unit)
+    qty_per_internal_unit: Mapped[Decimal] = mapped_column(
+        Numeric(10, 4), nullable=False, server_default="1.0"
+    )  # e.g. 20.0 (1 CAN = 20 KG)
 
     __table_args__ = (
         UniqueConstraint("maker_part_code", name="uq_products_maker_part_code"),

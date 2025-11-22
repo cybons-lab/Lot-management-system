@@ -16,6 +16,10 @@ export type OrderLine = components["schemas"]["OrderLineResponse"] & {
   delivery_place_name?: string | null;
   delivery_place_code?: string | null;
   supplier_name?: string | null;
+  converted_quantity?: number | string | null; // Added for internal unit
+  product_internal_unit?: string | null;
+  product_external_unit?: string | null;
+  product_qty_per_internal_unit?: number | null;
 };
 
 export type PriorityLevel = "urgent" | "warning" | "attention" | "allocated" | "inactive";

@@ -237,4 +237,20 @@ def execute_candidate_lot_query(
                 if c.warehouse_id:
                     c.warehouse_name = warehouse_map.get(c.warehouse_id)
 
+        # Populate product unit info
+        product_ids = {c.product_id for c in candidates if c.product_id}
+        if product_ids:
+            from app.models import Product
+
+            products = db.query(Product).filter(Product.id.in_(product_ids)).all()
+            product_map = {p.id: p for p in products}
+
+            for c in candidates:
+                if c.product_id:
+                    product = product_map.get(c.product_id)
+                    if product:
+                        c.internal_unit = product.internal_unit
+                        c.external_unit = product.external_unit
+                        c.qty_per_internal_unit = float(product.qty_per_internal_unit or 1.0)
+
     return candidates

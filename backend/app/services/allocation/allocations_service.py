@@ -132,13 +132,13 @@ def _resolve_next_div(db: Session, order: Order, line: OrderLine) -> tuple[str |
         if product_code:
             stmt = select(Product).where(Product.product_code == product_code)
             product = db.execute(stmt).scalar_one_or_none()
-    if product and product.next_div:
+    if product and getattr(product, "next_div", None):
         return product.next_div, None
 
     product_code = getattr(line, "product_code", None)
     if not product_code and product:
-        product_code = product.product_code
-    warning = f"次区が未設定: customer={order.customer_code}, product={product_code or 'unknown'}"
+        product_code = product.maker_part_code
+    warning = f"次区が未設定: customer_id={order.customer_id}, product={product_code or 'unknown'}"
     return None, warning
 
 
@@ -226,7 +226,11 @@ def calculate_line_allocations(
     Returns:
         FefoLinePlan: Allocation plan for this line
     """
-    required_qty = float(line.order_quantity or 0.0)
+    required_qty = float(
+        line.converted_quantity
+        if line.converted_quantity is not None
+        else line.order_quantity or 0.0
+    )
     already_allocated = _existing_allocated_qty(line)
     remaining = required_qty - already_allocated
 
@@ -238,7 +242,7 @@ def calculate_line_allocations(
     if product_id:
         product = db.query(Product).filter(Product.id == product_id).first()
         if product:
-            product_code = product.product_code
+            product_code = product.maker_part_code
 
     # Get warehouse_code from warehouse_id if needed
     if warehouse_id and not warehouse_code:
@@ -351,9 +355,13 @@ def preview_fefo_allocation(db: Session, order_id: int) -> FefoPreviewResult:
     available_per_lot: dict[int, float] = {}
     preview_lines: list[FefoLinePlan] = []
 
-    sorted_lines = sorted(order.order_lines, key=lambda l: (l.line_no, l.id))
+    sorted_lines = sorted(order.order_lines, key=lambda l: l.id)
     for line in sorted_lines:
-        required_qty = float(line.order_quantity or 0.0)
+        required_qty = float(
+            line.converted_quantity
+            if line.converted_quantity is not None
+            else line.order_quantity or 0.0
+        )
         already_allocated = _existing_allocated_qty(line)
         remaining = required_qty - already_allocated
 
@@ -470,11 +478,15 @@ def update_order_allocation_status(db: Session, order_id: int) -> None:
         select(
             OrderLine.id,
             func.coalesce(func.sum(Allocation.allocated_quantity), 0.0),
-            OrderLine.order_quantity,
+            func.coalesce(OrderLine.converted_quantity, OrderLine.order_quantity),
         )
         .outerjoin(Allocation, Allocation.order_line_id == OrderLine.id)
         .where(OrderLine.order_id == order_id)
-        .group_by(OrderLine.id, OrderLine.order_quantity)
+        .group_by(
+            OrderLine.id,
+            OrderLine.order_quantity,
+            OrderLine.converted_quantity,
+        )
     )
     totals = db.execute(totals_stmt).all()
     fully_allocated = True
@@ -743,7 +755,9 @@ def allocate_with_tracing(
     # 引当計算エンジンを実行
     request = AllocationRequest(
         order_line_id=order_line_id,
-        required_quantity=order_line.order_quantity,
+        required_quantity=order_line.converted_quantity
+        if order_line.converted_quantity is not None
+        else order_line.order_quantity,
         reference_date=reference_date,
         allow_partial=True,
     )

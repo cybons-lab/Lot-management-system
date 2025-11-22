@@ -54,6 +54,9 @@ class Order(Base):
     )
 
     order_date: Mapped[date] = mapped_column(Date, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default=text("'open'")
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
@@ -99,6 +102,9 @@ class OrderLine(Base):
     delivery_date: Mapped[date] = mapped_column(Date, nullable=False)
     order_quantity: Mapped[Decimal] = mapped_column(Numeric(15, 3), nullable=False)
     unit: Mapped[str] = mapped_column(String(20), nullable=False)
+    converted_quantity: Mapped[Decimal] = mapped_column(
+        Numeric(15, 3), nullable=True
+    )  # Quantity in Product's internal_unit
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
     )

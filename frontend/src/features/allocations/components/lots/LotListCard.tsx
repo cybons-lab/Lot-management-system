@@ -190,8 +190,14 @@ export function LotListCard({
         <div className="min-w-[140px] text-right">
           <div className="text-xs font-bold text-gray-400">残量 / 総量</div>
           <div className="text-sm font-bold text-gray-900">
-            {remainingInLot.toLocaleString()} / {freeQty.toLocaleString()}
+            {remainingInLot.toLocaleString()} / {freeQty.toLocaleString()} {lot.internal_unit}
           </div>
+          {lot.qty_per_internal_unit && lot.external_unit && (
+            <div className="text-[10px] text-gray-500">
+              (= {(remainingInLot * lot.qty_per_internal_unit).toLocaleString()} /{" "}
+              {(freeQty * lot.qty_per_internal_unit).toLocaleString()} {lot.external_unit})
+            </div>
+          )}
         </div>
 
         <div className="h-8 w-px shrink-0 bg-gray-100" />
@@ -205,24 +211,33 @@ export function LotListCard({
           onFocus={() => setShowForecast(true)}
           onBlur={() => setShowForecast(false)}
         >
-          <Input
-            type="number"
-            value={allocatedQty === 0 ? "" : allocatedQty}
-            onChange={handleInputChange}
-            className={cn(
-              "h-8 w-20 text-center text-sm font-bold transition-all",
-              // 確定済みは青、仮入力はオレンジ
-              isConfirmed
-                ? "border-blue-600 text-blue-900 ring-2 ring-blue-600/20"
-                : allocatedQty > 0
-                  ? "border-orange-500 text-orange-700 ring-1 ring-orange-500/20"
-                  : "border-gray-300 text-gray-900",
-              isShaking && "animate-shake border-red-500 text-red-600 ring-red-500",
+          <div className="flex flex-col items-center">
+            <div className="flex items-center gap-1">
+              <Input
+                type="number"
+                value={allocatedQty === 0 ? "" : allocatedQty}
+                onChange={handleInputChange}
+                className={cn(
+                  "h-8 w-20 text-center text-sm font-bold transition-all",
+                  isConfirmed
+                    ? "border-blue-600 text-blue-900 ring-2 ring-blue-600/20"
+                    : allocatedQty > 0
+                      ? "border-orange-500 text-orange-700 ring-1 ring-orange-500/20"
+                      : "border-gray-300 text-gray-900",
+                  isShaking && "animate-shake border-red-500 text-red-600 ring-red-500",
+                )}
+                placeholder="0"
+                min="0"
+                max={limit}
+              />
+              <span className="text-xs text-gray-500">{lot.internal_unit}</span>
+            </div>
+            {allocatedQty > 0 && lot.qty_per_internal_unit && lot.external_unit && (
+              <div className="absolute -bottom-4 left-0 right-0 text-center text-[10px] text-gray-500">
+                = {(allocatedQty * lot.qty_per_internal_unit).toLocaleString()} {lot.external_unit}
+              </div>
             )}
-            placeholder="0"
-            min="0"
-            max={limit}
-          />
+          </div>
           <AnimatePresence>
             {showForecast && (
               <ForecastTooltip forecasts={forecasts || []} isLoading={isForecastLoading} />
