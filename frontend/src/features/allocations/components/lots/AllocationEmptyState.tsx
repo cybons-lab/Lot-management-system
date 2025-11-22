@@ -1,3 +1,5 @@
+import { AlertTriangle } from "lucide-react";
+
 interface AllocationEmptyStateProps {
   type: "no-orderline" | "loading" | "error" | "no-candidates";
   error?: Error | null;
@@ -38,7 +40,7 @@ export function AllocationEmptyState({ type, error }: AllocationEmptyStateProps)
     return (
       <div className="mx-4 my-4 rounded-md border border-red-500 bg-red-100 p-4 text-center">
         <div className="mb-1 flex items-center justify-center gap-2 text-lg font-bold text-red-900">
-          <span className="i-lucide-alert-triangle h-5 w-5" />
+          <AlertTriangle className="h-5 w-5" />
           警告: 候補ロットが見つかりません
         </div>
         <div className="text-sm text-red-800">この注文に割り当て可能なロットがありません</div>

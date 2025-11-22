@@ -5,16 +5,24 @@ import type { CandidateLotItem } from "../../api";
 import { Badge, Button } from "@/components/ui";
 import { Input } from "@/components/ui";
 import { cn } from "@/shared/libs/utils";
+import { Trash2 } from "lucide-react";
 import { formatDate } from "@/shared/utils/date";
+import { AnimatePresence } from "framer-motion";
+import { useForecastData } from "./hooks/useForecastData";
+import { ForecastTooltip } from "./ForecastTooltip";
 
 interface LotListCardProps {
   lot: CandidateLotItem;
   allocatedQty: number;
   maxAllocatable: number;
-  remainingNeeded: number; // 新規: 全体で残り必要な数量
-  onAllocationChange: (quantity: number) => void;
-  onClearOtherLots?: () => void; // 新規: 他のロットをクリア
-  rank?: number;
+  remainingNeeded: number;
+  requiredQty: number; // 新規: 明細の総要求数
+  customerId?: number | null;
+  deliveryPlaceId?: number | null;
+  productId?: number | null;
+  rank: number;
+  onAllocationChange: (qty: number) => void;
+  onFullAllocation: (qty: number) => void;
 }
 
 export function LotListCard({
@@ -22,14 +30,25 @@ export function LotListCard({
   allocatedQty,
   maxAllocatable,
   remainingNeeded,
-  onAllocationChange,
-  onClearOtherLots,
+  requiredQty,
+  customerId,
+  deliveryPlaceId,
+  productId,
   rank,
+  onAllocationChange,
+  onFullAllocation,
 }: LotListCardProps) {
   // シェイクアニメーション用のステート
   const [isShaking, setIsShaking] = useState(false);
-  // 確定状態
   const [isConfirmed, setIsConfirmed] = useState(false);
+
+  // フォーキャスト表示用のステートとデータ取得
+  const [showForecast, setShowForecast] = useState(false);
+  const { data: forecasts, isLoading: isForecastLoading } = useForecastData(
+    customerId,
+    deliveryPlaceId,
+    productId,
+  );
 
   // シェイクを一定時間で止めるエフェクト
   useEffect(() => {
@@ -85,13 +104,12 @@ export function LotListCard({
     setIsConfirmed(false); // 手動入力時は未確定
   };
 
-  // [全量] ボタン: 他をクリアして、このロットに残り必要数を割り当て
+  // 全量ボタン: このロットに可能な限り割り当て、他をクリア
   const handleFullAllocation = () => {
-    if (onClearOtherLots) {
-      onClearOtherLots();
-    }
-    const fillQty = Math.min(freeQty, remainingNeeded);
-    onAllocationChange(fillQty);
+    // 割り当てたい総量は「明細の総要求数」
+    // ただし、このロットの在庫(freeQty)が上限
+    const fillQty = Math.min(freeQty, requiredQty);
+    onFullAllocation(fillQty);
     setIsConfirmed(true); // 全量ボタンは自動的に確定
   };
 
@@ -179,24 +197,39 @@ export function LotListCard({
 
         <div className="h-8 w-px shrink-0 bg-gray-100" />
 
-        <Input
-          type="number"
-          value={allocatedQty === 0 ? "" : allocatedQty}
-          onChange={handleInputChange}
-          className={cn(
-            "h-8 w-20 text-center text-sm font-bold transition-all",
-            // 確定済みは青、仮入力はオレンジ
-            isConfirmed
-              ? "border-blue-600 text-blue-900 ring-2 ring-blue-600/20"
-              : allocatedQty > 0
-                ? "border-orange-500 text-orange-700 ring-1 ring-orange-500/20"
-                : "border-gray-300 text-gray-900",
-            isShaking && "animate-shake border-red-500 text-red-600 ring-red-500",
-          )}
-          placeholder="0"
-          min="0"
-          max={limit}
-        />
+        <div className="h-8 w-px shrink-0 bg-gray-100" />
+
+        <div
+          className="relative"
+          onMouseEnter={() => setShowForecast(true)}
+          onMouseLeave={() => setShowForecast(false)}
+          onFocus={() => setShowForecast(true)}
+          onBlur={() => setShowForecast(false)}
+        >
+          <Input
+            type="number"
+            value={allocatedQty === 0 ? "" : allocatedQty}
+            onChange={handleInputChange}
+            className={cn(
+              "h-8 w-20 text-center text-sm font-bold transition-all",
+              // 確定済みは青、仮入力はオレンジ
+              isConfirmed
+                ? "border-blue-600 text-blue-900 ring-2 ring-blue-600/20"
+                : allocatedQty > 0
+                  ? "border-orange-500 text-orange-700 ring-1 ring-orange-500/20"
+                  : "border-gray-300 text-gray-900",
+              isShaking && "animate-shake border-red-500 text-red-600 ring-red-500",
+            )}
+            placeholder="0"
+            min="0"
+            max={limit}
+          />
+          <AnimatePresence>
+            {showForecast && (
+              <ForecastTooltip forecasts={forecasts || []} isLoading={isForecastLoading} />
+            )}
+          </AnimatePresence>
+        </div>
 
         <div className="flex items-center gap-1 rounded-md bg-gray-50 p-1">
           <Button
@@ -204,8 +237,9 @@ export function LotListCard({
             variant="outline"
             size="sm"
             onClick={handleFullAllocation}
-            disabled={freeQty <= 0 || remainingNeeded <= 0}
+            disabled={freeQty <= 0}
             className="h-8 px-2 text-xs"
+            title="このロットから全量割当（他のロットはクリア）"
           >
             全量
           </Button>
@@ -224,13 +258,19 @@ export function LotListCard({
           </Button>
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={handleClearAllocation}
             disabled={allocatedQty === 0}
-            className="h-8 w-8 p-0 text-gray-500 hover:bg-red-50 hover:text-red-600"
+            className={cn(
+              "h-8 w-8 p-0 text-gray-500 transition-colors",
+              "border border-gray-300 bg-white shadow-sm", // デフォルトで見やすく
+              "hover:border-red-300 hover:bg-red-50 hover:text-red-600",
+              allocatedQty === 0 && "cursor-not-allowed border-gray-200 bg-gray-50 opacity-50",
+            )}
+            title="クリア"
           >
-            <span className="i-lucide-x h-4 w-4" />
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </div>

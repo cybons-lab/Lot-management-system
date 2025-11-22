@@ -7,8 +7,8 @@ export const panelRoot = cva(
       state: {
         inactive: "border-gray-200 bg-gray-50 opacity-60 grayscale-[0.3] hover:opacity-80",
         active:
-          "border-blue-200 bg-white shadow-xl opacity-100 grayscale-0 scale-[1.01] z-10 ring-1 ring-blue-100",
-        complete: "border-green-200 bg-white shadow-md opacity-90 hover:opacity-100",
+          "border-gray-300 bg-white shadow-xl opacity-100 grayscale-0 scale-[1.01] z-10 ring-1 ring-gray-200",
+        complete: "border-gray-300 bg-white shadow-md opacity-90 hover:opacity-100",
         error: "border-red-200 bg-white shadow-md bg-red-50/10",
       },
     },

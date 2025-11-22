@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui";
 import { cn } from "@/shared/libs/utils";
+import { AlertTriangle, CheckCircle, AlertCircle } from "lucide-react";
 
 interface LotAllocationHeaderViewProps {
   orderNumber: string;
@@ -57,28 +58,40 @@ export function LotAllocationHeaderView({
   let headerBorderColor = "border-gray-200";
   let accentColor = "bg-gray-500"; // Default accent
 
-  if (isOverAllocated) {
-    headerBorderColor = "border-red-300";
+  if (!hasCandidates) {
+    headerBorderColor = "border-red-500";
     accentColor = "bg-red-500";
     statusBadge = (
-      <span className="rounded-full border border-red-200 bg-red-100 px-3 py-1 text-xs font-bold text-red-700">
-        要調整 (過剰)
+      <span className="flex items-center gap-1 rounded-full border border-red-200 bg-red-100 px-3 py-1 text-xs font-bold text-red-700">
+        <AlertTriangle className="h-3 w-3" />
+        候補なし
+      </span>
+    );
+  } else if (isOverAllocated) {
+    headerBorderColor = "border-orange-300";
+    accentColor = "bg-orange-500";
+    statusBadge = (
+      <span className="flex items-center gap-1 rounded-full border border-orange-200 bg-orange-100 px-3 py-1 text-xs font-bold text-orange-800">
+        <AlertTriangle className="h-3 w-3" />
+        在庫過剰
       </span>
     );
   } else if (isComplete) {
     headerBorderColor = "border-green-300";
     accentColor = "bg-green-500";
     statusBadge = (
-      <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-        仮引当済み
+      <span className="flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+        <CheckCircle className="h-3 w-3" />
+        引当完了
       </span>
     );
   } else if (isPartial) {
     headerBorderColor = "border-yellow-300";
     accentColor = "bg-yellow-500";
     statusBadge = (
-      <span className="rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-xs font-bold text-yellow-700">
-        引当中 (不足)
+      <span className="flex items-center gap-1 rounded-full border border-yellow-200 bg-yellow-50 px-3 py-1 text-xs font-bold text-yellow-700">
+        <AlertCircle className="h-3 w-3" />
+        在庫不足
       </span>
     );
   } else {
@@ -120,6 +133,13 @@ export function LotAllocationHeaderView({
                   <span className="text-[10px] font-bold text-gray-400 uppercase">仕入元</span>
                   <span className="font-medium text-gray-800">{supplierName}</span>
                 </div>
+              </div>
+            )}
+
+            {/* 矢印アイコン: 仕入元→納入先のフローを示す */}
+            {supplierName && (
+              <div className="flex justify-center py-0.5">
+                <span className="i-lucide-arrow-down h-4 w-4 text-blue-500" />
               </div>
             )}
 

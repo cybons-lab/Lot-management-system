@@ -8,6 +8,10 @@ interface LotAllocationListProps {
   candidateLots: CandidateLotItem[];
   lotAllocations: Record<number, number>;
   remainingNeeded: number;
+  requiredQty: number; // 新規: 明細の総要求数
+  customerId?: number | null;
+  deliveryPlaceId?: number | null;
+  productId?: number | null;
   isActive: boolean;
   onLotAllocationChange: (lotId: number, quantity: number) => void;
 }
@@ -20,17 +24,24 @@ export function LotAllocationList({
   candidateLots,
   lotAllocations,
   remainingNeeded,
+  requiredQty,
+  customerId,
+  deliveryPlaceId,
+  productId,
   isActive,
   onLotAllocationChange,
 }: LotAllocationListProps) {
-  // [全量]ボタン用: 指定ロット以外を全てクリア
-  const handleClearOtherLots = (targetLotId: number) => {
+  // [全量]ボタン用: 指定ロットに全量を割り当て、他を全てクリア（1つのトランザクションとして）
+  const handleFullAllocation = (targetLotId: number, fullQty: number) => {
+    // まず、他のロットを全てクリア
     Object.keys(lotAllocations).forEach((lotId) => {
       const id = Number(lotId);
       if (id !== targetLotId && lotAllocations[id] > 0) {
         onLotAllocationChange(id, 0);
       }
     });
+    // 次に、対象ロットに全量を設定
+    onLotAllocationChange(targetLotId, fullQty);
   };
 
   return (
@@ -76,9 +87,13 @@ export function LotAllocationList({
                   allocatedQty={allocatedQty}
                   maxAllocatable={maxAllocatable}
                   remainingNeeded={remainingNeeded}
+                  requiredQty={requiredQty}
+                  customerId={customerId}
+                  deliveryPlaceId={deliveryPlaceId}
+                  productId={productId}
                   rank={index + 1}
                   onAllocationChange={(qty) => onLotAllocationChange(lotId, qty)}
-                  onClearOtherLots={() => handleClearOtherLots(lotId)}
+                  onFullAllocation={(qty) => handleFullAllocation(lotId, qty)}
                 />
               </div>
             </div>
