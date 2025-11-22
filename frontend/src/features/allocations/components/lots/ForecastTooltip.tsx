@@ -28,7 +28,7 @@ export function ForecastTooltip({ forecasts, isLoading }: ForecastTooltipProps) 
       animate={{ opacity: 1, x: 0, scale: 1 }}
       exit={{ opacity: 0, x: -10, scale: 0.95 }}
       transition={{ duration: 0.2 }}
-      className="absolute top-0 left-full z-50 ml-3 w-56 rounded-lg border border-gray-200 bg-white p-3 shadow-xl ring-1 ring-black/5"
+      className="absolute bottom-full right-0 z-50 mb-2 w-56 rounded-lg border border-gray-200 bg-white p-3 shadow-xl ring-1 ring-black/5"
     >
       <div className="mb-2 flex items-center gap-2 border-b border-gray-100 pb-2">
         <span className="i-lucide-trending-up h-4 w-4 text-blue-500" />
@@ -51,9 +51,8 @@ export function ForecastTooltip({ forecasts, isLoading }: ForecastTooltipProps) 
             return (
               <div
                 key={f.id}
-                className={`flex items-center justify-between rounded px-1.5 py-0.5 text-xs ${
-                  isToday ? "bg-blue-50 font-bold text-blue-700" : "text-gray-600"
-                }`}
+                className={`flex items-center justify-between rounded px-1.5 py-0.5 text-xs ${isToday ? "bg-blue-50 font-bold text-blue-700" : "text-gray-600"
+                  }`}
               >
                 <span>{format(d, "MM/dd (eee)", { locale: ja })}</span>
                 <span className={isToday ? "text-blue-700" : "text-gray-900"}>

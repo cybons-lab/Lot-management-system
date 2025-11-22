@@ -45,6 +45,7 @@ lot_management.db
 .pytest_cache/
 .coverage
 htmlcov/
+.hypothesis/
 
 # Alembic
 alembic/versions/*.pyc

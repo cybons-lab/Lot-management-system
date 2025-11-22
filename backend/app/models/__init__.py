@@ -12,6 +12,7 @@ from .inventory_models import (
     Adjustment,
     AdjustmentType,
     AllocationSuggestion,
+    AllocationTrace,
     Lot,
     StockHistory,
     StockMovement,  # Backward compatibility alias
@@ -63,6 +64,7 @@ __all__ = [
     "Adjustment",
     "AdjustmentType",
     "AllocationSuggestion",
+    "AllocationTrace",
     # Orders
     "Order",
     "OrderLine",
