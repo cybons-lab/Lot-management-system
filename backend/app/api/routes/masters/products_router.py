@@ -5,13 +5,31 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models.masters_models import Product
-from app.schemas.masters.masters_schema import ProductCreate, ProductResponse, ProductUpdate
+from app.schemas.masters.products_schema import ProductCreate, ProductOut, ProductUpdate
 
 
 router = APIRouter(prefix="/products", tags=["products"])
 
 
-@router.get("", response_model=list[ProductResponse])
+def _to_product_out(product: Product) -> ProductOut:
+    """Map a Product ORM model to the canonical ProductOut schema."""
+
+    return ProductOut(
+        id=product.id,
+        product_code=product.maker_part_code,
+        product_name=product.product_name,
+        internal_unit=product.internal_unit,
+        external_unit=product.external_unit,
+        qty_per_internal_unit=float(product.qty_per_internal_unit),
+        customer_part_no=None,
+        maker_item_code=None,
+        is_active=True,
+        created_at=product.created_at,
+        updated_at=product.updated_at,
+    )
+
+
+@router.get("", response_model=list[ProductOut])
 def list_products(
     skip: int = 0,
     limit: int = 100,
@@ -27,40 +45,41 @@ def list_products(
         )
 
     products = query.order_by(Product.maker_part_code).offset(skip).limit(limit).all()
-    return products
+    return [_to_product_out(product) for product in products]
 
 
-@router.get("/{product_code}", response_model=ProductResponse)
+@router.get("/{product_code}", response_model=ProductOut)
 def get_product(product_code: str, db: Session = Depends(get_db)):
     """Fetch a product by its code (maker_part_code)."""
     product = db.query(Product).filter(Product.maker_part_code == product_code).first()
     if not product:
         raise HTTPException(status_code=404, detail="製品が見つかりません")
-    return product
+    return _to_product_out(product)
 
 
-@router.post("", response_model=ProductResponse, status_code=201)
+@router.post("", response_model=ProductOut, status_code=201)
 def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     """Create a new product."""
-    exists = db.query(Product).filter(Product.maker_part_code == product.maker_part_code).first()
+    exists = db.query(Product).filter(Product.maker_part_code == product.product_code).first()
     if exists:
         raise HTTPException(status_code=400, detail="製品コードが既に存在します")
 
-    payload = product.model_dump()
-    payload.pop("packaging", None)
-    # requires_lot_number is stored as integer flags in the DB
-    requires_lot_number = payload.get("requires_lot_number")
-    if requires_lot_number is not None:
-        payload["requires_lot_number"] = 1 if requires_lot_number else 0
-
-    db_product = Product(**payload)
+    db_product = Product(
+        maker_part_code=product.product_code,
+        product_name=product.product_name,
+        base_unit=product.internal_unit,
+        internal_unit=product.internal_unit,
+        external_unit=product.external_unit,
+        qty_per_internal_unit=product.qty_per_internal_unit,
+        consumption_limit_days=None,
+    )
     db.add(db_product)
     db.commit()
     db.refresh(db_product)
-    return db_product
+    return _to_product_out(db_product)
 
 
-@router.put("/{product_code}", response_model=ProductResponse)
+@router.put("/{product_code}", response_model=ProductOut)
 def update_product(product_code: str, product: ProductUpdate, db: Session = Depends(get_db)):
     """Update an existing product (by maker_part_code)."""
     db_product = db.query(Product).filter(Product.maker_part_code == product_code).first()
@@ -68,16 +87,21 @@ def update_product(product_code: str, product: ProductUpdate, db: Session = Depe
         raise HTTPException(status_code=404, detail="製品が見つかりません")
 
     updates = product.model_dump(exclude_unset=True)
-    updates.pop("packaging", None)
-    if "requires_lot_number" in updates and updates["requires_lot_number"] is not None:
-        updates["requires_lot_number"] = 1 if updates["requires_lot_number"] else 0
-
-    for key, value in updates.items():
-        setattr(db_product, key, value)
+    if "product_code" in updates:
+        db_product.maker_part_code = updates["product_code"]
+    if "product_name" in updates:
+        db_product.product_name = updates["product_name"]
+    if "internal_unit" in updates:
+        db_product.internal_unit = updates["internal_unit"]
+        db_product.base_unit = updates["internal_unit"]
+    if "external_unit" in updates:
+        db_product.external_unit = updates["external_unit"]
+    if "qty_per_internal_unit" in updates:
+        db_product.qty_per_internal_unit = updates["qty_per_internal_unit"]
 
     db.commit()
     db.refresh(db_product)
-    return db_product
+    return _to_product_out(db_product)
 
 
 @router.delete("/{product_code}", status_code=204)
