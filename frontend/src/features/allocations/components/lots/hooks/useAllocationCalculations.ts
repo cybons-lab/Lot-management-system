@@ -1,3 +1,4 @@
+import { getOrderQuantity } from "../../../hooks/useLotAllocation/allocationFieldHelpers";
 import type { OrderLine } from "@/shared/types/aliases";
 
 interface UseAllocationCalculationsParams {
@@ -27,8 +28,7 @@ export function useAllocationCalculations({
   lotAllocations,
   remainingQtyOverride,
 }: UseAllocationCalculationsParams): AllocationCalculations {
-  // レガシーフィールド対応: order_quantity または quantity
-  const requiredQty = orderLine ? Number(orderLine.order_quantity ?? orderLine.quantity ?? 0) : 0;
+  const requiredQty = orderLine ? getOrderQuantity(orderLine) : 0;
 
   // レガシーフィールド対応: allocated_qty または allocated_quantity
   const dbAllocated = orderLine

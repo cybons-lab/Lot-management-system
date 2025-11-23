@@ -48,6 +48,9 @@ export interface CandidateLotItem {
   delivery_place_name?: string;
   expiry_date?: string;
   last_updated?: string;
+  internal_unit?: string;
+  external_unit?: string;
+  qty_per_internal_unit?: number;
 }
 
 export interface CandidateLotsResponse {

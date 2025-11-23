@@ -132,13 +132,13 @@ def _resolve_next_div(db: Session, order: Order, line: OrderLine) -> tuple[str |
         if product_code:
             stmt = select(Product).where(Product.product_code == product_code)
             product = db.execute(stmt).scalar_one_or_none()
-    if product and product.next_div:
+    if product and getattr(product, "next_div", None):
         return product.next_div, None
 
     product_code = getattr(line, "product_code", None)
     if not product_code and product:
-        product_code = product.product_code
-    warning = f"次区が未設定: customer={order.customer_code}, product={product_code or 'unknown'}"
+        product_code = product.maker_part_code
+    warning = f"次区が未設定: customer_id={order.customer_id}, product={product_code or 'unknown'}"
     return None, warning
 
 
@@ -226,7 +226,11 @@ def calculate_line_allocations(
     Returns:
         FefoLinePlan: Allocation plan for this line
     """
-    required_qty = float(line.order_quantity or 0.0)
+    required_qty = float(
+        line.converted_quantity
+        if line.converted_quantity is not None
+        else line.order_quantity or 0.0
+    )
     already_allocated = _existing_allocated_qty(line)
     remaining = required_qty - already_allocated
 
@@ -238,7 +242,7 @@ def calculate_line_allocations(
     if product_id:
         product = db.query(Product).filter(Product.id == product_id).first()
         if product:
-            product_code = product.product_code
+            product_code = product.maker_part_code
 
     # Get warehouse_code from warehouse_id if needed
     if warehouse_id and not warehouse_code:
@@ -351,9 +355,13 @@ def preview_fefo_allocation(db: Session, order_id: int) -> FefoPreviewResult:
     available_per_lot: dict[int, float] = {}
     preview_lines: list[FefoLinePlan] = []
 
-    sorted_lines = sorted(order.order_lines, key=lambda l: (l.line_no, l.id))
+    sorted_lines = sorted(order.order_lines, key=lambda l: l.id)
     for line in sorted_lines:
-        required_qty = float(line.order_quantity or 0.0)
+        required_qty = float(
+            line.converted_quantity
+            if line.converted_quantity is not None
+            else line.order_quantity or 0.0
+        )
         already_allocated = _existing_allocated_qty(line)
         remaining = required_qty - already_allocated
 
@@ -470,11 +478,15 @@ def update_order_allocation_status(db: Session, order_id: int) -> None:
         select(
             OrderLine.id,
             func.coalesce(func.sum(Allocation.allocated_quantity), 0.0),
-            OrderLine.order_quantity,
+            func.coalesce(OrderLine.converted_quantity, OrderLine.order_quantity),
         )
         .outerjoin(Allocation, Allocation.order_line_id == OrderLine.id)
         .where(OrderLine.order_id == order_id)
-        .group_by(OrderLine.id, OrderLine.order_quantity)
+        .group_by(
+            OrderLine.id,
+            OrderLine.order_quantity,
+            OrderLine.converted_quantity,
+        )
     )
     totals = db.execute(totals_stmt).all()
     fully_allocated = True
@@ -649,3 +661,167 @@ def allocate_manually(
     db.commit()
     db.refresh(allocation)
     return allocation
+
+
+# ============================
+# Enterprise-Level Allocation with Tracing
+# ============================
+
+
+def allocate_with_tracing(
+    db: Session,
+    order_line_id: int,
+    reference_date: date | None = None,
+) -> dict:
+    """トレースログ付き引当処理（エンタープライズレベル）.
+
+    純粋関数の計算エンジンを使用し、引当の推論過程を記録します。
+    楽観的ロックを使用して同時実行制御を行います。
+
+    Args:
+        db: データベースセッション
+        order_line_id: 注文明細ID
+        reference_date: 基準日（期限切れ判定用、デフォルトは今日）
+
+    Returns:
+        dict: 引当結果とトレースログ
+            - allocated_lots: 引き当てられたロット情報のリスト
+            - total_allocated: 引当合計数量
+            - shortage: 不足数量
+            - trace_count: 保存されたトレースログ数
+
+    Raises:
+        ValueError: 注文明細が見つからない場合
+        AllocationCommitError: 引当処理に失敗した場合
+    """
+    from datetime import date as date_type
+
+    from sqlalchemy.exc import StaleDataError
+
+    from app.domain.allocation import (
+        AllocationRequest,
+        LotCandidate,
+        calculate_allocation,
+    )
+    from app.models import AllocationTrace
+
+    if reference_date is None:
+        reference_date = date_type.today()
+
+    # 注文明細を取得
+    line_stmt = (
+        select(OrderLine)
+        .options(joinedload(OrderLine.product))
+        .where(OrderLine.id == order_line_id)
+    )
+    order_line = db.execute(line_stmt).scalar_one_or_none()
+    if not order_line:
+        raise ValueError(f"OrderLine {order_line_id} not found")
+
+    product_id = order_line.product_id
+    if not product_id:
+        raise ValueError(f"OrderLine {order_line_id} has no product_id")
+
+    # 候補ロットを取得
+    lot_stmt = (
+        select(Lot)
+        .where(
+            Lot.product_id == product_id,
+            (Lot.current_quantity - Lot.allocated_quantity) > 0,
+            Lot.status == "active",
+        )
+        .order_by(
+            nulls_last(Lot.expiry_date.asc()),
+            Lot.received_date.asc(),
+            Lot.id.asc(),
+        )
+    )
+    lots = db.execute(lot_stmt).scalars().all()
+
+    # LotCandidateに変換
+    candidates = [
+        LotCandidate(
+            lot_id=lot.id,
+            lot_number=lot.lot_number,
+            expiry_date=lot.expiry_date,
+            available_quantity=lot.current_quantity - lot.allocated_quantity,
+            current_quantity=lot.current_quantity,
+            allocated_quantity=lot.allocated_quantity,
+            status=lot.status,
+        )
+        for lot in lots
+    ]
+
+    # 引当計算エンジンを実行
+    request = AllocationRequest(
+        order_line_id=order_line_id,
+        required_quantity=order_line.converted_quantity
+        if order_line.converted_quantity is not None
+        else order_line.order_quantity,
+        reference_date=reference_date,
+        allow_partial=True,
+    )
+    result = calculate_allocation(request, candidates)
+
+    # トランザクション内でDB更新
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            # 楽観的ロックを使用してロットを更新
+            for decision in result.allocated_lots:
+                lot_stmt = select(Lot).where(Lot.id == decision.lot_id)
+                lot = db.execute(lot_stmt).scalar_one()
+
+                # 引当数量を更新（楽観的ロックが自動的にチェック）
+                lot.allocated_quantity += decision.allocated_qty
+                lot.updated_at = datetime.utcnow()
+
+                # Allocationレコード作成
+                allocation = Allocation(
+                    order_line_id=order_line_id,
+                    lot_id=lot.id,
+                    allocated_quantity=decision.allocated_qty,
+                    status="allocated",
+                    created_at=datetime.utcnow(),
+                )
+                db.add(allocation)
+
+            # トレースログを保存
+            for trace in result.trace_logs:
+                trace_log = AllocationTrace(
+                    order_line_id=order_line_id,
+                    lot_id=trace.lot_id,
+                    score=trace.score,
+                    decision=trace.decision,
+                    reason=trace.reason,
+                    allocated_qty=trace.allocated_qty,
+                    created_at=datetime.utcnow(),
+                )
+                db.add(trace_log)
+
+            db.commit()
+            break  # 成功したらループを抜ける
+
+        except StaleDataError:
+            db.rollback()
+            if attempt == max_retries - 1:
+                raise AllocationCommitError(
+                    f"Failed to allocate after {max_retries} retries due to concurrent updates"
+                )
+            # リトライ前に最新データを再取得
+            continue
+
+    return {
+        "allocated_lots": [
+            {
+                "lot_id": decision.lot_id,
+                "lot_number": decision.lot_number,
+                "allocated_qty": float(decision.allocated_qty),
+                "reason": decision.reason,
+            }
+            for decision in result.allocated_lots
+        ],
+        "total_allocated": float(result.total_allocated),
+        "shortage": float(result.shortage),
+        "trace_count": len(result.trace_logs),
+    }

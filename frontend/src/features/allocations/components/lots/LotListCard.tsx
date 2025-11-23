@@ -7,6 +7,7 @@ import { Input } from "@/components/ui";
 import { cn } from "@/shared/libs/utils";
 import { Trash2 } from "lucide-react";
 import { formatDate } from "@/shared/utils/date";
+import { formatQuantity } from "@/shared/utils/formatQuantity";
 import { AnimatePresence } from "framer-motion";
 import { useForecastData } from "./hooks/useForecastData";
 import { ForecastTooltip } from "./ForecastTooltip";
@@ -130,7 +131,7 @@ export function LotListCard({
       {/* 左側: ロット情報 */}
       <div className="flex min-w-0 flex-grow items-center gap-x-4">
         {/* Rank Badge */}
-        {rank && rank <= 3 && (
+        {rank && (
           <div className="shrink-0">
             <Badge
               className={cn(
@@ -138,6 +139,7 @@ export function LotListCard({
                 rank === 1 && "bg-blue-600 text-white hover:bg-blue-700",
                 rank === 2 && "bg-blue-400 text-white hover:bg-blue-500",
                 rank === 3 && "bg-blue-300 text-white hover:bg-blue-400",
+                rank > 3 && "bg-gray-100 text-gray-500 hover:bg-gray-200",
               )}
             >
               #{rank}
@@ -189,8 +191,20 @@ export function LotListCard({
         <div className="min-w-[140px] text-right">
           <div className="text-xs font-bold text-gray-400">残量 / 総量</div>
           <div className="text-sm font-bold text-gray-900">
-            {remainingInLot.toLocaleString()} / {freeQty.toLocaleString()}
+            {formatQuantity(remainingInLot, lot.internal_unit || "PCS")} /{" "}
+            {formatQuantity(freeQty, lot.internal_unit || "PCS")} {lot.internal_unit}
           </div>
+          {lot.qty_per_internal_unit && lot.external_unit && (
+            <div className="text-[10px] text-gray-500">
+              (={" "}
+              {formatQuantity(
+                remainingInLot * lot.qty_per_internal_unit,
+                lot.external_unit || "BOX",
+              )}{" "}
+              / {formatQuantity(freeQty * lot.qty_per_internal_unit, lot.external_unit || "BOX")}{" "}
+              {lot.external_unit})
+            </div>
+          )}
         </div>
 
         <div className="h-8 w-px shrink-0 bg-gray-100" />
@@ -204,24 +218,38 @@ export function LotListCard({
           onFocus={() => setShowForecast(true)}
           onBlur={() => setShowForecast(false)}
         >
-          <Input
-            type="number"
-            value={allocatedQty === 0 ? "" : allocatedQty}
-            onChange={handleInputChange}
-            className={cn(
-              "h-8 w-20 text-center text-sm font-bold transition-all",
-              // 確定済みは青、仮入力はオレンジ
-              isConfirmed
-                ? "border-blue-600 text-blue-900 ring-2 ring-blue-600/20"
-                : allocatedQty > 0
-                  ? "border-orange-500 text-orange-700 ring-1 ring-orange-500/20"
-                  : "border-gray-300 text-gray-900",
-              isShaking && "animate-shake border-red-500 text-red-600 ring-red-500",
+          <div className="flex flex-col items-center">
+            <div className="flex items-center gap-1">
+              <Input
+                type="number"
+                value={allocatedQty === 0 ? "" : allocatedQty}
+                onChange={handleInputChange}
+                className={cn(
+                  "h-8 w-20 text-center text-sm font-bold transition-all",
+                  isConfirmed
+                    ? "border-blue-600 text-blue-900 ring-2 ring-blue-600/20"
+                    : allocatedQty > 0
+                      ? "border-orange-500 text-orange-700 ring-1 ring-orange-500/20"
+                      : "border-gray-300 text-gray-900",
+                  isShaking && "animate-shake border-red-500 text-red-600 ring-red-500",
+                )}
+                placeholder="0"
+                min="0"
+                max={limit}
+              />
+              <span className="text-xs text-gray-500">{lot.internal_unit}</span>
+            </div>
+            {allocatedQty > 0 && lot.qty_per_internal_unit && lot.external_unit && (
+              <div className="absolute right-0 -bottom-4 left-0 text-center text-[10px] text-gray-500">
+                ={" "}
+                {formatQuantity(
+                  allocatedQty * lot.qty_per_internal_unit,
+                  lot.external_unit || "BOX",
+                )}{" "}
+                {lot.external_unit}
+              </div>
             )}
-            placeholder="0"
-            min="0"
-            max={limit}
-          />
+          </div>
           <AnimatePresence>
             {showForecast && (
               <ForecastTooltip forecasts={forecasts || []} isLoading={isForecastLoading} />

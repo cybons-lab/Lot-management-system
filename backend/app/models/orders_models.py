@@ -18,6 +18,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     Numeric,
     String,
     UniqueConstraint,
@@ -53,6 +54,7 @@ class Order(Base):
     )
 
     order_date: Mapped[date] = mapped_column(Date, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'open'"))
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
@@ -98,6 +100,9 @@ class OrderLine(Base):
     delivery_date: Mapped[date] = mapped_column(Date, nullable=False)
     order_quantity: Mapped[Decimal] = mapped_column(Numeric(15, 3), nullable=False)
     unit: Mapped[str] = mapped_column(String(20), nullable=False)
+    converted_quantity: Mapped[Decimal] = mapped_column(
+        Numeric(15, 3), nullable=True
+    )  # Quantity in Product's internal_unit
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
     )
@@ -112,6 +117,7 @@ class OrderLine(Base):
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, server_default=text("'pending'")
     )
+    version_id: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("1"))
 
     __table_args__ = (
         Index("idx_order_lines_order", "order_id"),
@@ -124,6 +130,8 @@ class OrderLine(Base):
             name="chk_order_lines_status",
         ),
     )
+
+    __mapper_args__ = {"version_id_col": version_id}
 
     # Relationships
     order: Mapped[Order] = relationship("Order", back_populates="order_lines")

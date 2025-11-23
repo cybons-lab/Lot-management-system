@@ -65,6 +65,9 @@ class OrderLineBase(BaseSchema):
     delivery_date: date
     order_quantity: Decimal = Field(..., gt=0, decimal_places=3, description="受注数量")
     unit: str = Field(..., min_length=1, max_length=20)
+    converted_quantity: Decimal | None = Field(
+        None, decimal_places=3, description="社内基準単位換算数量"
+    )
     delivery_place_id: int = Field(..., gt=0)
     status: str = Field(
         default="pending",
@@ -96,6 +99,12 @@ class OrderLineResponse(OrderLineBase):
     created_at: datetime
     updated_at: datetime
     supplier_name: str | None = None
+    # Product Unit Info (flattened from product relationship)
+    product_internal_unit: str | None = None
+    product_external_unit: str | None = None
+    product_qty_per_internal_unit: float | None = None
+
+    model_config = {"from_attributes": True}
 
 
 class OrderLineWithAllocationsResponse(OrderLineResponse):

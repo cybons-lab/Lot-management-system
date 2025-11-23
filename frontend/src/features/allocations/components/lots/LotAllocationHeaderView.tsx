@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui";
 import { cn } from "@/shared/libs/utils";
+import { formatQuantity } from "@/shared/utils/formatQuantity";
 import { AlertTriangle, CheckCircle, AlertCircle } from "lucide-react";
 
 interface LotAllocationHeaderViewProps {
@@ -9,6 +10,9 @@ interface LotAllocationHeaderViewProps {
   deliveryDate: string;
   productCode: string;
   productName: string;
+  orderUnit: string;
+  inventoryUnit: string;
+  orderQuantity: number;
   requiredQty: number;
   totalAllocated: number;
   remainingQty: number;
@@ -33,6 +37,9 @@ export function LotAllocationHeaderView({
   deliveryDate,
   productCode,
   productName,
+  orderUnit,
+  inventoryUnit,
+  orderQuantity,
   requiredQty,
   totalAllocated,
   remainingQty,
@@ -58,16 +65,7 @@ export function LotAllocationHeaderView({
   let headerBorderColor = "border-gray-200";
   let accentColor = "bg-gray-500"; // Default accent
 
-  if (!hasCandidates) {
-    headerBorderColor = "border-red-500";
-    accentColor = "bg-red-500";
-    statusBadge = (
-      <span className="flex items-center gap-1 rounded-full border border-red-200 bg-red-100 px-3 py-1 text-xs font-bold text-red-700">
-        <AlertTriangle className="h-3 w-3" />
-        候補なし
-      </span>
-    );
-  } else if (isOverAllocated) {
+  if (isOverAllocated) {
     headerBorderColor = "border-orange-300";
     accentColor = "bg-orange-500";
     statusBadge = (
@@ -82,7 +80,7 @@ export function LotAllocationHeaderView({
     statusBadge = (
       <span className="flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
         <CheckCircle className="h-3 w-3" />
-        引当完了
+        仮引当完了
       </span>
     );
   } else if (isPartial) {
@@ -173,9 +171,20 @@ export function LotAllocationHeaderView({
             <div className="flex items-baseline justify-between">
               <span className="text-xs font-bold text-gray-500">必要数</span>
               <span className="text-2xl font-bold text-gray-900">
-                {requiredQty.toLocaleString()}
+                {formatQuantity(orderQuantity, orderUnit)}{" "}
+                <span className="text-sm font-normal text-gray-500">{orderUnit}</span>
               </span>
             </div>
+
+            {inventoryUnit && inventoryUnit !== orderUnit && (
+              <div className="flex items-baseline justify-between text-xs text-gray-500">
+                <span>在庫単位換算</span>
+                <span className="font-semibold text-gray-700">
+                  {formatQuantity(requiredQty, inventoryUnit)}{" "}
+                  <span className="text-[11px] font-normal text-gray-500">{inventoryUnit}</span>
+                </span>
+              </div>
+            )}
 
             {/* Compact Progress Bar */}
             <div className="flex flex-col gap-1">
@@ -186,9 +195,11 @@ export function LotAllocationHeaderView({
                 />
               </div>
               <div className="flex justify-between text-[10px] font-medium">
-                <span className="text-blue-600">引当: {totalAllocated.toLocaleString()}</span>
+                <span className="text-blue-600">
+                  引当: {formatQuantity(totalAllocated, inventoryUnit)} {inventoryUnit}
+                </span>
                 <span className={cn(remainingQty > 0 ? "text-red-500" : "text-green-600")}>
-                  残: {remainingQty.toLocaleString()}
+                  残: {formatQuantity(remainingQty, inventoryUnit)} {inventoryUnit}
                 </span>
               </div>
             </div>
@@ -243,6 +254,17 @@ export function LotAllocationHeaderView({
               クリア
             </Button>
           </div>
+
+          {/* 候補なし時の要発注アラート */}
+          {!hasCandidates && (
+            <div className="mt-2 w-full rounded-md border border-red-200 bg-red-50 p-2 text-center">
+              <div className="flex items-center justify-center gap-1 text-xs font-bold text-red-700">
+                <AlertTriangle className="h-3 w-3" />
+                <span>要発注</span>
+              </div>
+              <div className="text-[10px] text-red-600">候補ロットがありません</div>
+            </div>
+          )}
         </div>
       </div>
     </div>

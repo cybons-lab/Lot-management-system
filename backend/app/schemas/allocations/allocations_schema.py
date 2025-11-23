@@ -133,6 +133,9 @@ class CandidateLotItem(BaseSchema):
     received_date: date | None = None
     delivery_place_id: int | None = None
     delivery_place_name: str | None = None
+    internal_unit: str | None = None
+    external_unit: str | None = None
+    qty_per_internal_unit: float | None = None
 
 
 class CandidateLotsResponse(BaseSchema):

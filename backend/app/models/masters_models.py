@@ -7,6 +7,7 @@ Legacy columns (address, created_by, deleted_at, etc.) have been removed.
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
@@ -16,6 +17,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -197,6 +199,16 @@ class Product(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
     )
+    # Unit Conversion Fields
+    internal_unit: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default="CAN"
+    )  # e.g. "CAN" (Allocation Unit)
+    external_unit: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default="KG"
+    )  # e.g. "KG" (Display/Input Unit)
+    qty_per_internal_unit: Mapped[Decimal] = mapped_column(
+        Numeric(10, 4), nullable=False, server_default="1.0"
+    )  # e.g. 20.0 (1 CAN = 20 KG)
 
     __table_args__ = (
         UniqueConstraint("maker_part_code", name="uq_products_maker_part_code"),
@@ -215,6 +227,9 @@ class Product(Base):
     )
     customer_items: Mapped[list[CustomerItem]] = relationship(
         "CustomerItem", back_populates="product"
+    )
+    uom_conversions: Mapped[list[ProductUomConversion]] = relationship(
+        "ProductUomConversion", back_populates="product"
     )
 
 
@@ -267,3 +282,36 @@ class CustomerItem(Base):
     customer: Mapped[Customer] = relationship("Customer", back_populates="customer_items")
     product: Mapped[Product] = relationship("Product", back_populates="customer_items")
     supplier: Mapped[Supplier | None] = relationship("Supplier", back_populates="customer_items")
+
+
+class ProductUomConversion(Base):
+    """Product UOM conversion table (製品単位換算マスタ).
+
+    DDL: product_uom_conversions
+    Primary key: conversion_id (BIGSERIAL)
+    Foreign keys: product_id -> products(id)
+    """
+
+    __tablename__ = "product_uom_conversions"
+
+    conversion_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    product_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("products.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    external_unit: Mapped[str] = mapped_column(String(20), nullable=False)
+    factor: Mapped[Decimal] = mapped_column(Numeric(15, 3), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.current_timestamp()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.current_timestamp()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("product_id", "external_unit", name="uq_uom_conversions_product_unit"),
+    )
+
+    # Relationships
+    product: Mapped[Product] = relationship("Product", back_populates="uom_conversions")

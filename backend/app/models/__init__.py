@@ -12,6 +12,7 @@ from .inventory_models import (
     Adjustment,
     AdjustmentType,
     AllocationSuggestion,
+    AllocationTrace,
     Lot,
     StockHistory,
     StockMovement,  # Backward compatibility alias
@@ -24,6 +25,7 @@ from .masters_models import (
     CustomerItem,
     DeliveryPlace,
     Product,
+    ProductUomConversion,
     Supplier,
     Warehouse,
 )
@@ -55,6 +57,7 @@ __all__ = [
     "Customer",
     "DeliveryPlace",
     "Product",
+    "ProductUomConversion",
     "CustomerItem",
     # Inventory
     "Lot",
@@ -63,6 +66,7 @@ __all__ = [
     "Adjustment",
     "AdjustmentType",
     "AllocationSuggestion",
+    "AllocationTrace",
     # Orders
     "Order",
     "OrderLine",

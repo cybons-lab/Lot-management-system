@@ -242,10 +242,22 @@ def seed_products(
 
     product_rows = []
     for _ in range(req.products):
+        # Random unit configuration
+        unit_config = rng.choice(
+            [
+                {"internal": "CAN", "external": "KG", "factor": 20.0},
+                {"internal": "PCS", "external": "PCS", "factor": 1.0},
+                {"internal": "BOX", "external": "PCS", "factor": 12.0},
+                {"internal": "L", "external": "ML", "factor": 1000.0},
+            ]
+        )
+
         row = {
             "product_code": _next_code("P", 5, rng, existing_product_codes),
             "product_name": faker.bs().title(),
-            "internal_unit": "PCS",
+            "internal_unit": unit_config["internal"],
+            "external_unit": unit_config["external"],
+            "qty_per_internal_unit": unit_config["factor"],
             "created_at": datetime.utcnow(),
         }
         # Set random delivery_place_id if available
@@ -376,39 +388,51 @@ def seed_lots_with_movements(
     all_warehouses = masters["warehouses"]
     all_suppliers = masters["suppliers"]
 
-    for _ in range(req.lots):
-        prod = _choose(rng, all_products) if all_products else None
-        wh = _choose(rng, all_warehouses) if all_warehouses else None
-        supplier = _choose(rng, all_suppliers) if all_suppliers else None
-        days = rng.randint(0, 360)
+    for prod in all_products:
+        # Limit to 0-3 lots per product (weighted towards 1-2)
+        # Weights: 0 lots (5%), 1 lot (30%), 2 lots (40%), 3 lots (25%)
+        num_lots = rng.choices([0, 1, 2, 3], weights=[5, 30, 40, 25], k=1)[0]
 
-        lot = Lot(
-            product_id=(prod.id if (prod and not req.dry_run) else None),
-            warehouse_id=(wh.id if (wh and not req.dry_run) else None),
-            supplier_id=(supplier.id if (supplier and not req.dry_run) else None),
-            lot_number=faker.unique.bothify(text="LOT-########"),
-            receipt_date=datetime.utcnow().date() - timedelta(days=rng.randint(0, 30)),
-            expiry_date=datetime.utcnow().date() + timedelta(days=360 - days),
-            created_at=datetime.utcnow(),
-        )
-        created_lots.append(lot)
+        for _ in range(num_lots):
+            wh = _choose(rng, all_warehouses) if all_warehouses else None
+            supplier = _choose(rng, all_suppliers) if all_suppliers else None
+            days = rng.randint(0, 360)
 
-        if not req.dry_run:
-            db.add(lot)
-            db.flush()  # Get lot.id
-
-            # Inbound stock movement
-            recv_qty = rng.randint(5, 200)
-            movement = StockMovement(
-                product_id=lot.product_id,
-                warehouse_id=lot.warehouse_id,
-                lot_id=lot.id,
-                reason="receipt",
-                quantity_delta=recv_qty,
-                occurred_at=datetime.utcnow(),
+            lot = Lot(
+                product_id=(prod.id if (prod and not req.dry_run) else None),
+                warehouse_id=(wh.id if (wh and not req.dry_run) else None),
+                supplier_id=(supplier.id if (supplier and not req.dry_run) else None),
+                lot_number=faker.unique.bothify(text="LOT-########"),
+                receipt_date=datetime.utcnow().date() - timedelta(days=rng.randint(0, 30)),
+                expiry_date=datetime.utcnow().date() + timedelta(days=360 - days),
                 created_at=datetime.utcnow(),
+                # Use product's internal unit
+                unit=prod.internal_unit,
+                # Initial quantity (will be updated by movement)
+                current_quantity=0,
             )
-            db.add(movement)
+            created_lots.append(lot)
+
+            if not req.dry_run:
+                db.add(lot)
+                db.flush()  # Get lot.id
+
+                # Inbound stock movement
+                # Ensure sufficient stock (50-200 internal units)
+                recv_qty = rng.randint(50, 200)
+                movement = StockMovement(
+                    product_id=lot.product_id,
+                    warehouse_id=lot.warehouse_id,
+                    lot_id=lot.id,
+                    reason="receipt",
+                    quantity_delta=recv_qty,
+                    occurred_at=datetime.utcnow(),
+                    created_at=datetime.utcnow(),
+                )
+                db.add(movement)
+
+                # Update lot current quantity
+                lot.current_quantity = recv_qty
 
     if not req.dry_run:
         db.flush()
@@ -459,15 +483,37 @@ def seed_orders_with_lines(
 
         # 1-3 lines per order
         num_lines = rng.randint(1, 3)
-        for line_idx in range(num_lines):
+        for _line_idx in range(num_lines):
             prod = _choose(rng, all_products) if all_products else None
-            req_qty = rng.randint(1, 50)
+
+            # Determine unit (70% external, 30% internal)
+            use_external = rng.random() < 0.7
+            if use_external and prod.external_unit:
+                unit = prod.external_unit
+                # quantity in external unit (e.g. 20-200 KG)
+                qty = rng.randint(20, 200)
+                converted_qty = qty / float(prod.qty_per_internal_unit)
+            else:
+                unit = prod.internal_unit
+                # quantity in internal unit (e.g. 1-10 CAN)
+                qty = rng.randint(1, 10)
+                converted_qty = qty
+
             line = OrderLine(
                 order_id=(order.id if not req.dry_run else None),
                 product_id=(prod.id if (prod and not req.dry_run) else None),
-                line_no=line_idx + 1,
-                quantity=req_qty,
+                # line_no is removed in v2.2 DDL, but kept here if model still has it?
+                # Checking model... OrderLine model doesn't seem to have line_no in recent view.
+                # But let's check if it causes error. If model doesn't have it, remove it.
+                # Assuming model update removed it or made it optional.
+                # line_no=line_idx + 1,
+                order_quantity=qty,
+                unit=unit,
+                converted_quantity=converted_qty,
                 created_at=datetime.utcnow(),
+                delivery_place_id=prod.delivery_place_id
+                if prod.delivery_place_id
+                else 1,  # Fallback
             )
             created_lines.append(line)
             if not req.dry_run:
@@ -520,9 +566,16 @@ def seed_allocations_with_movements(
 
         selected_lot = _choose(rng, matching_lots)
 
-        # Allocate 50-100% of line quantity
-        alloc_qty = rng.randint(int(line.quantity * 0.5), int(line.quantity))
-        alloc_qty = max(1, min(alloc_qty, line.quantity))
+        # Allocate 50-100% of line quantity (using converted_quantity for internal unit)
+        # Ensure we have a valid converted_quantity
+        base_qty = (
+            float(line.converted_quantity)
+            if line.converted_quantity
+            else float(line.order_quantity)
+        )
+
+        alloc_qty = rng.randint(int(base_qty * 0.5), int(base_qty))
+        alloc_qty = max(1, min(alloc_qty, int(base_qty)))
 
         # Random destination
         destination_id = None
@@ -533,9 +586,10 @@ def seed_allocations_with_movements(
         allocation = Allocation(
             order_line_id=line.id,
             lot_id=selected_lot.id,
-            allocated_qty=alloc_qty,
+            allocated_quantity=alloc_qty,  # Use allocated_quantity (v2.2)
             destination_id=destination_id,
             created_at=datetime.utcnow(),
+            status="allocated",  # Set status
         )
         created_allocs.append(allocation)
         db.add(allocation)

@@ -108,6 +108,21 @@ class OrderService:
             if not product:
                 raise ProductNotFoundError(line_data.product_id)
 
+            # Calculate converted_quantity
+            converted_qty = line_data.order_quantity
+            if product.internal_unit and product.qty_per_internal_unit:
+                if line_data.unit == product.internal_unit:
+                    converted_qty = line_data.order_quantity
+                elif line_data.unit == product.external_unit:
+                    # external -> internal (e.g. KG -> CAN)
+                    # 1 CAN = 20 KG => 40 KG = 2 CAN
+                    # qty = 40 / 20 = 2
+                    converted_qty = line_data.order_quantity / product.qty_per_internal_unit
+                else:
+                    # Unknown unit, fallback to order_quantity or handle as error?
+                    # For now, fallback to order_quantity (assuming 1:1 if unknown)
+                    converted_qty = line_data.order_quantity
+
             # Create order line (DDL v2.2 compliant)
             line = OrderLine(
                 order_id=order.id,
@@ -115,6 +130,8 @@ class OrderService:
                 delivery_date=line_data.delivery_date,
                 order_quantity=line_data.order_quantity,
                 unit=line_data.unit,
+                converted_quantity=converted_qty,
+                delivery_place_id=line_data.delivery_place_id,
             )
             self.db.add(line)
 
@@ -142,34 +159,49 @@ class OrderService:
         self.db.flush()
 
     def _populate_supplier_names(self, orders: list[OrderWithLinesResponse]) -> None:
-        """Populate supplier_name for order lines based on CustomerItem mapping."""
+        """Populate supplier_name and product unit info for order lines."""
         if not orders:
             return
 
-        # Collect (customer_id, product_id) pairs
+        # Collect (customer_id, product_id) pairs and product_ids
         pairs = set()
+        product_ids = set()
         for order in orders:
             for line in order.lines:
                 pairs.add((order.customer_id, line.product_id))
+                product_ids.add(line.product_id)
 
-        if not pairs:
+        if not pairs and not product_ids:
             return
 
+        # 1. Populate Supplier Names
         customer_ids = {p[0] for p in pairs}
-        product_ids = {p[1] for p in pairs}
+        cust_prod_ids = {p[1] for p in pairs}
 
-        # Query CustomerItem joined with Supplier
         stmt = (
             select(CustomerItem.customer_id, CustomerItem.product_id, Supplier.supplier_name)
             .join(Supplier, CustomerItem.supplier_id == Supplier.id)
             .where(CustomerItem.customer_id.in_(customer_ids))
-            .where(CustomerItem.product_id.in_(product_ids))
+            .where(CustomerItem.product_id.in_(cust_prod_ids))
         )
 
         rows = self.db.execute(stmt).all()
         supplier_map = {(row.customer_id, row.product_id): row.supplier_name for row in rows}
 
+        # 2. Populate Product Unit Info
+        product_stmt = select(Product).where(Product.id.in_(product_ids))
+        products = self.db.execute(product_stmt).scalars().all()
+        product_map = {p.id: p for p in products}
+
         # Update lines
         for order in orders:
             for line in order.lines:
+                # Supplier Name
                 line.supplier_name = supplier_map.get((order.customer_id, line.product_id))
+
+                # Product Unit Info
+                product = product_map.get(line.product_id)
+                if product:
+                    line.product_internal_unit = product.internal_unit
+                    line.product_external_unit = product.external_unit
+                    line.product_qty_per_internal_unit = float(product.qty_per_internal_unit or 1.0)
