@@ -54,9 +54,7 @@ class Order(Base):
     )
 
     order_date: Mapped[date] = mapped_column(Date, nullable=False)
-    status: Mapped[str] = mapped_column(
-        String(20), nullable=False, server_default=text("'open'")
-    )
+    status: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'open'"))
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()

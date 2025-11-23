@@ -674,40 +674,40 @@ def allocate_with_tracing(
     reference_date: date | None = None,
 ) -> dict:
     """トレースログ付き引当処理（エンタープライズレベル）.
-    
+
     純粋関数の計算エンジンを使用し、引当の推論過程を記録します。
     楽観的ロックを使用して同時実行制御を行います。
-    
+
     Args:
         db: データベースセッション
         order_line_id: 注文明細ID
         reference_date: 基準日（期限切れ判定用、デフォルトは今日）
-    
+
     Returns:
         dict: 引当結果とトレースログ
             - allocated_lots: 引き当てられたロット情報のリスト
             - total_allocated: 引当合計数量
             - shortage: 不足数量
             - trace_count: 保存されたトレースログ数
-    
+
     Raises:
         ValueError: 注文明細が見つからない場合
         AllocationCommitError: 引当処理に失敗した場合
     """
     from datetime import date as date_type
-    
+
     from sqlalchemy.exc import StaleDataError
-    
+
     from app.domain.allocation import (
         AllocationRequest,
         LotCandidate,
         calculate_allocation,
     )
     from app.models import AllocationTrace
-    
+
     if reference_date is None:
         reference_date = date_type.today()
-    
+
     # 注文明細を取得
     line_stmt = (
         select(OrderLine)
@@ -717,11 +717,11 @@ def allocate_with_tracing(
     order_line = db.execute(line_stmt).scalar_one_or_none()
     if not order_line:
         raise ValueError(f"OrderLine {order_line_id} not found")
-    
+
     product_id = order_line.product_id
     if not product_id:
         raise ValueError(f"OrderLine {order_line_id} has no product_id")
-    
+
     # 候補ロットを取得
     lot_stmt = (
         select(Lot)
@@ -737,7 +737,7 @@ def allocate_with_tracing(
         )
     )
     lots = db.execute(lot_stmt).scalars().all()
-    
+
     # LotCandidateに変換
     candidates = [
         LotCandidate(
@@ -751,7 +751,7 @@ def allocate_with_tracing(
         )
         for lot in lots
     ]
-    
+
     # 引当計算エンジンを実行
     request = AllocationRequest(
         order_line_id=order_line_id,
@@ -762,7 +762,7 @@ def allocate_with_tracing(
         allow_partial=True,
     )
     result = calculate_allocation(request, candidates)
-    
+
     # トランザクション内でDB更新
     max_retries = 3
     for attempt in range(max_retries):
@@ -771,11 +771,11 @@ def allocate_with_tracing(
             for decision in result.allocated_lots:
                 lot_stmt = select(Lot).where(Lot.id == decision.lot_id)
                 lot = db.execute(lot_stmt).scalar_one()
-                
+
                 # 引当数量を更新（楽観的ロックが自動的にチェック）
                 lot.allocated_quantity += decision.allocated_qty
                 lot.updated_at = datetime.utcnow()
-                
+
                 # Allocationレコード作成
                 allocation = Allocation(
                     order_line_id=order_line_id,
@@ -785,7 +785,7 @@ def allocate_with_tracing(
                     created_at=datetime.utcnow(),
                 )
                 db.add(allocation)
-            
+
             # トレースログを保存
             for trace in result.trace_logs:
                 trace_log = AllocationTrace(
@@ -798,10 +798,10 @@ def allocate_with_tracing(
                     created_at=datetime.utcnow(),
                 )
                 db.add(trace_log)
-            
+
             db.commit()
             break  # 成功したらループを抜ける
-            
+
         except StaleDataError:
             db.rollback()
             if attempt == max_retries - 1:
@@ -810,7 +810,7 @@ def allocate_with_tracing(
                 )
             # リトライ前に最新データを再取得
             continue
-    
+
     return {
         "allocated_lots": [
             {

@@ -7,6 +7,7 @@ Legacy columns (address, created_by, deleted_at, etc.) have been removed.
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
@@ -25,7 +26,6 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base_model import Base
-from decimal import Decimal
 
 
 if TYPE_CHECKING:  # pragma: no cover - for type checkers only

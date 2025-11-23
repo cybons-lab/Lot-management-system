@@ -191,12 +191,18 @@ export function LotListCard({
         <div className="min-w-[140px] text-right">
           <div className="text-xs font-bold text-gray-400">残量 / 総量</div>
           <div className="text-sm font-bold text-gray-900">
-            {formatQuantity(remainingInLot, lot.internal_unit || "PCS")} / {formatQuantity(freeQty, lot.internal_unit || "PCS")} {lot.internal_unit}
+            {formatQuantity(remainingInLot, lot.internal_unit || "PCS")} /{" "}
+            {formatQuantity(freeQty, lot.internal_unit || "PCS")} {lot.internal_unit}
           </div>
           {lot.qty_per_internal_unit && lot.external_unit && (
             <div className="text-[10px] text-gray-500">
-              (= {formatQuantity(remainingInLot * lot.qty_per_internal_unit, lot.external_unit || "BOX")} /{" "}
-              {formatQuantity(freeQty * lot.qty_per_internal_unit, lot.external_unit || "BOX")} {lot.external_unit})
+              (={" "}
+              {formatQuantity(
+                remainingInLot * lot.qty_per_internal_unit,
+                lot.external_unit || "BOX",
+              )}{" "}
+              / {formatQuantity(freeQty * lot.qty_per_internal_unit, lot.external_unit || "BOX")}{" "}
+              {lot.external_unit})
             </div>
           )}
         </div>
@@ -234,8 +240,13 @@ export function LotListCard({
               <span className="text-xs text-gray-500">{lot.internal_unit}</span>
             </div>
             {allocatedQty > 0 && lot.qty_per_internal_unit && lot.external_unit && (
-              <div className="absolute -bottom-4 left-0 right-0 text-center text-[10px] text-gray-500">
-                = {formatQuantity(allocatedQty * lot.qty_per_internal_unit, lot.external_unit || "BOX")} {lot.external_unit}
+              <div className="absolute right-0 -bottom-4 left-0 text-center text-[10px] text-gray-500">
+                ={" "}
+                {formatQuantity(
+                  allocatedQty * lot.qty_per_internal_unit,
+                  lot.external_unit || "BOX",
+                )}{" "}
+                {lot.external_unit}
               </div>
             )}
           </div>

@@ -198,7 +198,7 @@ class OrderService:
             for line in order.lines:
                 # Supplier Name
                 line.supplier_name = supplier_map.get((order.customer_id, line.product_id))
-                
+
                 # Product Unit Info
                 product = product_map.get(line.product_id)
                 if product:

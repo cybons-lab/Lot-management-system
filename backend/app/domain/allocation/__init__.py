@@ -20,7 +20,6 @@ from .types import (
 )
 
 
-
 __all__ = [
     # Exceptions
     "ValidationError",
@@ -42,4 +41,3 @@ __all__ = [
     "AllocationDecision",
     "AllocationResult",
 ]
-

@@ -8,7 +8,7 @@ from decimal import Decimal
 @dataclass
 class LotCandidate:
     """引当候補ロット情報.
-    
+
     Attributes:
         lot_id: ロットID
         lot_number: ロット番号
@@ -18,7 +18,7 @@ class LotCandidate:
         allocated_quantity: 既に引き当て済みの数量
         status: ロットステータス
     """
-    
+
     lot_id: int
     lot_number: str
     expiry_date: date | None
@@ -31,14 +31,14 @@ class LotCandidate:
 @dataclass
 class AllocationRequest:
     """引当リクエスト.
-    
+
     Attributes:
         order_line_id: 注文明細ID
         required_quantity: 必要数量
         reference_date: 基準日（期限切れ判定に使用）
         allow_partial: 分納を許可するか（デフォルト: True）
     """
-    
+
     order_line_id: int
     required_quantity: Decimal
     reference_date: date
@@ -48,7 +48,7 @@ class AllocationRequest:
 @dataclass
 class AllocationDecision:
     """個別ロットの引当判定結果.
-    
+
     Attributes:
         lot_id: ロットID（判定対象外の場合はNone）
         lot_number: ロット番号（判定対象外の場合は空文字）
@@ -57,7 +57,7 @@ class AllocationDecision:
         reason: 理由（"FEFO採用", "期限切れ", "在庫不足" 等）
         allocated_qty: 実際に引き当てた数量
     """
-    
+
     lot_id: int | None
     lot_number: str
     score: Decimal | None
@@ -69,14 +69,14 @@ class AllocationDecision:
 @dataclass
 class AllocationResult:
     """引当計算の最終結果.
-    
+
     Attributes:
         allocated_lots: 引き当てられたロットのリスト（採用されたもののみ）
         trace_logs: 全てのトレースログ（採用/不採用両方）
         total_allocated: 引当合計数量
         shortage: 不足数量
     """
-    
+
     allocated_lots: list[AllocationDecision]
     trace_logs: list[AllocationDecision]
     total_allocated: Decimal

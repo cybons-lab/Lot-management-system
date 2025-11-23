@@ -24,27 +24,27 @@ export function OrderLineCard({
   // 引当済み数量を計算(allocated_lotsまたはallocationsから)
   const allocatedQty: number = line.allocated_lots
     ? line.allocated_lots.reduce((sum: number, alloc) => {
-      // DDL v2.2: prefer allocated_quantity, fallback to allocated_qty
-      const qty =
-        typeof alloc === "object" && alloc !== null
-          ? Number(
-            (
-              alloc as {
-                allocated_quantity?: number | string | null;
-                allocated_qty?: number | null;
-              }
-            ).allocated_quantity ??
-            (
-              alloc as {
-                allocated_quantity?: number | string | null;
-                allocated_qty?: number | null;
-              }
-            ).allocated_qty ??
-            0,
-          )
-          : 0;
-      return sum + qty;
-    }, 0)
+        // DDL v2.2: prefer allocated_quantity, fallback to allocated_qty
+        const qty =
+          typeof alloc === "object" && alloc !== null
+            ? Number(
+                (
+                  alloc as {
+                    allocated_quantity?: number | string | null;
+                    allocated_qty?: number | null;
+                  }
+                ).allocated_quantity ??
+                  (
+                    alloc as {
+                      allocated_quantity?: number | string | null;
+                      allocated_qty?: number | null;
+                    }
+                  ).allocated_qty ??
+                  0,
+              )
+            : 0;
+        return sum + qty;
+      }, 0)
     : 0;
 
   // Prefer the original order quantity/unit for display; calculations fall back as needed
@@ -63,10 +63,11 @@ export function OrderLineCard({
   return (
     <button
       type="button"
-      className={`w-full cursor-pointer rounded-lg border p-3 text-left transition-all ${isSelected
-        ? "border-blue-500 bg-blue-50 shadow-md"
-        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-        }`}
+      className={`w-full cursor-pointer rounded-lg border p-3 text-left transition-all ${
+        isSelected
+          ? "border-blue-500 bg-blue-50 shadow-md"
+          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+      }`}
       onClick={onClick}
     >
       <div className="mb-2 flex items-start justify-between">
@@ -77,12 +78,15 @@ export function OrderLineCard({
         </div>
         <div className="text-right">
           <div className="text-sm font-semibold">
-            {formatQuantity(displayedAllocated, displayUnit)} / {formatQuantity(displayQuantity, displayUnit)} <span className="text-xs font-normal text-gray-500">{displayUnit}</span>
+            {formatQuantity(displayedAllocated, displayUnit)} /{" "}
+            {formatQuantity(displayQuantity, displayUnit)}{" "}
+            <span className="text-xs font-normal text-gray-500">{displayUnit}</span>
           </div>
           {/* <div className="text-xs text-gray-500">{unitLabel}</div> */}
           {pendingApplied > 0 && (
             <div className="text-[11px] text-blue-600">
-              確定 {formatQuantity(allocatedQty, unitLabel)} + 配分 {formatQuantity(pendingApplied, unitLabel)}
+              確定 {formatQuantity(allocatedQty, unitLabel)} + 配分{" "}
+              {formatQuantity(pendingApplied, unitLabel)}
             </div>
           )}
         </div>
@@ -91,8 +95,9 @@ export function OrderLineCard({
       {/* 進捗バー */}
       <div className="mb-1 h-2 w-full rounded-full bg-gray-200">
         <div
-          className={`h-2 rounded-full transition-all ${progress === 100 ? "bg-green-500" : "bg-blue-500"
-            }`}
+          className={`h-2 rounded-full transition-all ${
+            progress === 100 ? "bg-green-500" : "bg-blue-500"
+          }`}
           style={{ width: `${Math.min(progress, 100)}%` }}
         />
       </div>
@@ -105,7 +110,8 @@ export function OrderLineCard({
             line.product_qty_per_internal_unit &&
             unitLabel !== line.product_internal_unit && (
               <span className="ml-1 text-gray-400">
-                (= {formatQuantity(getOrderQuantity(line), line.product_internal_unit || "PCS")} {line.product_internal_unit})
+                (= {formatQuantity(getOrderQuantity(line), line.product_internal_unit || "PCS")}{" "}
+                {line.product_internal_unit})
               </span>
             )}
           {line.product_internal_unit &&
@@ -113,7 +119,11 @@ export function OrderLineCard({
             unitLabel === line.product_internal_unit &&
             line.product_external_unit && (
               <span className="ml-1 text-gray-400">
-                (= {formatQuantity(displayQuantity * line.product_qty_per_internal_unit, line.product_internal_unit || "PCS")} {" "}
+                (={" "}
+                {formatQuantity(
+                  displayQuantity * line.product_qty_per_internal_unit,
+                  line.product_internal_unit || "PCS",
+                )}{" "}
                 {line.product_external_unit})
               </span>
             )}
@@ -123,7 +133,9 @@ export function OrderLineCard({
 
       <div className="mt-1 flex justify-between text-xs text-gray-600">
         {remainingQty > 0 ? (
-          <span className="font-medium text-orange-600">残り {formatQuantity(remainingQty, unitLabel)}</span>
+          <span className="font-medium text-orange-600">
+            残り {formatQuantity(remainingQty, unitLabel)}
+          </span>
         ) : (
           <span className="invisible">-</span>
         )}

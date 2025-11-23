@@ -243,13 +243,15 @@ def seed_products(
     product_rows = []
     for _ in range(req.products):
         # Random unit configuration
-        unit_config = rng.choice([
-            {"internal": "CAN", "external": "KG", "factor": 20.0},
-            {"internal": "PCS", "external": "PCS", "factor": 1.0},
-            {"internal": "BOX", "external": "PCS", "factor": 12.0},
-            {"internal": "L", "external": "ML", "factor": 1000.0},
-        ])
-        
+        unit_config = rng.choice(
+            [
+                {"internal": "CAN", "external": "KG", "factor": 20.0},
+                {"internal": "PCS", "external": "PCS", "factor": 1.0},
+                {"internal": "BOX", "external": "PCS", "factor": 12.0},
+                {"internal": "L", "external": "ML", "factor": 1000.0},
+            ]
+        )
+
         row = {
             "product_code": _next_code("P", 5, rng, existing_product_codes),
             "product_name": faker.bs().title(),
@@ -390,7 +392,7 @@ def seed_lots_with_movements(
         # Limit to 0-3 lots per product (weighted towards 1-2)
         # Weights: 0 lots (5%), 1 lot (30%), 2 lots (40%), 3 lots (25%)
         num_lots = rng.choices([0, 1, 2, 3], weights=[5, 30, 40, 25], k=1)[0]
-        
+
         for _ in range(num_lots):
             wh = _choose(rng, all_warehouses) if all_warehouses else None
             supplier = _choose(rng, all_suppliers) if all_suppliers else None
@@ -428,7 +430,7 @@ def seed_lots_with_movements(
                     created_at=datetime.utcnow(),
                 )
                 db.add(movement)
-                
+
                 # Update lot current quantity
                 lot.current_quantity = recv_qty
 
@@ -483,7 +485,7 @@ def seed_orders_with_lines(
         num_lines = rng.randint(1, 3)
         for _line_idx in range(num_lines):
             prod = _choose(rng, all_products) if all_products else None
-            
+
             # Determine unit (70% external, 30% internal)
             use_external = rng.random() < 0.7
             if use_external and prod.external_unit:
@@ -500,16 +502,18 @@ def seed_orders_with_lines(
             line = OrderLine(
                 order_id=(order.id if not req.dry_run else None),
                 product_id=(prod.id if (prod and not req.dry_run) else None),
-                # line_no is removed in v2.2 DDL, but kept here if model still has it? 
+                # line_no is removed in v2.2 DDL, but kept here if model still has it?
                 # Checking model... OrderLine model doesn't seem to have line_no in recent view.
                 # But let's check if it causes error. If model doesn't have it, remove it.
                 # Assuming model update removed it or made it optional.
-                # line_no=line_idx + 1, 
+                # line_no=line_idx + 1,
                 order_quantity=qty,
                 unit=unit,
                 converted_quantity=converted_qty,
                 created_at=datetime.utcnow(),
-                delivery_place_id=prod.delivery_place_id if prod.delivery_place_id else 1 # Fallback
+                delivery_place_id=prod.delivery_place_id
+                if prod.delivery_place_id
+                else 1,  # Fallback
             )
             created_lines.append(line)
             if not req.dry_run:
@@ -564,8 +568,12 @@ def seed_allocations_with_movements(
 
         # Allocate 50-100% of line quantity (using converted_quantity for internal unit)
         # Ensure we have a valid converted_quantity
-        base_qty = float(line.converted_quantity) if line.converted_quantity else float(line.order_quantity)
-        
+        base_qty = (
+            float(line.converted_quantity)
+            if line.converted_quantity
+            else float(line.order_quantity)
+        )
+
         alloc_qty = rng.randint(int(base_qty * 0.5), int(base_qty))
         alloc_qty = max(1, min(alloc_qty, int(base_qty)))
 
@@ -578,10 +586,10 @@ def seed_allocations_with_movements(
         allocation = Allocation(
             order_line_id=line.id,
             lot_id=selected_lot.id,
-            allocated_quantity=alloc_qty, # Use allocated_quantity (v2.2)
+            allocated_quantity=alloc_qty,  # Use allocated_quantity (v2.2)
             destination_id=destination_id,
             created_at=datetime.utcnow(),
-            status="allocated" # Set status
+            status="allocated",  # Set status
         )
         created_allocs.append(allocation)
         db.add(allocation)
