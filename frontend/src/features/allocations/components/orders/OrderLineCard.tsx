@@ -2,6 +2,7 @@
  * OrderLineCard component - displays an order line in the detail pane
  */
 
+import { getOrderQuantity } from "../../hooks/useLotAllocation/allocationFieldHelpers";
 import type { OrderLine } from "../../types";
 
 import { formatDate } from "@/shared/utils/date";
@@ -104,7 +105,7 @@ export function OrderLineCard({
             line.product_qty_per_internal_unit &&
             unitLabel !== line.product_internal_unit && (
               <span className="ml-1 text-gray-400">
-                (= {formatQuantity(Number(line.converted_quantity || 0), line.product_internal_unit || "PCS")} {line.product_internal_unit})
+                (= {formatQuantity(getOrderQuantity(line), line.product_internal_unit || "PCS")} {line.product_internal_unit})
               </span>
             )}
           {line.product_internal_unit &&
