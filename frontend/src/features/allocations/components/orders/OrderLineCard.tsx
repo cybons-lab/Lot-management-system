@@ -46,8 +46,10 @@ export function OrderLineCard({
     }, 0)
     : 0;
 
-  // DDL v2.2: prefer order_quantity, fallback to quantity
-  const totalQuantity = Number(line.order_quantity ?? line.quantity ?? 0);
+  // Prefer the original order quantity/unit for display; calculations fall back as needed
+  const totalQuantity = Number(line.quantity ?? line.order_quantity ?? 0);
+  const displayQuantity = Number(line.quantity ?? line.order_quantity ?? 0);
+  const displayUnit = line.unit ?? "";
   const effectivePending = isSelected ? Math.max(0, pendingAllocatedQty) : 0;
   const displayedAllocated = Math.min(totalQuantity, allocatedQty + effectivePending);
   const pendingApplied = Math.max(0, displayedAllocated - allocatedQty);
@@ -74,7 +76,7 @@ export function OrderLineCard({
         </div>
         <div className="text-right">
           <div className="text-sm font-semibold">
-            {formatQuantity(displayedAllocated, unitLabel)} / {formatQuantity(totalQuantity, unitLabel)} <span className="text-xs font-normal text-gray-500">{unitLabel}</span>
+            {formatQuantity(displayedAllocated, displayUnit)} / {formatQuantity(displayQuantity, displayUnit)} <span className="text-xs font-normal text-gray-500">{displayUnit}</span>
           </div>
           {/* <div className="text-xs text-gray-500">{unitLabel}</div> */}
           {pendingApplied > 0 && (
@@ -96,7 +98,7 @@ export function OrderLineCard({
 
       <div className="flex justify-between text-xs text-gray-600">
         <span>
-          受注数量: {formatQuantity(totalQuantity, unitLabel)} {unitLabel}
+          受注数量: {formatQuantity(displayQuantity, displayUnit)} {displayUnit}
           {/* Dual Unit Display */}
           {line.product_internal_unit &&
             line.product_qty_per_internal_unit &&
@@ -110,7 +112,7 @@ export function OrderLineCard({
             unitLabel === line.product_internal_unit &&
             line.product_external_unit && (
               <span className="ml-1 text-gray-400">
-                (= {formatQuantity(totalQuantity * line.product_qty_per_internal_unit, line.product_internal_unit || "PCS")}{" "}
+                (= {formatQuantity(displayQuantity * line.product_qty_per_internal_unit, line.product_internal_unit || "PCS")} {" "}
                 {line.product_external_unit})
               </span>
             )}
