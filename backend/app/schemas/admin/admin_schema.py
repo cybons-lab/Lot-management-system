@@ -3,7 +3,8 @@
 from pydantic import BaseModel
 
 from app.schemas.inventory.inventory_schema import LotCreate
-from app.schemas.masters.masters_schema import MasterBulkLoadResponse, ProductCreate
+from app.schemas.masters.masters_schema import MasterBulkLoadResponse
+from app.schemas.masters.products_schema import ProductCreate
 
 
 class FullSampleDataRequest(BaseModel):

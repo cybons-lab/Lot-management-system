@@ -11,6 +11,7 @@ from datetime import datetime
 from pydantic import Field
 
 from app.schemas.common.base import BaseSchema
+from app.schemas.masters.products_schema import ProductCreate, ProductOut
 
 
 # ============================================================
@@ -49,21 +50,6 @@ class WarehouseResponse(WarehouseBase):
     id: int
     created_at: datetime
     updated_at: datetime
-
-
-class WarehouseOut(BaseSchema):
-    """Simplified warehouse output (for list views)."""
-
-    id: int = Field(serialization_alias="warehouse_id")
-    warehouse_code: str
-    warehouse_name: str
-    warehouse_type: str
-
-
-class WarehouseListResponse(BaseSchema):
-    """Warehouse list response."""
-
-    items: list[WarehouseOut]
 
 
 # ============================================================
@@ -167,42 +153,6 @@ class DeliveryPlaceResponse(DeliveryPlaceBase):
 
 
 # ============================================================
-# Product (製品マスタ)
-# ============================================================
-
-
-class ProductBase(BaseSchema):
-    """Base product schema (DDL: products)."""
-
-    maker_part_code: str = Field(..., min_length=1, max_length=100, description="メーカー品番")
-    product_name: str = Field(..., min_length=1, max_length=200)
-    base_unit: str = Field(..., min_length=1, max_length=20, description="社内在庫単位")
-    consumption_limit_days: int | None = Field(None, ge=0, description="消費期限日数")
-
-
-class ProductCreate(ProductBase):
-    """Create product request."""
-
-    pass
-
-
-class ProductUpdate(BaseSchema):
-    """Update product request."""
-
-    product_name: str | None = Field(None, min_length=1, max_length=200)
-    base_unit: str | None = Field(None, min_length=1, max_length=20)
-    consumption_limit_days: int | None = Field(None, ge=0)
-
-
-class ProductResponse(ProductBase):
-    """Product response (DDL: products)."""
-
-    id: int
-    created_at: datetime
-    updated_at: datetime
-
-
-# ============================================================
 # Bulk Load (一括登録)
 # ============================================================
 
@@ -238,7 +188,7 @@ class CustomerListResponse(BaseSchema):
 class ProductListResponse(BaseSchema):
     """Product list response."""
 
-    items: list[ProductResponse]
+    items: list[ProductOut]
 
 
 class SupplierListResponse(BaseSchema):

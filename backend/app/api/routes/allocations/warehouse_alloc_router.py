@@ -9,7 +9,7 @@ from app.api.deps import get_db
 
 # 既存の models.masters.Warehouse とは異なる、新しいモデルをインポート
 from app.models import Warehouse
-from app.schemas.masters.masters_schema import WarehouseListResponse, WarehouseOut
+from app.schemas.masters.warehouses_schema import WarehouseListResponse, WarehouseOut
 
 
 router = APIRouter(prefix="/warehouse-alloc", tags=["warehouse-alloc"])
@@ -22,8 +22,5 @@ def list_warehouses(db: Session = Depends(get_db)):
     stmt = select(Warehouse).order_by(Warehouse.warehouse_code)
     warehouses = db.execute(stmt).scalars().all()
 
-    items = [
-        WarehouseOut(warehouse_code=w.warehouse_code, warehouse_name=w.warehouse_name)
-        for w in warehouses
-    ]
+    items = [WarehouseOut(warehouse_id=w.id, warehouse_name=w.warehouse_name) for w in warehouses]
     return WarehouseListResponse(items=items)

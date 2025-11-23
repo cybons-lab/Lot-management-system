@@ -5,7 +5,7 @@
 // Order-related components
 export {
   OrderCard,
-  OrderLineCard,
+  AllocationOrderLineCard,
   OrdersPane,
   OrderLinesPane,
   OrderLinesPaneView,

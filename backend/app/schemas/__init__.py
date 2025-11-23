@@ -14,7 +14,7 @@ Organized into feature-based subpackages:
 
 Import schemas directly from their subpackages:
     from app.schemas.orders.orders_schema import OrderCreate, OrderResponse
-    from app.schemas.masters.masters_schema import ProductCreate
+    from app.schemas.masters.products_schema import ProductCreate
 """
 
 from __future__ import annotations

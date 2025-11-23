@@ -3,7 +3,7 @@
  */
 
 export { OrderCard } from "./OrderCard";
-export { OrderLineCard } from "./OrderLineCard";
+export { AllocationOrderLineCard } from "./AllocationOrderLineCard";
 export { OrdersPane } from "./OrdersPane";
 export { OrderLinesPane } from "./OrderLinesPane";
 export { OrderLinesPaneView } from "./OrderLinesPaneView";

@@ -83,7 +83,7 @@ export function OrderAndLineListPane({
               <div className="p-8 text-center text-sm text-gray-500">明細がありません</div>
             ) : (
               (selectedOrderDetail.lines ?? []).map((line) => (
-                <OrderLineCard
+                <AllocationOrderLineListCard
                   key={line.id}
                   line={line}
                   isSelected={selectedLineId === line.id}
@@ -137,15 +137,19 @@ function OrderCard({ order, isSelected, onSelect }: OrderCardProps) {
 }
 
 /**
- * OrderLineCard - 受注明細カード
+ * AllocationOrderLineListCard - 受注明細カード
  */
-interface OrderLineCardProps {
+interface AllocationOrderLineListCardProps {
   line: OrderLine;
   isSelected: boolean;
   onSelect: (lineId: number) => void;
 }
 
-function OrderLineCard({ line, isSelected, onSelect }: OrderLineCardProps) {
+function AllocationOrderLineListCard({
+  line,
+  isSelected,
+  onSelect,
+}: AllocationOrderLineListCardProps) {
   const orderQty = parseFloat(String(line.quantity ?? line.order_quantity ?? 0));
 
   return (
