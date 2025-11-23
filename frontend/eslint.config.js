@@ -231,7 +231,7 @@ export default [
       "src/features/admin/pages/SeedDataPage.tsx",
       // Allocation components
       "src/features/allocations/components/OrderCard.tsx",
-      "src/features/allocations/components/OrderLineCard.tsx",
+      "src/features/allocations/components/orders/AllocationOrderLineCard.tsx",
       "src/features/allocations/components/LotAllocationPane.tsx",
       "src/features/allocations/components/LotAllocationPanel.tsx",
       "src/features/allocations/components/OrderDetailPane.tsx",

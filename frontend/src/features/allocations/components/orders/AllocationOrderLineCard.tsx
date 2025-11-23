@@ -1,5 +1,5 @@
 /**
- * OrderLineCard component - displays an order line in the detail pane
+ * AllocationOrderLineCard component - displays an order line in the detail pane
  */
 
 import { getOrderQuantity } from "../../hooks/useLotAllocation/allocationFieldHelpers";
@@ -8,19 +8,19 @@ import type { OrderLine } from "../../types";
 import { formatDate } from "@/shared/utils/date";
 import { formatQuantity } from "@/shared/utils/formatQuantity";
 
-interface OrderLineCardProps {
+interface AllocationOrderLineCardProps {
   line: OrderLine;
   isSelected: boolean;
   onClick: () => void;
   pendingAllocatedQty?: number;
 }
 
-export function OrderLineCard({
+export function AllocationOrderLineCard({
   line,
   isSelected,
   onClick,
   pendingAllocatedQty = 0,
-}: OrderLineCardProps) {
+}: AllocationOrderLineCardProps) {
   // 引当済み数量を計算(allocated_lotsまたはallocationsから)
   const allocatedQty: number = line.allocated_lots
     ? line.allocated_lots.reduce((sum: number, alloc) => {
